@@ -8,52 +8,52 @@ Page {
     objectName: "settingsPage"
     background: Rectangle { color: Theme.backgroundColor }
 
-    header: ToolBar {
-        background: Rectangle { color: Theme.surfaceColor }
-
-        RowLayout {
-            anchors.fill: parent
-
-            ToolButton {
-                icon.source: "qrc:/icons/back.svg"
-                onClicked: root.goBack()
-            }
-
-            Label {
-                text: "Settings"
-                color: Theme.textColor
-                font: Theme.headingFont
-                Layout.fillWidth: true
-            }
-        }
+    // Header
+    Text {
+        id: headerText
+        anchors.top: parent.top
+        anchors.topMargin: 70
+        anchors.left: parent.left
+        anchors.leftMargin: Theme.standardMargin
+        text: "Settings"
+        color: Theme.textColor
+        font: Theme.headingFont
     }
 
-    ScrollView {
-        anchors.fill: parent
-        anchors.margins: Theme.standardMargin
+    // Main content area
+    Item {
+        anchors.top: headerText.bottom
+        anchors.topMargin: 15
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: aboutBox.top
+        anchors.bottomMargin: 15
+        anchors.leftMargin: Theme.standardMargin
+        anchors.rightMargin: Theme.standardMargin
 
-        ColumnLayout {
-            width: parent.width
-            spacing: 20
+        // Machine and Scale side by side
+        RowLayout {
+            anchors.fill: parent
+            spacing: 15
 
             // Machine Connection
-            GroupBox {
+            Rectangle {
                 Layout.fillWidth: true
-                title: "Machine Connection"
-                label: Text {
-                    text: parent.title
-                    color: Theme.textColor
-                    font: Theme.bodyFont
-                }
-
-                background: Rectangle {
-                    color: Theme.surfaceColor
-                    radius: Theme.cardRadius
-                }
+                Layout.fillHeight: true
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
 
                 ColumnLayout {
                     anchors.fill: parent
+                    anchors.margins: 15
                     spacing: 10
+
+                    Text {
+                        text: "Machine"
+                        color: Theme.textColor
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -71,7 +71,7 @@ Page {
                         Item { Layout.fillWidth: true }
 
                         Button {
-                            text: BLEManager.scanning ? "Stop Scan" : "Scan"
+                            text: BLEManager.scanning ? "Stop" : "Scan"
                             onClicked: {
                                 if (BLEManager.scanning) {
                                     BLEManager.stopScan()
@@ -90,7 +90,7 @@ Page {
 
                     ListView {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 150
+                        Layout.fillHeight: true
                         clip: true
                         model: BLEManager.discoveredDevices
 
@@ -118,23 +118,23 @@ Page {
             }
 
             // Scale Connection
-            GroupBox {
+            Rectangle {
                 Layout.fillWidth: true
-                title: "Scale Connection"
-                label: Text {
-                    text: parent.title
-                    color: Theme.textColor
-                    font: Theme.bodyFont
-                }
-
-                background: Rectangle {
-                    color: Theme.surfaceColor
-                    radius: Theme.cardRadius
-                }
+                Layout.fillHeight: true
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
 
                 ColumnLayout {
                     anchors.fill: parent
+                    anchors.margins: 15
                     spacing: 10
+
+                    Text {
+                        text: "Scale"
+                        color: Theme.textColor
+                        font.pixelSize: 16
+                        font.bold: true
+                    }
 
                     RowLayout {
                         Layout.fillWidth: true
@@ -145,8 +145,8 @@ Page {
                         }
 
                         Text {
-                            text: ScaleDevice.connected ? "Connected" : "Disconnected"
-                            color: ScaleDevice.connected ? Theme.successColor : Theme.textSecondaryColor
+                            text: (ScaleDevice && ScaleDevice.connected) ? "Connected" : "Disconnected"
+                            color: (ScaleDevice && ScaleDevice.connected) ? Theme.successColor : Theme.textSecondaryColor
                         }
 
                         Item { Layout.fillWidth: true }
@@ -161,7 +161,7 @@ Page {
                     // Show weight when connected
                     RowLayout {
                         Layout.fillWidth: true
-                        visible: ScaleDevice.connected
+                        visible: ScaleDevice && ScaleDevice.connected
 
                         Text {
                             text: "Weight:"
@@ -169,7 +169,7 @@ Page {
                         }
 
                         Text {
-                            text: ScaleDevice.weight.toFixed(1) + " g"
+                            text: ScaleDevice ? ScaleDevice.weight.toFixed(1) + " g" : "0.0 g"
                             color: Theme.textColor
                             font: Theme.bodyFont
                         }
@@ -178,15 +178,17 @@ Page {
 
                         Button {
                             text: "Tare"
-                            onClicked: ScaleDevice.tare()
+                            onClicked: {
+                                if (ScaleDevice) ScaleDevice.tare()
+                            }
                         }
                     }
 
                     ListView {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: Math.min(150, Math.max(50, count * 50))
+                        Layout.fillHeight: true
                         clip: true
-                        visible: !ScaleDevice.connected
+                        visible: !ScaleDevice || !ScaleDevice.connected
                         model: BLEManager.discoveredScales
 
                         delegate: ItemDelegate {
@@ -221,45 +223,74 @@ Page {
                     }
                 }
             }
+        }
+    }
 
-            // About
-            GroupBox {
-                Layout.fillWidth: true
-                title: "About"
-                label: Text {
-                    text: parent.title
-                    color: Theme.textColor
-                    font: Theme.bodyFont
-                }
+    // About - bottom left
+    Rectangle {
+        id: aboutBox
+        anchors.left: parent.left
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: Theme.standardMargin
+        anchors.bottomMargin: 85
+        width: 200
+        height: 80
+        color: Theme.surfaceColor
+        radius: Theme.cardRadius
 
-                background: Rectangle {
-                    color: Theme.surfaceColor
-                    radius: Theme.cardRadius
-                }
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 2
 
-                ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 5
-
-                    Text {
-                        text: "DE1 Controller"
-                        color: Theme.textColor
-                        font: Theme.bodyFont
-                    }
-
-                    Text {
-                        text: "Version 1.0.0"
-                        color: Theme.textSecondaryColor
-                    }
-
-                    Text {
-                        text: "Built with Qt 6"
-                        color: Theme.textSecondaryColor
-                    }
-                }
+            Text {
+                text: "DE1 Controller"
+                color: Theme.textColor
+                font.pixelSize: 14
+                font.bold: true
             }
 
-            Item { Layout.preferredHeight: 50 }
+            Text {
+                text: "Version 1.0.0"
+                color: Theme.textSecondaryColor
+                font.pixelSize: 12
+            }
+
+            Text {
+                text: "Built with Qt 6"
+                color: Theme.textSecondaryColor
+                font.pixelSize: 12
+            }
+        }
+    }
+
+    // Bottom bar with back button
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 70
+        color: Theme.surfaceColor
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 10
+            anchors.rightMargin: 20
+            spacing: 15
+
+            // Back button
+            RoundButton {
+                Layout.preferredWidth: 50
+                Layout.preferredHeight: 50
+                icon.source: "qrc:/icons/back.svg"
+                icon.width: 28
+                icon.height: 28
+                flat: true
+                icon.color: Theme.textColor
+                onClicked: root.goToIdle()
+            }
+
+            Item { Layout.fillWidth: true }
         }
     }
 }

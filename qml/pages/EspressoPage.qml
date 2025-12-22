@@ -8,6 +8,17 @@ Page {
     objectName: "espressoPage"
     background: Rectangle { color: Theme.backgroundColor }
 
+    // Profile name header
+    Text {
+        anchors.top: parent.top
+        anchors.topMargin: 70
+        anchors.left: parent.left
+        anchors.leftMargin: Theme.standardMargin
+        text: MainController.currentProfileName
+        color: Theme.textColor
+        font: Theme.headingFont
+    }
+
     // Full-screen shot graph
     ShotGraph {
         id: shotGraph
@@ -20,7 +31,7 @@ Page {
     Rectangle {
         id: statusBanner
         anchors.top: parent.top
-        anchors.topMargin: 60
+        anchors.topMargin: 100
         anchors.horizontalCenter: parent.horizontalCenter
         width: statusText.width + 40
         height: 36
@@ -50,11 +61,26 @@ Page {
         RowLayout {
             anchors.fill: parent
             anchors.margins: 15
-            spacing: 20
+            spacing: 15
+
+            // Back button
+            RoundButton {
+                Layout.preferredWidth: 50
+                Layout.preferredHeight: 50
+                icon.source: "qrc:/icons/back.svg"
+                icon.width: 28
+                icon.height: 28
+                flat: true
+                icon.color: Theme.textColor
+                onClicked: {
+                    DE1Device.stopOperation()
+                    root.goToIdle()
+                }
+            }
 
             // Timer
             ColumnLayout {
-                Layout.preferredWidth: 120
+                Layout.preferredWidth: 100
                 spacing: 2
 
                 Text {
@@ -82,7 +108,7 @@ Page {
 
             // Pressure
             ColumnLayout {
-                Layout.preferredWidth: 100
+                Layout.preferredWidth: 80
                 spacing: 2
 
                 Text {
@@ -100,7 +126,7 @@ Page {
 
             // Flow
             ColumnLayout {
-                Layout.preferredWidth: 100
+                Layout.preferredWidth: 80
                 spacing: 2
 
                 Text {
@@ -118,7 +144,7 @@ Page {
 
             // Temperature
             ColumnLayout {
-                Layout.preferredWidth: 100
+                Layout.preferredWidth: 80
                 spacing: 2
 
                 Text {
@@ -153,7 +179,7 @@ Page {
                     spacing: 8
 
                     Text {
-                        text: ScaleDevice.weight.toFixed(1)
+                        text: ScaleDevice ? ScaleDevice.weight.toFixed(1) : "0.0"
                         color: Theme.weightColor
                         font.pixelSize: 28
                         font.weight: Font.Medium
@@ -172,7 +198,7 @@ Page {
                     Layout.preferredHeight: 8
                     from: 0
                     to: MainController.targetWeight
-                    value: ScaleDevice.weight
+                    value: ScaleDevice ? ScaleDevice.weight : 0
 
                     background: Rectangle {
                         color: Theme.surfaceColor
@@ -185,18 +211,6 @@ Page {
                         radius: 4
                         color: Theme.weightColor
                     }
-                }
-            }
-
-            // Stop button
-            ActionButton {
-                Layout.preferredWidth: 120
-                Layout.preferredHeight: 60
-                text: "STOP"
-                backgroundColor: Theme.accentColor
-                onClicked: {
-                    DE1Device.stopOperation()
-                    root.goToIdle()
                 }
             }
         }
