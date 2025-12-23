@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QMap>
 #include "../profile/profile.h"
 
 class Settings;
@@ -28,6 +29,8 @@ public:
     QVariantList availableProfiles() const;
 
     const Profile& currentProfile() const { return m_currentProfile; }
+
+    Q_INVOKABLE QVariantMap getCurrentProfile() const;
 
 public slots:
     void loadProfile(const QString& profileName);
@@ -65,6 +68,7 @@ private:
 
     Profile m_currentProfile;
     QStringList m_availableProfiles;
+    QMap<QString, QString> m_profileTitles;  // filename -> display title
     double m_shotStartTime = 0;
     bool m_extractionStarted = false;
     int m_lastFrameNumber = -1;

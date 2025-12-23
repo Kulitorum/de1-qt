@@ -1,5 +1,5 @@
 {
-    "title": "Manual Pressure Control",
+    "title": "GHC/manual pressure control",
     "author": "Decent",
     "notes": "For use with machines that have a group head controller (GHC). Hold your finger on the GHC for the pressure you want.",
     "beverage_type": "manual",

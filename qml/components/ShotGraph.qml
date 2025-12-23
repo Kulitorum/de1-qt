@@ -6,7 +6,7 @@ ChartView {
     id: chart
     antialiasing: true
     backgroundColor: "transparent"
-    plotAreaColor: Qt.rgba(0, 0, 0, 0.3)
+    plotAreaColor: Qt.darker(Theme.surfaceColor, 1.3)
     legend.visible: false  // Using custom legend below
 
     margins.top: 10
@@ -203,7 +203,7 @@ ChartView {
                     z: -1
                     anchors.fill: parent
                     anchors.margins: -2
-                    color: Qt.rgba(0, 0, 0, 0.6)
+                    color: Qt.darker(Theme.surfaceColor, 1.5)
                     radius: 2
                 }
             }

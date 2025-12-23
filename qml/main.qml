@@ -11,6 +11,21 @@ ApplicationWindow {
     title: "DE1 Controller"
     color: Theme.backgroundColor
 
+    // Current page title - set by each page
+    property string currentPageTitle: ""
+
+    // Update scale factor when window resizes
+    onWidthChanged: updateScale()
+    onHeightChanged: updateScale()
+    Component.onCompleted: updateScale()
+
+    function updateScale() {
+        // Scale based on the smaller ratio to maintain aspect ratio
+        var scaleX = width / Theme.refWidth
+        var scaleY = height / Theme.refHeight
+        Theme.scale = Math.min(scaleX, scaleY)
+    }
+
     // Page stack for navigation
     StackView {
         id: pageStack
@@ -117,7 +132,7 @@ ApplicationWindow {
         }
     }
 
-    function goToProfileEditor(profile) {
-        pageStack.push(profileEditorPage, { profile: profile })
+    function goToProfileEditor() {
+        pageStack.push(profileEditorPage)
     }
 }

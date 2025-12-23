@@ -8,18 +8,22 @@ Page {
     objectName: "hotWaterPage"
     background: Rectangle { color: Theme.backgroundColor }
 
+    Component.onCompleted: updatePageTitle()
+
+    function updatePageTitle() {
+        root.currentPageTitle = MachineState.phase === MachineStateType.Phase.Flushing ? "Flushing" : "Hot Water"
+    }
+
+    Connections {
+        target: MachineState
+        function onPhaseChanged() { updatePageTitle() }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.standardMargin
-        anchors.topMargin: 60
-        spacing: 30
-
-        Text {
-            Layout.alignment: Qt.AlignHCenter
-            text: MachineState.phase === MachineStateType.Phase.Flushing ? "Flushing" : "Hot Water"
-            color: Theme.textColor
-            font: Theme.headingFont
-        }
+        anchors.topMargin: Theme.scaled(60)
+        spacing: Theme.scaled(30)
 
         // Timer
         Text {

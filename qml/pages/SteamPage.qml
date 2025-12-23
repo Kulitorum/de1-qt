@@ -8,6 +8,8 @@ Page {
     objectName: "steamPage"
     background: Rectangle { color: Theme.backgroundColor }
 
+    Component.onCompleted: root.currentPageTitle = "Steam"
+
     property bool isSteaming: MachineState.phase === MachineState.Phase.Steaming
     property int editingCupIndex: -1  // For the edit popup
 

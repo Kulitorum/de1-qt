@@ -145,6 +145,7 @@ qt_add_qml_module(de1-qt
         qml/components/ConnectionIndicator.qml
         qml/components/ShotGraph.qml
         qml/components/StatusBar.qml
+        qml/components/ProfileGraph.qml
 )
 
 # Android deployment

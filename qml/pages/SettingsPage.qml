@@ -8,22 +8,12 @@ Page {
     objectName: "settingsPage"
     background: Rectangle { color: Theme.backgroundColor }
 
-    // Header
-    Text {
-        id: headerText
-        anchors.top: parent.top
-        anchors.topMargin: 70
-        anchors.left: parent.left
-        anchors.leftMargin: Theme.standardMargin
-        text: "Settings"
-        color: Theme.textColor
-        font: Theme.headingFont
-    }
+    Component.onCompleted: root.currentPageTitle = "Settings"
 
     // Main content area
     Item {
-        anchors.top: headerText.bottom
-        anchors.topMargin: 15
+        anchors.top: parent.top
+        anchors.topMargin: Theme.scaled(60)
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: aboutBox.top

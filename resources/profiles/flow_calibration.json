@@ -1,5 +1,5 @@
 {
-    "title": "Test - Flow Calibration",
+    "title": "Test/Flow calibration",
     "author": "Decent",
     "notes": "Put 0.3mm puck simulator basket in portafilter. Connect bluetooth scale. Run profile. Change Flow value on Calibration page and rerun until blue and brown lines follow each other.",
     "beverage_type": "calibrate",

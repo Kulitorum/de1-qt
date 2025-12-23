@@ -4,7 +4,11 @@
 #include "../machine/machinestate.h"
 #include "../models/shotdatamodel.h"
 #include <QDir>
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QStandardPaths>
+#include <QVariantMap>
 
 MainController::MainController(Settings* settings, DE1Device* device,
                                MachineState* machineState, ShotDataModel* shotDataModel,
@@ -67,9 +71,46 @@ void MainController::setTargetWeight(double weight) {
 QVariantList MainController::availableProfiles() const {
     QVariantList result;
     for (const QString& name : m_availableProfiles) {
-        result.append(name);
+        QVariantMap profile;
+        profile["name"] = name;  // filename for loading
+        profile["title"] = m_profileTitles.value(name, name);  // display title
+        result.append(profile);
     }
     return result;
+}
+
+QVariantMap MainController::getCurrentProfile() const {
+    QVariantMap profile;
+    profile["title"] = m_currentProfile.title();
+    profile["target_weight"] = m_currentProfile.targetWeight();
+    profile["espresso_temperature"] = m_currentProfile.espressoTemperature();
+    profile["mode"] = m_currentProfile.mode() == Profile::Mode::FrameBased ? "frame_based" : "direct";
+
+    QVariantList steps;
+    for (const auto& frame : m_currentProfile.steps()) {
+        QVariantMap step;
+        step["name"] = frame.name;
+        step["temperature"] = frame.temperature;
+        step["sensor"] = frame.sensor;
+        step["pump"] = frame.pump;
+        step["transition"] = frame.transition;
+        step["pressure"] = frame.pressure;
+        step["flow"] = frame.flow;
+        step["seconds"] = frame.seconds;
+        step["volume"] = frame.volume;
+        step["exit_if"] = frame.exitIf;
+        step["exit_type"] = frame.exitType;
+        step["exit_pressure_over"] = frame.exitPressureOver;
+        step["exit_pressure_under"] = frame.exitPressureUnder;
+        step["exit_flow_over"] = frame.exitFlowOver;
+        step["exit_flow_under"] = frame.exitFlowUnder;
+        step["max_flow_or_pressure"] = frame.maxFlowOrPressure;
+        step["max_flow_or_pressure_range"] = frame.maxFlowOrPressureRange;
+        steps.append(step);
+    }
+    profile["steps"] = steps;
+
+    return profile;
 }
 
 void MainController::loadProfile(const QString& profileName) {
@@ -106,6 +147,16 @@ void MainController::loadProfile(const QString& profileName) {
 
 void MainController::refreshProfiles() {
     m_availableProfiles.clear();
+    m_profileTitles.clear();
+
+    auto loadProfileTitle = [](const QString& path) -> QString {
+        QFile file(path);
+        if (file.open(QIODevice::ReadOnly)) {
+            QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+            return doc.object()["title"].toString();
+        }
+        return QString();
+    };
 
     // Scan profiles directory
     QDir profileDir(profilesPath());
@@ -114,7 +165,10 @@ void MainController::refreshProfiles() {
 
     QStringList files = profileDir.entryList(filters, QDir::Files);
     for (const QString& file : files) {
-        m_availableProfiles.append(file.left(file.length() - 5));  // Remove .json
+        QString name = file.left(file.length() - 5);  // Remove .json
+        QString title = loadProfileTitle(profileDir.filePath(file));
+        m_availableProfiles.append(name);
+        m_profileTitles[name] = title.isEmpty() ? name : title;
     }
 
     // Add built-in profiles
@@ -123,7 +177,9 @@ void MainController::refreshProfiles() {
     for (const QString& file : files) {
         QString name = file.left(file.length() - 5);
         if (!m_availableProfiles.contains(name)) {
+            QString title = loadProfileTitle(":/profiles/" + file);
             m_availableProfiles.append(name);
+            m_profileTitles[name] = title.isEmpty() ? name : title;
         }
     }
 

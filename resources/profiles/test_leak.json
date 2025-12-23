@@ -1,5 +1,5 @@
 {
-    "title": "Test: Small Leak Detection",
+    "title": "Test/for a small leak",
     "author": "Decent",
     "notes": "Put a blind (no hole) portafilter basket into your portafilter, and then run this profile to see if there are any water leaks in your machine. Once pressure is reached, water will be turned off and pressure held. A small amount of pressure loss is normal, because of leaking around the pump's valve. After two minutes of no flow, your pressure should be above 8 bar.",
     "beverage_type": "calibrate",

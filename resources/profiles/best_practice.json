@@ -1,5 +1,5 @@
 {
-    "title": "Adaptive v2 (Best Practice)",
+    "title": "Adaptive v2",
     "author": "Decent",
     "notes": "Unites Brakel's Londonium, Rao's Blooming and Gagne's Adaptive profiles. Flow rate auto-adjusts during extraction. 15g dose typical, aim for 1.5 ml/s at Pressurize step. 15g in, 33g out, 32 seconds for medium roast. Keep dripping to around 4g before ramp.",
     "beverage_type": "espresso",

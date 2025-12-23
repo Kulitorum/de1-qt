@@ -8,23 +8,14 @@ Page {
     objectName: "espressoPage"
     background: Rectangle { color: Theme.backgroundColor }
 
-    // Profile name header
-    Text {
-        anchors.top: parent.top
-        anchors.topMargin: 70
-        anchors.left: parent.left
-        anchors.leftMargin: Theme.standardMargin
-        text: MainController.currentProfileName
-        color: Theme.textColor
-        font: Theme.headingFont
-    }
+    Component.onCompleted: root.currentPageTitle = MainController.currentProfileName
 
     // Full-screen shot graph
     ShotGraph {
         id: shotGraph
         anchors.fill: parent
-        anchors.topMargin: 60
-        anchors.bottomMargin: 100
+        anchors.topMargin: Theme.scaled(50)
+        anchors.bottomMargin: Theme.scaled(100)
     }
 
     // Status indicator for preheating
@@ -56,7 +47,7 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 100
-        color: Qt.rgba(0, 0, 0, 0.7)
+        color: Qt.darker(Theme.surfaceColor, 1.3)
 
         RowLayout {
             anchors.fill: parent

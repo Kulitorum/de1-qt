@@ -8,11 +8,13 @@ Page {
     objectName: "idlePage"
     background: Rectangle { color: Theme.backgroundColor }
 
+    Component.onCompleted: root.currentPageTitle = ""
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.standardMargin
-        anchors.topMargin: 60  // Leave room for status bar
-        spacing: 30
+        anchors.topMargin: Theme.scaled(60)  // Leave room for status bar
+        spacing: Theme.scaled(30)
 
         // Profile selector
         Rectangle {
@@ -102,10 +104,10 @@ Page {
             ActionButton {
                 text: "Espresso"
                 iconSource: "qrc:/icons/espresso.svg"
-                enabled: MachineState.isReady && DE1Device.connected
+                enabled: DE1Device.connected
                 onClicked: {
-                    MainController.uploadCurrentProfile()
-                    DE1Device.startEspresso()
+                    // Open profile editor - shot is started physically on group head
+                    root.goToProfileEditor()
                 }
             }
 
@@ -132,35 +134,6 @@ Page {
         }
 
         Item { Layout.fillHeight: true }
-
-        // Target weight slider
-        RowLayout {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 500
-            spacing: 20
-
-            Text {
-                text: "Target:"
-                color: Theme.textSecondaryColor
-                font: Theme.bodyFont
-            }
-
-            Slider {
-                Layout.fillWidth: true
-                from: 20
-                to: 60
-                stepSize: 1
-                value: MainController.targetWeight
-                onMoved: MainController.targetWeight = value
-            }
-
-            Text {
-                text: MainController.targetWeight.toFixed(0) + "g"
-                color: Theme.textColor
-                font: Theme.bodyFont
-                Layout.preferredWidth: 50
-            }
-        }
     }
 
     // Settings button
@@ -191,10 +164,10 @@ Page {
             model: MainController.availableProfiles
             delegate: ItemDelegate {
                 width: parent.width
-                text: modelData
-                highlighted: modelData === MainController.currentProfileName
+                text: modelData.title
+                highlighted: modelData.title === MainController.currentProfileName
                 onClicked: {
-                    MainController.loadProfile(modelData)
+                    MainController.loadProfile(modelData.name)
                     profileDialog.close()
                 }
             }

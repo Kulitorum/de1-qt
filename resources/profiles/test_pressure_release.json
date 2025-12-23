@@ -1,5 +1,5 @@
 {
-    "title": "Test: Leakage Stress Test",
+    "title": "Test/leakage stress test",
     "author": "Decent",
     "notes": "Put a blank (no hole) basket into a portafilter, and run this program to stress test all the O-rings and water connections. The intent of this test is to cause a water leak at any connection, if there is a weak spot.",
     "beverage_type": "calibrate",

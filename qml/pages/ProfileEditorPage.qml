@@ -9,289 +9,197 @@ Page {
     objectName: "profileEditorPage"
     background: Rectangle { color: Theme.backgroundColor }
 
-    property var profile: null  // Profile being edited
+    property var profile: null
     property int selectedStepIndex: -1
 
-    // Header
-    Rectangle {
-        id: header
+    function updatePageTitle() {
+        root.currentPageTitle = profile ? profile.title : "Profile Editor"
+    }
+
+    // Auto-upload profile to machine on any change
+    function uploadProfile() {
+        if (profile) {
+            MainController.uploadProfile(profile)
+        }
+    }
+
+    // Main content area
+    Item {
         anchors.top: parent.top
+        anchors.topMargin: Theme.scaled(60)
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 60
-        color: Theme.surfaceColor
+        anchors.bottom: bottomBar.top
+        anchors.leftMargin: Theme.standardMargin
+        anchors.rightMargin: Theme.standardMargin
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 10
-            spacing: 15
+            spacing: Theme.scaled(15)
 
-            // Back button
-            ActionButton {
-                Layout.preferredWidth: 80
-                Layout.preferredHeight: 40
-                text: "Back"
-                backgroundColor: Theme.surfaceColor
-                onClicked: root.goBack()
-            }
-
-            // Profile name
-            TextField {
-                id: profileNameField
+            // Left side: Profile graph with frame visualization
+            Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 40
-                text: profile ? profile.title : "New Profile"
-                font: Theme.titleFont
-                color: Theme.textColor
-                background: Rectangle {
-                    color: Qt.rgba(255, 255, 255, 0.1)
-                    radius: 4
-                }
-            }
+                Layout.fillHeight: true
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
 
-            // Mode toggle
-            RowLayout {
-                spacing: 5
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: Theme.scaled(10)
+                    spacing: Theme.scaled(10)
 
-                Text {
-                    text: "Mode:"
-                    color: Theme.textSecondaryColor
-                    font: Theme.bodyFont
-                }
+                    // Frame toolbar
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(10)
 
-                ComboBox {
-                    id: modeCombo
-                    Layout.preferredWidth: 150
-                    model: ["Frame-Based", "Direct Control"]
-                    currentIndex: profile && profile.mode === "direct" ? 1 : 0
+                        Text {
+                            text: "Frames"
+                            font: Theme.subtitleFont
+                            color: Theme.textColor
+                        }
 
-                    background: Rectangle {
-                        color: Theme.surfaceColor
-                        border.color: Theme.accentColor
-                        border.width: 1
-                        radius: 4
+                        Item { Layout.fillWidth: true }
+
+                        ActionButton {
+                            Layout.preferredWidth: Theme.scaled(100)
+                            Layout.preferredHeight: Theme.scaled(36)
+                            text: "+ Add"
+                            backgroundColor: Theme.accentColor
+                            onClicked: addStep()
+                        }
+
+                        ActionButton {
+                            Layout.preferredWidth: Theme.scaled(100)
+                            Layout.preferredHeight: Theme.scaled(36)
+                            text: "Delete"
+                            backgroundColor: Theme.errorColor
+                            enabled: selectedStepIndex >= 0
+                            opacity: enabled ? 1.0 : 0.5
+                            onClicked: deleteStep(selectedStepIndex)
+                        }
+
+                        ActionButton {
+                            Layout.preferredWidth: Theme.scaled(36)
+                            Layout.preferredHeight: Theme.scaled(36)
+                            text: "\u2191"
+                            backgroundColor: Theme.primaryColor
+                            enabled: selectedStepIndex > 0
+                            opacity: enabled ? 1.0 : 0.5
+                            onClicked: moveStep(selectedStepIndex, selectedStepIndex - 1)
+                        }
+
+                        ActionButton {
+                            Layout.preferredWidth: Theme.scaled(36)
+                            Layout.preferredHeight: Theme.scaled(36)
+                            text: "\u2193"
+                            backgroundColor: Theme.primaryColor
+                            enabled: selectedStepIndex >= 0 && selectedStepIndex < (profile ? profile.steps.length - 1 : 0)
+                            opacity: enabled ? 1.0 : 0.5
+                            onClicked: moveStep(selectedStepIndex, selectedStepIndex + 1)
+                        }
+                    }
+
+                    // Profile graph
+                    ProfileGraph {
+                        id: profileGraph
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        frames: profile ? profile.steps : []
+                        selectedFrameIndex: selectedStepIndex
+
+                        onFrameSelected: function(index) {
+                            selectedStepIndex = index
+                        }
                     }
                 }
             }
 
-            // Save button
-            ActionButton {
-                Layout.preferredWidth: 100
-                Layout.preferredHeight: 40
-                text: "Save"
-                backgroundColor: Theme.accentColor
-                onClicked: saveProfile()
+            // Right side: Frame editor panel
+            Rectangle {
+                Layout.preferredWidth: Theme.scaled(320)
+                Layout.fillHeight: true
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
+
+                Loader {
+                    anchors.fill: parent
+                    anchors.margins: Theme.scaled(15)
+                    sourceComponent: selectedStepIndex >= 0 ? stepEditorComponent : noSelectionComponent
+                }
             }
         }
     }
 
-    // Main content: Split view
-    SplitView {
-        anchors.top: header.bottom
-        anchors.bottom: parent.bottom
+    // Bottom bar
+    Rectangle {
+        id: bottomBar
         anchors.left: parent.left
         anchors.right: parent.right
-        orientation: Qt.Horizontal
+        anchors.bottom: parent.bottom
+        height: Theme.scaled(70)
+        color: Theme.surfaceColor
 
-        // Left panel: Step list
-        Rectangle {
-            SplitView.preferredWidth: 300
-            SplitView.minimumWidth: 200
-            color: Theme.surfaceColor
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Theme.scaled(10)
+            anchors.rightMargin: Theme.scaled(20)
+            spacing: Theme.scaled(15)
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 10
-                spacing: 10
+            // Back button
+            RoundButton {
+                Layout.preferredWidth: Theme.scaled(50)
+                Layout.preferredHeight: Theme.scaled(50)
+                icon.source: "qrc:/icons/back.svg"
+                icon.width: Theme.scaled(28)
+                icon.height: Theme.scaled(28)
+                flat: true
+                icon.color: Theme.textColor
+                onClicked: root.goToIdle()
+            }
 
-                // Steps header
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
+            // Target weight
+            RowLayout {
+                spacing: Theme.scaled(10)
 
-                    Text {
-                        text: "Steps"
-                        font: Theme.subtitleFont
-                        color: Theme.textColor
-                        Layout.fillWidth: true
-                    }
-
-                    ActionButton {
-                        Layout.preferredWidth: 40
-                        Layout.preferredHeight: 40
-                        text: "+"
-                        backgroundColor: Theme.accentColor
-                        onClicked: addStep()
-                    }
+                Text {
+                    text: "Target:"
+                    color: Theme.textSecondaryColor
+                    font: Theme.bodyFont
                 }
 
-                // Step list
-                ListView {
-                    id: stepListView
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    spacing: 5
-                    clip: true
-
-                    model: profile ? profile.steps.length : 0
-
-                    delegate: Rectangle {
-                        width: stepListView.width
-                        height: 80
-                        radius: 8
-                        color: index === selectedStepIndex ? Theme.accentColor :
-                               Qt.rgba(255, 255, 255, 0.05)
-
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 4
-
-                            RowLayout {
-                                Layout.fillWidth: true
-
-                                Text {
-                                    text: (index + 1) + ". " + (profile.steps[index].name || "Step")
-                                    font: Theme.bodyFont
-                                    color: Theme.textColor
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                }
-
-                                // Step type indicator
-                                Rectangle {
-                                    width: 50
-                                    height: 20
-                                    radius: 10
-                                    color: profile.steps[index].pump === "flow" ?
-                                           Theme.flowColor : Theme.pressureColor
-
-                                    Text {
-                                        anchors.centerIn: parent
-                                        text: profile.steps[index].pump === "flow" ? "F" : "P"
-                                        font.pixelSize: 12
-                                        font.bold: true
-                                        color: "white"
-                                    }
-                                }
-                            }
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                spacing: 15
-
-                                Text {
-                                    text: profile.steps[index].pump === "flow" ?
-                                          profile.steps[index].flow.toFixed(1) + " mL/s" :
-                                          profile.steps[index].pressure.toFixed(1) + " bar"
-                                    font: Theme.captionFont
-                                    color: Theme.textSecondaryColor
-                                }
-
-                                Text {
-                                    text: profile.steps[index].temperature.toFixed(0) + "°C"
-                                    font: Theme.captionFont
-                                    color: Theme.temperatureColor
-                                }
-
-                                Text {
-                                    text: profile.steps[index].seconds.toFixed(0) + "s"
-                                    font: Theme.captionFont
-                                    color: Theme.textSecondaryColor
-                                }
-                            }
-
-                            // Exit condition indicator
-                            Text {
-                                visible: profile.steps[index].exit_if
-                                text: "Exit: " + formatExitCondition(profile.steps[index])
-                                font.pixelSize: 10
-                                color: Theme.warningColor
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: selectedStepIndex = index
+                Slider {
+                    id: targetWeightSlider
+                    Layout.preferredWidth: Theme.scaled(200)
+                    from: 20
+                    to: 60
+                    stepSize: 1
+                    value: profile ? profile.target_weight : 36
+                    onMoved: {
+                        if (profile) {
+                            profile.target_weight = value
+                            MainController.targetWeight = value
+                            uploadProfile()
                         }
                     }
                 }
 
-                // Target settings
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 80
-                    color: Qt.rgba(255, 255, 255, 0.05)
-                    radius: 8
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 10
-                        spacing: 5
-
-                        Text {
-                            text: "Targets"
-                            font: Theme.captionFont
-                            color: Theme.textSecondaryColor
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 20
-
-                            ColumnLayout {
-                                spacing: 2
-                                Text {
-                                    text: "Weight"
-                                    font.pixelSize: 10
-                                    color: Theme.textSecondaryColor
-                                }
-                                SpinBox {
-                                    from: 10
-                                    to: 100
-                                    value: profile ? profile.target_weight : 36
-                                    stepSize: 1
-
-                                    background: Rectangle {
-                                        color: Theme.surfaceColor
-                                        radius: 4
-                                    }
-                                }
-                            }
-
-                            ColumnLayout {
-                                spacing: 2
-                                Text {
-                                    text: "Temp"
-                                    font.pixelSize: 10
-                                    color: Theme.textSecondaryColor
-                                }
-                                SpinBox {
-                                    from: 70
-                                    to: 100
-                                    value: profile ? profile.espresso_temperature : 93
-
-                                    background: Rectangle {
-                                        color: Theme.surfaceColor
-                                        radius: 4
-                                    }
-                                }
-                            }
-                        }
-                    }
+                Text {
+                    text: targetWeightSlider.value.toFixed(0) + "g"
+                    color: Theme.weightColor
+                    font: Theme.bodyFont
+                    Layout.preferredWidth: Theme.scaled(40)
                 }
             }
-        }
 
-        // Right panel: Step editor
-        Rectangle {
-            SplitView.fillWidth: true
-            color: Theme.backgroundColor
+            Item { Layout.fillWidth: true }
 
-            Loader {
-                anchors.fill: parent
-                anchors.margins: 20
-                sourceComponent: selectedStepIndex >= 0 ? stepEditorComponent : noSelectionComponent
+            // Info text
+            Text {
+                text: profile ? profile.steps.length + " frames" : ""
+                color: Theme.textSecondaryColor
+                font: Theme.captionFont
             }
         }
     }
@@ -303,518 +211,470 @@ Page {
         Item {
             Column {
                 anchors.centerIn: parent
-                spacing: 20
+                spacing: Theme.scaled(15)
 
                 Text {
-                    text: "Select a step to edit"
+                    text: "Select a frame"
                     font: Theme.titleFont
                     color: Theme.textSecondaryColor
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 
                 Text {
-                    text: "Or click + to add a new step"
+                    text: "Click on the graph to select\na frame for editing"
                     font: Theme.bodyFont
                     color: Theme.textSecondaryColor
+                    horizontalAlignment: Text.AlignHCenter
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
             }
         }
     }
 
-    // Step editor component
+    // Frame editor component
     Component {
         id: stepEditorComponent
 
         ScrollView {
             id: stepEditorScroll
+            clip: true
 
-            property var step: profile && selectedStepIndex >= 0 ?
+            property var step: profile && selectedStepIndex >= 0 && selectedStepIndex < profile.steps.length ?
                               profile.steps[selectedStepIndex] : null
 
             ColumnLayout {
-                width: stepEditorScroll.width - 20
-                spacing: 20
+                width: stepEditorScroll.width - Theme.scaled(10)
+                spacing: Theme.scaled(15)
 
-                // Step name and actions
-                RowLayout {
+                // Frame name
+                TextField {
                     Layout.fillWidth: true
-                    spacing: 15
-
-                    TextField {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 50
-                        text: step ? step.name : ""
-                        placeholderText: "Step name"
-                        font: Theme.titleFont
-                        color: Theme.textColor
-
-                        background: Rectangle {
-                            color: Qt.rgba(255, 255, 255, 0.1)
-                            radius: 4
-                        }
-
-                        onTextChanged: if (step) step.name = text
+                    Layout.preferredHeight: Theme.scaled(45)
+                    text: step ? step.name : ""
+                    placeholderText: "Frame name"
+                    font: Theme.titleFont
+                    color: Theme.textColor
+                    background: Rectangle {
+                        color: Qt.rgba(255, 255, 255, 0.1)
+                        radius: Theme.scaled(4)
                     }
-
-                    ActionButton {
-                        Layout.preferredWidth: 80
-                        Layout.preferredHeight: 50
-                        text: "Delete"
-                        backgroundColor: Theme.errorColor
-                        onClicked: deleteStep(selectedStepIndex)
+                    onTextChanged: {
+                        if (step && step.name !== text) {
+                            step.name = text
+                            profileGraph.framesChanged()
+                            uploadProfile()
+                        }
                     }
                 }
 
-                // Control mode section
+                // Pump mode
                 GroupBox {
                     Layout.fillWidth: true
-                    title: "Control Mode"
-
+                    title: "Pump Mode"
                     background: Rectangle {
-                        color: Theme.surfaceColor
-                        radius: 8
+                        color: Qt.rgba(255, 255, 255, 0.05)
+                        radius: Theme.scaled(8)
                         y: parent.topPadding - parent.padding
                         width: parent.width
                         height: parent.height - parent.topPadding + parent.padding
                     }
-
                     label: Text {
                         text: parent.title
-                        font: Theme.subtitleFont
-                        color: Theme.textColor
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
                     }
 
                     RowLayout {
                         anchors.fill: parent
-                        spacing: 20
+                        spacing: Theme.scaled(20)
 
-                        // Pump mode
-                        ColumnLayout {
-                            spacing: 8
-
-                            Text {
-                                text: "Pump Mode"
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
-                            }
-
-                            RowLayout {
-                                spacing: 10
-
-                                RadioButton {
-                                    text: "Pressure"
-                                    checked: step && step.pump === "pressure"
-                                    onCheckedChanged: if (checked && step) step.pump = "pressure"
-                                }
-
-                                RadioButton {
-                                    text: "Flow"
-                                    checked: step && step.pump === "flow"
-                                    onCheckedChanged: if (checked && step) step.pump = "flow"
+                        RadioButton {
+                            text: "Pressure"
+                            checked: step && step.pump === "pressure"
+                            onCheckedChanged: {
+                                if (checked && step && step.pump !== "pressure") {
+                                    step.pump = "pressure"
+                                    profileGraph.framesChanged()
+                                    uploadProfile()
                                 }
                             }
                         }
 
-                        // Setpoint value
-                        ColumnLayout {
-                            spacing: 8
-
-                            Text {
-                                text: step && step.pump === "flow" ? "Flow (mL/s)" : "Pressure (bar)"
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
-                            }
-
-                            Slider {
-                                id: setpointSlider
-                                Layout.preferredWidth: 200
-                                from: 0
-                                to: step && step.pump === "flow" ? 8 : 12
-                                value: step ? (step.pump === "flow" ? step.flow : step.pressure) : 0
-                                stepSize: 0.1
-
-                                onValueChanged: {
-                                    if (step) {
-                                        if (step.pump === "flow") {
-                                            step.flow = value
-                                        } else {
-                                            step.pressure = value
-                                        }
-                                    }
+                        RadioButton {
+                            text: "Flow"
+                            checked: step && step.pump === "flow"
+                            onCheckedChanged: {
+                                if (checked && step && step.pump !== "flow") {
+                                    step.pump = "flow"
+                                    profileGraph.framesChanged()
+                                    uploadProfile()
                                 }
-                            }
-
-                            Text {
-                                text: setpointSlider.value.toFixed(1)
-                                font: Theme.bodyFont
-                                color: step && step.pump === "flow" ?
-                                       Theme.flowColor : Theme.pressureColor
-                            }
-                        }
-
-                        // Temperature
-                        ColumnLayout {
-                            spacing: 8
-
-                            Text {
-                                text: "Temperature (°C)"
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
-                            }
-
-                            Slider {
-                                id: tempSlider
-                                Layout.preferredWidth: 150
-                                from: 70
-                                to: 100
-                                value: step ? step.temperature : 93
-                                stepSize: 0.5
-
-                                onValueChanged: if (step) step.temperature = value
-                            }
-
-                            Text {
-                                text: tempSlider.value.toFixed(1)
-                                font: Theme.bodyFont
-                                color: Theme.temperatureColor
-                            }
-                        }
-
-                        // Duration
-                        ColumnLayout {
-                            spacing: 8
-
-                            Text {
-                                text: "Duration (s)"
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
-                            }
-
-                            SpinBox {
-                                from: 1
-                                to: 120
-                                value: step ? step.seconds : 30
-                                stepSize: 1
-
-                                onValueChanged: if (step) step.seconds = value
                             }
                         }
                     }
                 }
 
-                // Transition section
-                GroupBox {
+                // Setpoint value (pressure or flow)
+                ColumnLayout {
                     Layout.fillWidth: true
-                    title: "Transition"
+                    spacing: Theme.scaled(8)
 
-                    background: Rectangle {
-                        color: Theme.surfaceColor
-                        radius: 8
-                        y: parent.topPadding - parent.padding
-                        width: parent.width
-                        height: parent.height - parent.topPadding + parent.padding
-                    }
-
-                    label: Text {
-                        text: parent.title
-                        font: Theme.subtitleFont
-                        color: Theme.textColor
+                    Text {
+                        text: step && step.pump === "flow" ? "Flow (mL/s)" : "Pressure (bar)"
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
                     }
 
                     RowLayout {
-                        spacing: 30
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(15)
 
-                        RadioButton {
-                            text: "Fast (instant)"
-                            checked: step && step.transition === "fast"
-                            onCheckedChanged: if (checked && step) step.transition = "fast"
-                        }
-
-                        RadioButton {
-                            text: "Smooth (interpolate)"
-                            checked: step && step.transition === "smooth"
-                            onCheckedChanged: if (checked && step) step.transition = "smooth"
-                        }
-
-                        ColumnLayout {
-                            spacing: 4
-
-                            Text {
-                                text: "Sensor"
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
+                        Slider {
+                            id: setpointSlider
+                            Layout.fillWidth: true
+                            from: 0
+                            to: step && step.pump === "flow" ? 8 : 12
+                            value: step ? (step.pump === "flow" ? step.flow : step.pressure) : 0
+                            stepSize: 0.1
+                            onMoved: {
+                                if (step) {
+                                    if (step.pump === "flow") {
+                                        step.flow = value
+                                    } else {
+                                        step.pressure = value
+                                    }
+                                    profileGraph.framesChanged()
+                                    uploadProfile()
+                                }
                             }
+                        }
 
-                            ComboBox {
-                                model: ["Coffee (basket)", "Water (mix)"]
-                                currentIndex: step && step.sensor === "water" ? 1 : 0
+                        Text {
+                            text: setpointSlider.value.toFixed(1)
+                            font: Theme.bodyFont
+                            color: step && step.pump === "flow" ? Theme.flowColor : Theme.pressureColor
+                            Layout.preferredWidth: Theme.scaled(40)
+                        }
+                    }
+                }
 
-                                onCurrentIndexChanged: {
-                                    if (step) step.sensor = currentIndex === 1 ? "water" : "coffee"
+                // Temperature
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(8)
+
+                    Text {
+                        text: "Temperature (\u00B0C)"
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(15)
+
+                        Slider {
+                            id: tempSlider
+                            Layout.fillWidth: true
+                            from: 70
+                            to: 100
+                            value: step ? step.temperature : 93
+                            stepSize: 0.5
+                            onMoved: {
+                                if (step) {
+                                    step.temperature = value
+                                    profileGraph.framesChanged()
+                                    uploadProfile()
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: tempSlider.value.toFixed(1)
+                            font: Theme.bodyFont
+                            color: Theme.temperatureColor
+                            Layout.preferredWidth: Theme.scaled(40)
+                        }
+                    }
+                }
+
+                // Duration
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(8)
+
+                    Text {
+                        text: "Duration (seconds)"
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(15)
+
+                        Slider {
+                            id: durationSlider
+                            Layout.fillWidth: true
+                            from: 1
+                            to: 120
+                            value: step ? step.seconds : 30
+                            stepSize: 1
+                            onMoved: {
+                                if (step) {
+                                    step.seconds = value
+                                    profileGraph.framesChanged()
+                                    uploadProfile()
+                                }
+                            }
+                        }
+
+                        Text {
+                            text: durationSlider.value.toFixed(0) + "s"
+                            font: Theme.bodyFont
+                            color: Theme.textColor
+                            Layout.preferredWidth: Theme.scaled(40)
+                        }
+                    }
+                }
+
+                // Transition
+                GroupBox {
+                    Layout.fillWidth: true
+                    title: "Transition"
+                    background: Rectangle {
+                        color: Qt.rgba(255, 255, 255, 0.05)
+                        radius: Theme.scaled(8)
+                        y: parent.topPadding - parent.padding
+                        width: parent.width
+                        height: parent.height - parent.topPadding + parent.padding
+                    }
+                    label: Text {
+                        text: parent.title
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: Theme.scaled(20)
+
+                        RadioButton {
+                            text: "Fast"
+                            checked: step && step.transition === "fast"
+                            onCheckedChanged: {
+                                if (checked && step && step.transition !== "fast") {
+                                    step.transition = "fast"
+                                    profileGraph.framesChanged()
+                                    uploadProfile()
+                                }
+                            }
+                        }
+
+                        RadioButton {
+                            text: "Smooth"
+                            checked: step && step.transition === "smooth"
+                            onCheckedChanged: {
+                                if (checked && step && step.transition !== "smooth") {
+                                    step.transition = "smooth"
+                                    profileGraph.framesChanged()
+                                    uploadProfile()
                                 }
                             }
                         }
                     }
                 }
 
-                // Exit conditions
+                // Exit conditions (collapsible)
                 GroupBox {
                     Layout.fillWidth: true
-                    title: "Exit Conditions"
-
+                    title: "Exit Condition"
                     background: Rectangle {
-                        color: Theme.surfaceColor
-                        radius: 8
+                        color: Qt.rgba(255, 255, 255, 0.05)
+                        radius: Theme.scaled(8)
                         y: parent.topPadding - parent.padding
                         width: parent.width
                         height: parent.height - parent.topPadding + parent.padding
                     }
-
                     label: Text {
                         text: parent.title
-                        font: Theme.subtitleFont
-                        color: Theme.textColor
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
                     }
 
                     ColumnLayout {
                         anchors.fill: parent
-                        spacing: 15
+                        spacing: Theme.scaled(10)
 
                         CheckBox {
                             id: exitIfCheck
-                            text: "Enable early exit condition"
+                            text: "Enable early exit"
                             checked: step ? step.exit_if : false
-                            onCheckedChanged: if (step) step.exit_if = checked
+                            onCheckedChanged: {
+                                if (step && step.exit_if !== checked) {
+                                    step.exit_if = checked
+                                    uploadProfile()
+                                }
+                            }
                         }
 
-                        GridLayout {
-                            columns: 2
-                            rowSpacing: 10
-                            columnSpacing: 30
+                        ComboBox {
+                            Layout.fillWidth: true
                             enabled: exitIfCheck.checked
-
-                            RadioButton {
-                                text: "Pressure Over"
-                                checked: step && step.exit_type === "pressure_over"
-                                onCheckedChanged: if (checked && step) step.exit_type = "pressure_over"
-                            }
-
-                            RowLayout {
-                                spacing: 10
-                                enabled: step && step.exit_type === "pressure_over"
-
-                                Slider {
-                                    Layout.preferredWidth: 150
-                                    from: 0
-                                    to: 12
-                                    value: step ? step.exit_pressure_over : 0
-                                    stepSize: 0.1
-                                    onValueChanged: if (step) step.exit_pressure_over = value
-                                }
-
-                                Text {
-                                    text: (step ? step.exit_pressure_over : 0).toFixed(1) + " bar"
-                                    font: Theme.bodyFont
-                                    color: Theme.pressureColor
+                            model: ["Pressure Over", "Pressure Under", "Flow Over", "Flow Under"]
+                            currentIndex: {
+                                if (!step) return 0
+                                switch (step.exit_type) {
+                                    case "pressure_over": return 0
+                                    case "pressure_under": return 1
+                                    case "flow_over": return 2
+                                    case "flow_under": return 3
+                                    default: return 0
                                 }
                             }
-
-                            RadioButton {
-                                text: "Pressure Under"
-                                checked: step && step.exit_type === "pressure_under"
-                                onCheckedChanged: if (checked && step) step.exit_type = "pressure_under"
-                            }
-
-                            RowLayout {
-                                spacing: 10
-                                enabled: step && step.exit_type === "pressure_under"
-
-                                Slider {
-                                    Layout.preferredWidth: 150
-                                    from: 0
-                                    to: 12
-                                    value: step ? step.exit_pressure_under : 0
-                                    stepSize: 0.1
-                                    onValueChanged: if (step) step.exit_pressure_under = value
-                                }
-
-                                Text {
-                                    text: (step ? step.exit_pressure_under : 0).toFixed(1) + " bar"
-                                    font: Theme.bodyFont
-                                    color: Theme.pressureColor
+                            onCurrentIndexChanged: {
+                                if (!step) return
+                                var types = ["pressure_over", "pressure_under", "flow_over", "flow_under"]
+                                if (step.exit_type !== types[currentIndex]) {
+                                    step.exit_type = types[currentIndex]
+                                    uploadProfile()
                                 }
                             }
+                        }
 
-                            RadioButton {
-                                text: "Flow Over"
-                                checked: step && step.exit_type === "flow_over"
-                                onCheckedChanged: if (checked && step) step.exit_type = "flow_over"
-                            }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            enabled: exitIfCheck.checked
+                            spacing: Theme.scaled(10)
 
-                            RowLayout {
-                                spacing: 10
-                                enabled: step && step.exit_type === "flow_over"
-
-                                Slider {
-                                    Layout.preferredWidth: 150
-                                    from: 0
-                                    to: 8
-                                    value: step ? step.exit_flow_over : 0
-                                    stepSize: 0.1
-                                    onValueChanged: if (step) step.exit_flow_over = value
+                            Slider {
+                                id: exitValueSlider
+                                Layout.fillWidth: true
+                                from: 0
+                                to: step && (step.exit_type === "flow_over" || step.exit_type === "flow_under") ? 8 : 12
+                                value: {
+                                    if (!step) return 0
+                                    switch (step.exit_type) {
+                                        case "pressure_over": return step.exit_pressure_over || 0
+                                        case "pressure_under": return step.exit_pressure_under || 0
+                                        case "flow_over": return step.exit_flow_over || 0
+                                        case "flow_under": return step.exit_flow_under || 0
+                                        default: return 0
+                                    }
                                 }
-
-                                Text {
-                                    text: (step ? step.exit_flow_over : 0).toFixed(1) + " mL/s"
-                                    font: Theme.bodyFont
-                                    color: Theme.flowColor
+                                stepSize: 0.1
+                                onMoved: {
+                                    if (!step) return
+                                    switch (step.exit_type) {
+                                        case "pressure_over": step.exit_pressure_over = value; break
+                                        case "pressure_under": step.exit_pressure_under = value; break
+                                        case "flow_over": step.exit_flow_over = value; break
+                                        case "flow_under": step.exit_flow_under = value; break
+                                    }
+                                    uploadProfile()
                                 }
                             }
 
-                            RadioButton {
-                                text: "Flow Under"
-                                checked: step && step.exit_type === "flow_under"
-                                onCheckedChanged: if (checked && step) step.exit_type = "flow_under"
-                            }
-
-                            RowLayout {
-                                spacing: 10
-                                enabled: step && step.exit_type === "flow_under"
-
-                                Slider {
-                                    Layout.preferredWidth: 150
-                                    from: 0
-                                    to: 8
-                                    value: step ? step.exit_flow_under : 0
-                                    stepSize: 0.1
-                                    onValueChanged: if (step) step.exit_flow_under = value
-                                }
-
-                                Text {
-                                    text: (step ? step.exit_flow_under : 0).toFixed(1) + " mL/s"
-                                    font: Theme.bodyFont
-                                    color: Theme.flowColor
-                                }
+                            Text {
+                                text: exitValueSlider.value.toFixed(1)
+                                font: Theme.bodyFont
+                                color: Theme.textColor
+                                Layout.preferredWidth: Theme.scaled(40)
                             }
                         }
                     }
                 }
 
-                // Limiter section
+                // Limiter (max pressure when flow-controlled, or max flow when pressure-controlled)
                 GroupBox {
                     Layout.fillWidth: true
-                    title: "Limiter (optional)"
-
+                    title: step && step.pump === "flow" ? "Max Pressure Limiter" : "Max Flow Limiter"
                     background: Rectangle {
-                        color: Theme.surfaceColor
-                        radius: 8
+                        color: Qt.rgba(255, 255, 255, 0.05)
+                        radius: Theme.scaled(8)
                         y: parent.topPadding - parent.padding
                         width: parent.width
                         height: parent.height - parent.topPadding + parent.padding
                     }
-
                     label: Text {
                         text: parent.title
-                        font: Theme.subtitleFont
-                        color: Theme.textColor
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
                     }
 
                     RowLayout {
-                        spacing: 30
+                        anchors.fill: parent
+                        spacing: Theme.scaled(10)
 
-                        ColumnLayout {
-                            spacing: 8
-
-                            Text {
-                                text: step && step.pump === "flow" ?
-                                      "Max Pressure" : "Max Flow"
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
-                            }
-
-                            Slider {
-                                id: limiterSlider
-                                Layout.preferredWidth: 200
-                                from: 0
-                                to: step && step.pump === "flow" ? 12 : 8
-                                value: step ? step.max_flow_or_pressure : 0
-                                stepSize: 0.1
-
-                                onValueChanged: if (step) step.max_flow_or_pressure = value
-                            }
-
-                            Text {
-                                text: limiterSlider.value > 0 ?
-                                      limiterSlider.value.toFixed(1) +
-                                      (step && step.pump === "flow" ? " bar" : " mL/s") :
-                                      "Disabled"
-                                font: Theme.bodyFont
-                                color: limiterSlider.value > 0 ?
-                                       Theme.warningColor : Theme.textSecondaryColor
+                        Slider {
+                            id: limiterSlider
+                            Layout.fillWidth: true
+                            from: 0
+                            to: step && step.pump === "flow" ? 12 : 8
+                            value: step ? step.max_flow_or_pressure : 0
+                            stepSize: 0.1
+                            onMoved: {
+                                if (step) {
+                                    step.max_flow_or_pressure = value
+                                    uploadProfile()
+                                }
                             }
                         }
 
-                        ColumnLayout {
-                            spacing: 8
-                            enabled: limiterSlider.value > 0
-
-                            Text {
-                                text: "Limiter Range"
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
-                            }
-
-                            Slider {
-                                Layout.preferredWidth: 150
-                                from: 0.1
-                                to: 2.0
-                                value: step ? step.max_flow_or_pressure_range : 0.6
-                                stepSize: 0.1
-
-                                onValueChanged: if (step) step.max_flow_or_pressure_range = value
-                            }
-
-                            Text {
-                                text: (step ? step.max_flow_or_pressure_range : 0.6).toFixed(1)
-                                font: Theme.bodyFont
-                                color: Theme.textSecondaryColor
-                            }
+                        Text {
+                            text: limiterSlider.value > 0 ?
+                                  limiterSlider.value.toFixed(1) + (step && step.pump === "flow" ? " bar" : " mL/s") :
+                                  "Off"
+                            font: Theme.bodyFont
+                            color: limiterSlider.value > 0 ? Theme.warningColor : Theme.textSecondaryColor
+                            Layout.preferredWidth: Theme.scaled(60)
                         }
                     }
                 }
 
                 // Spacer
-                Item {
-                    Layout.fillHeight: true
-                }
+                Item { Layout.fillHeight: true }
             }
         }
     }
 
-    // Helper functions
-    function formatExitCondition(step) {
-        if (!step.exit_if) return ""
+    // Profile name edit dialog
+    Dialog {
+        id: profileNameDialog
+        title: "Edit Profile Name"
+        anchors.centerIn: parent
+        width: Theme.scaled(400)
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
 
-        switch (step.exit_type) {
-            case "pressure_over":
-                return "P > " + step.exit_pressure_over.toFixed(1) + " bar"
-            case "pressure_under":
-                return "P < " + step.exit_pressure_under.toFixed(1) + " bar"
-            case "flow_over":
-                return "F > " + step.exit_flow_over.toFixed(1) + " mL/s"
-            case "flow_under":
-                return "F < " + step.exit_flow_under.toFixed(1) + " mL/s"
-            default:
-                return ""
+        TextField {
+            id: nameField
+            width: parent.width
+            text: profile ? profile.title : ""
+            font: Theme.bodyFont
+        }
+
+        onAccepted: {
+            if (profile && nameField.text.length > 0) {
+                profile.title = nameField.text
+                updatePageTitle()
+                uploadProfile()
+            }
+        }
+
+        onOpened: {
+            nameField.text = profile ? profile.title : ""
+            nameField.selectAll()
+            nameField.forceActiveFocus()
         }
     }
 
+    // Helper functions
     function addStep() {
         if (!profile) return
 
         var newStep = {
-            name: "Step " + (profile.steps.length + 1),
+            name: "Frame " + (profile.steps.length + 1),
             temperature: 93.0,
             sensor: "coffee",
             pump: "pressure",
@@ -824,7 +684,7 @@ Page {
             seconds: 30.0,
             volume: 0,
             exit_if: false,
-            exit_type: "",
+            exit_type: "pressure_over",
             exit_pressure_over: 0,
             exit_pressure_under: 0,
             exit_flow_over: 0,
@@ -833,9 +693,12 @@ Page {
             max_flow_or_pressure_range: 0.6
         }
 
-        profile.steps.push(newStep)
-        selectedStepIndex = profile.steps.length - 1
-        stepListView.model = profile.steps.length
+        // Insert after selected frame, or at end
+        var insertIndex = selectedStepIndex >= 0 ? selectedStepIndex + 1 : profile.steps.length
+        profile.steps.splice(insertIndex, 0, newStep)
+        selectedStepIndex = insertIndex
+        profileGraph.framesChanged()
+        uploadProfile()
     }
 
     function deleteStep(index) {
@@ -847,31 +710,37 @@ Page {
             selectedStepIndex = profile.steps.length - 1
         }
 
-        stepListView.model = profile.steps.length
+        profileGraph.framesChanged()
+        uploadProfile()
     }
 
-    function saveProfile() {
-        // Update profile name
-        if (profile) {
-            profile.title = profileNameField.text
-            profile.mode = modeCombo.currentIndex === 1 ? "direct" : "frame_based"
-            // Save to file via MainController
-            // MainController.saveProfile(profile)
-            console.log("Profile saved:", JSON.stringify(profile, null, 2))
-        }
+    function moveStep(fromIndex, toIndex) {
+        if (!profile || fromIndex < 0 || fromIndex >= profile.steps.length) return
+        if (toIndex < 0 || toIndex >= profile.steps.length) return
+
+        var step = profile.steps.splice(fromIndex, 1)[0]
+        profile.steps.splice(toIndex, 0, step)
+        selectedStepIndex = toIndex
+        profileGraph.framesChanged()
+        uploadProfile()
     }
 
     Component.onCompleted: {
         // Load current profile if not set
         if (!profile) {
-            // Load default or create new
             profile = {
-                title: "New Profile",
+                title: MainController.currentProfileName || "New Profile",
                 steps: [],
-                target_weight: 36,
+                target_weight: MainController.targetWeight || 36,
                 espresso_temperature: 93,
                 mode: "frame_based"
             }
+            // Try to load actual profile data
+            var loadedProfile = MainController.getCurrentProfile()
+            if (loadedProfile) {
+                profile = loadedProfile
+            }
         }
+        updatePageTitle()
     }
 }

@@ -12,10 +12,13 @@ QtObject {
         property double pressure: 9.0
         property double flow: 2.5
         property double temperature: 93.0
+        property double waterLevel: 75.0
         property string firmwareVersion: "1.0.0"
         property int state: 0
         function stopOperation() {}
         function connectToDevice(addr) {}
+        function startEspresso() {}
+        function startFlush() {}
     }
 
     // ScaleDevice stub
@@ -31,17 +34,43 @@ QtObject {
         property int phase: 0
         property double shotTime: 25.0
         property bool isFlowing: false
+        property bool isReady: true
     }
 
     // MainController stub
     property QtObject mainController: QtObject {
         property string currentProfileName: "Default Profile"
         property double targetWeight: 36.0
-        property var availableProfiles: ["Default", "Blooming", "Turbo"]
+        property var availableProfiles: [
+            { name: "default", title: "Default" },
+            { name: "blooming_espresso", title: "Blooming Espresso" },
+            { name: "turbo_shot", title: "Turbo" }
+        ]
         function loadProfile(name) {}
         function applySteamSettings() {}
         function setSteamFlowImmediate(flow) {}
         function setSteamTemperatureImmediate(temp) {}
+        function uploadCurrentProfile() {}
+        function uploadProfile(profile) {}
+        function getCurrentProfile() {
+            return {
+                title: "Default Profile",
+                steps: [
+                    { name: "Preinfusion", temperature: 93, sensor: "coffee", pump: "pressure",
+                      transition: "fast", pressure: 2, flow: 2, seconds: 10,
+                      exit_if: true, exit_type: "pressure_over", exit_pressure_over: 4 },
+                    { name: "Ramp Up", temperature: 93, sensor: "coffee", pump: "pressure",
+                      transition: "smooth", pressure: 9, flow: 2, seconds: 5 },
+                    { name: "Hold", temperature: 93, sensor: "coffee", pump: "pressure",
+                      transition: "fast", pressure: 9, flow: 2, seconds: 30 },
+                    { name: "Decline", temperature: 93, sensor: "coffee", pump: "pressure",
+                      transition: "smooth", pressure: 6, flow: 2, seconds: 15 }
+                ],
+                target_weight: 36,
+                espresso_temperature: 93,
+                mode: "frame_based"
+            }
+        }
     }
 
     // BLEManager stub

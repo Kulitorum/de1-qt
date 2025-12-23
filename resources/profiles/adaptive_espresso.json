@@ -1,5 +1,5 @@
 {
-    "title": "Adaptive Espresso 92C",
+    "title": "Gagné/Adaptive Shot 92C v1.0",
     "author": "Decent",
     "notes": "Gagne adaptive shot with blooming from 4 to 2 bar. Adaptive pressure based on flow rate - lower resistance = declining pressure, higher resistance = increasing pressure. Best with large flat burr and light roasts. 20g dose, 1:2 to 1:2.5 ratio, 25-45s total.",
     "beverage_type": "espresso",

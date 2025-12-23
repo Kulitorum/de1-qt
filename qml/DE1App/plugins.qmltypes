@@ -13,9 +13,12 @@ Module {
         Property { name: "pressure"; type: "double" }
         Property { name: "flow"; type: "double" }
         Property { name: "temperature"; type: "double" }
+        Property { name: "waterLevel"; type: "double" }
         Property { name: "firmwareVersion"; type: "string" }
         Property { name: "state"; type: "int" }
         Method { name: "stopOperation" }
+        Method { name: "startEspresso" }
+        Method { name: "startFlush" }
         Method {
             name: "connectToDevice"
             Parameter { name: "address"; type: "string" }
@@ -43,6 +46,7 @@ Module {
         Property { name: "phase"; type: "int" }
         Property { name: "shotTime"; type: "double" }
         Property { name: "isFlowing"; type: "bool" }
+        Property { name: "isReady"; type: "bool" }
     }
 
     Component {
@@ -86,6 +90,15 @@ Module {
         Method {
             name: "setSteamTemperatureImmediate"
             Parameter { name: "temp"; type: "double" }
+        }
+        Method { name: "uploadCurrentProfile" }
+        Method {
+            name: "uploadProfile"
+            Parameter { name: "profile"; type: "QVariant" }
+        }
+        Method {
+            name: "getCurrentProfile"
+            type: "QVariant"
         }
     }
 

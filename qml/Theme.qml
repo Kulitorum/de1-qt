@@ -2,6 +2,16 @@ pragma Singleton
 import QtQuick
 
 QtObject {
+    // Reference design size
+    readonly property real refWidth: 1280
+    readonly property real refHeight: 800
+
+    // Scale factor - set from main.qml based on window size
+    property real scale: 1.0
+
+    // Helper function to scale values
+    function scaled(value) { return Math.round(value * scale) }
+
     // Colors
     readonly property color backgroundColor: "#1a1a2e"
     readonly property color surfaceColor: "#252538"
@@ -23,20 +33,22 @@ QtObject {
     readonly property color temperatureGoalColor: "#ffa5a6" // Light red - temp goal
     readonly property color weightColor: "#a2693d"         // Brown - weight
 
-    // Fonts
-    readonly property font headingFont: Qt.font({ pixelSize: 32, bold: true })
-    readonly property font bodyFont: Qt.font({ pixelSize: 18 })
-    readonly property font labelFont: Qt.font({ pixelSize: 14 })
-    readonly property font captionFont: Qt.font({ pixelSize: 12 })
-    readonly property font valueFont: Qt.font({ pixelSize: 48, bold: true })
-    readonly property font timerFont: Qt.font({ pixelSize: 72, bold: true })
+    // Scaled fonts
+    readonly property font headingFont: Qt.font({ pixelSize: scaled(32), bold: true })
+    readonly property font titleFont: Qt.font({ pixelSize: scaled(24), bold: true })
+    readonly property font subtitleFont: Qt.font({ pixelSize: scaled(18), bold: true })
+    readonly property font bodyFont: Qt.font({ pixelSize: scaled(18) })
+    readonly property font labelFont: Qt.font({ pixelSize: scaled(14) })
+    readonly property font captionFont: Qt.font({ pixelSize: scaled(12) })
+    readonly property font valueFont: Qt.font({ pixelSize: scaled(48), bold: true })
+    readonly property font timerFont: Qt.font({ pixelSize: scaled(72), bold: true })
 
-    // Dimensions
-    readonly property int buttonRadius: 12
-    readonly property int cardRadius: 16
-    readonly property int standardMargin: 16
-    readonly property int smallMargin: 8
-    readonly property int graphLineWidth: 3
+    // Scaled dimensions
+    readonly property int buttonRadius: scaled(12)
+    readonly property int cardRadius: scaled(16)
+    readonly property int standardMargin: scaled(16)
+    readonly property int smallMargin: scaled(8)
+    readonly property int graphLineWidth: Math.max(2, scaled(3))
 
     // Shadows
     readonly property color shadowColor: "#40000000"
