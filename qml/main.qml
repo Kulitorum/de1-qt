@@ -101,6 +101,58 @@ ApplicationWindow {
         }
     }
 
+    // Global error dialog for BLE issues
+    Dialog {
+        id: bleErrorDialog
+        title: "Enable Location"
+        modal: true
+        anchors.centerIn: parent
+
+        property string errorMessage: ""
+        property bool isLocationError: false
+
+        Column {
+            spacing: 16
+            width: 320
+
+            Label {
+                text: bleErrorDialog.errorMessage
+                wrapMode: Text.Wrap
+                width: parent.width
+            }
+
+            Button {
+                text: "Open Location Settings"
+                visible: bleErrorDialog.isLocationError
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: {
+                    BLEManager.openLocationSettings()
+                    bleErrorDialog.close()
+                }
+            }
+
+            Button {
+                text: "OK"
+                anchors.horizontalCenter: parent.horizontalCenter
+                onClicked: bleErrorDialog.close()
+            }
+        }
+    }
+
+    Connections {
+        target: BLEManager
+        function onErrorOccurred(error) {
+            if (error.indexOf("Location") !== -1) {
+                bleErrorDialog.isLocationError = true
+                bleErrorDialog.errorMessage = "Please enable Location services.\nAndroid requires Location for Bluetooth scanning."
+            } else {
+                bleErrorDialog.isLocationError = false
+                bleErrorDialog.errorMessage = error
+            }
+            bleErrorDialog.open()
+        }
+    }
+
     // Status bar overlay (hidden during screensaver)
     StatusBar {
         id: statusBar

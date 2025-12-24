@@ -1,36 +1,21 @@
+# Signing keys - NEVER commit
+*.jks
+*.keystore
+
 # Build directories
 build/
 cmake-build-*/
 
-# Qt Creator files
+# Qt Creator user files
 *.user
 *.user.*
-.qtcreator/
 
 # IDE
 .idea/
 .vscode/
-*.swp
-*.swo
 
 # Compiled files
 *.o
 *.obj
-*.exe
-*.dll
-*.so
-*.dylib
-*.lib
-*.a
-*.pdb
-*.exp
-
-# Generated files
-moc_*.cpp
-qrc_*.cpp
-ui_*.h
-*_autogen/
-
-# OS files
-.DS_Store
-Thumbs.db
+*.apk
+*.aab

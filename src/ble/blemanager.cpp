@@ -5,6 +5,11 @@
 #include <QBluetoothUuid>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QLocationPermission>
+
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#endif
 
 BLEManager::BLEManager(QObject* parent)
     : QObject(parent)
@@ -88,28 +93,53 @@ void BLEManager::startScan() {
 
 void BLEManager::requestBluetoothPermission() {
 #ifdef Q_OS_ANDROID
+    emit de1LogMessage("Checking permissions...");
+
+    // First check/request location permission (required for BLE scanning on Android)
+    QLocationPermission locationPermission;
+    locationPermission.setAccuracy(QLocationPermission::Precise);
+
+    if (qApp->checkPermission(locationPermission) == Qt::PermissionStatus::Undetermined) {
+        emit de1LogMessage("Requesting location permission...");
+        qApp->requestPermission(locationPermission, this, [this](const QPermission& permission) {
+            if (permission.status() == Qt::PermissionStatus::Granted) {
+                emit de1LogMessage("Location permission granted");
+                requestBluetoothPermission();  // Continue with Bluetooth permission
+            } else {
+                emit de1LogMessage("Location permission denied");
+                emit errorOccurred("Location permission denied - required for Bluetooth scanning");
+            }
+        });
+        return;
+    } else if (qApp->checkPermission(locationPermission) == Qt::PermissionStatus::Denied) {
+        emit de1LogMessage("Location permission denied");
+        emit errorOccurred("Location permission required. Please enable in Settings.");
+        return;
+    }
+
+    // Now check Bluetooth permission
     QBluetoothPermission bluetoothPermission;
     bluetoothPermission.setCommunicationModes(QBluetoothPermission::Access);
 
     switch (qApp->checkPermission(bluetoothPermission)) {
     case Qt::PermissionStatus::Undetermined:
-        qDebug() << "Bluetooth permission undetermined, requesting...";
+        emit de1LogMessage("Requesting Bluetooth permission...");
         qApp->requestPermission(bluetoothPermission, this, [this](const QPermission& permission) {
             if (permission.status() == Qt::PermissionStatus::Granted) {
-                qDebug() << "Bluetooth permission granted";
+                emit de1LogMessage("Bluetooth permission granted");
                 doStartScan();
             } else {
-                qDebug() << "Bluetooth permission denied";
+                emit de1LogMessage("Bluetooth permission denied");
                 emit errorOccurred("Bluetooth permission denied");
             }
         });
         return;
     case Qt::PermissionStatus::Denied:
-        qDebug() << "Bluetooth permission denied";
+        emit de1LogMessage("Bluetooth permission denied");
         emit errorOccurred("Bluetooth permission required. Please enable in Settings.");
         return;
     case Qt::PermissionStatus::Granted:
-        qDebug() << "Bluetooth permission already granted";
+        emit de1LogMessage("Permissions OK");
         break;
     }
 #endif
@@ -120,6 +150,7 @@ void BLEManager::doStartScan() {
     clearDevices();
     m_scanning = true;
     emit scanningChanged();
+    emit de1LogMessage("Scanning for devices...");
 
     // Scan for BLE devices only
     m_discoveryAgent->start(QBluetoothDeviceDiscoveryAgent::LowEnergyMethod);
@@ -128,6 +159,7 @@ void BLEManager::doStartScan() {
 void BLEManager::stopScan() {
     if (!m_scanning) return;
 
+    emit de1LogMessage("Scan stopped");
     m_discoveryAgent->stop();
     m_scanning = false;
     m_scanningForScales = false;
@@ -152,6 +184,7 @@ void BLEManager::onDeviceDiscovered(const QBluetoothDeviceInfo& device) {
         }
         m_de1Devices.append(device);
         emit devicesChanged();
+        emit de1LogMessage(QString("Found DE1: %1 (%2)").arg(device.name()).arg(device.address().toString()));
         emit de1Discovered(device);
         return;
     }
@@ -172,6 +205,7 @@ void BLEManager::onDeviceDiscovered(const QBluetoothDeviceInfo& device) {
         }
         m_scales.append({device, scaleType});
         emit scalesChanged();
+        emit scaleLogMessage(QString("Found %1: %2 (%3)").arg(scaleType).arg(device.name()).arg(device.address().toString()));
         emit scaleDiscovered(device, scaleType);
     }
 }
@@ -179,6 +213,8 @@ void BLEManager::onDeviceDiscovered(const QBluetoothDeviceInfo& device) {
 void BLEManager::onScanFinished() {
     m_scanning = false;
     m_scanningForScales = false;
+    emit de1LogMessage("Scan complete");
+    emit scaleLogMessage("Scan complete");
     emit scanningChanged();
 }
 
@@ -207,6 +243,8 @@ void BLEManager::onScanError(QBluetoothDeviceDiscoveryAgent::Error error) {
             errorMsg = "Unknown Bluetooth error";
             break;
     }
+    emit de1LogMessage(QString("Error: %1").arg(errorMsg));
+    emit scaleLogMessage(QString("Error: %1").arg(errorMsg));
     emit errorOccurred(errorMsg);
     m_scanning = false;
     m_scanningForScales = false;
@@ -288,6 +326,7 @@ void BLEManager::clearSavedScale() {
 
 void BLEManager::scanForScales() {
     qDebug() << "User requested scale scan";
+    emit scaleLogMessage("Starting scale scan...");
     m_scaleConnectionFailed = false;
     emit scaleConnectionFailedChanged();
 
@@ -325,4 +364,20 @@ void BLEManager::tryDirectConnectToScale() {
 
     // Emit as if we discovered it - the handler in main.cpp will create and connect
     emit scaleDiscovered(deviceInfo, m_savedScaleType);
+}
+
+void BLEManager::openLocationSettings()
+{
+#ifdef Q_OS_ANDROID
+    QJniObject action = QJniObject::fromString("android.settings.LOCATION_SOURCE_SETTINGS");
+    QJniObject intent("android/content/Intent", "(Ljava/lang/String;)V", action.object<jstring>());
+    intent.callMethod<QJniObject>("addFlags", "(I)Landroid/content/Intent;", 0x10000000);  // FLAG_ACTIVITY_NEW_TASK
+    
+    QJniObject activity = QNativeInterface::QAndroidApplication::context();
+    if (activity.isValid() && intent.isValid()) {
+        activity.callMethod<void>("startActivity", "(Landroid/content/Intent;)V", intent.object());
+    }
+#else
+    qDebug() << "openLocationSettings is only available on Android";
+#endif
 }

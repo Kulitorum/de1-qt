@@ -130,26 +130,43 @@ target_include_directories(de1-qt PRIVATE
 # QML module - mark Theme.qml as singleton
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
+# Define QML files list for dependency tracking
+set(QML_FILES
+    qml/main.qml
+    qml/Theme.qml
+    qml/pages/IdlePage.qml
+    qml/pages/EspressoPage.qml
+    qml/pages/SteamPage.qml
+    qml/pages/HotWaterPage.qml
+    qml/pages/SettingsPage.qml
+    qml/pages/ProfileEditorPage.qml
+    qml/pages/ScreensaverPage.qml
+    qml/components/ActionButton.qml
+    qml/components/CircularGauge.qml
+    qml/components/ConnectionIndicator.qml
+    qml/components/ShotGraph.qml
+    qml/components/StatusBar.qml
+    qml/components/ProfileGraph.qml
+)
+
 qt_add_qml_module(de1-qt
     URI DE1App
     VERSION 1.0
-    QML_FILES
-        qml/main.qml
-        qml/Theme.qml
-        qml/pages/IdlePage.qml
-        qml/pages/EspressoPage.qml
-        qml/pages/SteamPage.qml
-        qml/pages/HotWaterPage.qml
-        qml/pages/SettingsPage.qml
-        qml/pages/ProfileEditorPage.qml
-        qml/pages/ScreensaverPage.qml
-        qml/components/ActionButton.qml
-        qml/components/CircularGauge.qml
-        qml/components/ConnectionIndicator.qml
-        qml/components/ShotGraph.qml
-        qml/components/StatusBar.qml
-        qml/components/ProfileGraph.qml
+    QML_FILES ${QML_FILES}
 )
+
+# Force QML resource rebuild when source files change
+# Delete the compiled resource file to force rcc regeneration
+set(QML_RCC_CPP "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_de1-qt_raw_qml_0.cpp")
+
+add_custom_target(qml_force_rebuild ALL
+    COMMAND ${CMAKE_COMMAND} -E rm -f ${QML_RCC_CPP}
+    COMMENT "Invalidating QML resources for rebuild..."
+)
+add_dependencies(de1-qt qml_force_rebuild)
+
+# Also add QML files as sources so IDE can find them
+set_property(TARGET de1-qt APPEND PROPERTY SOURCES ${QML_FILES})
 
 # Android deployment
 if(ANDROID)

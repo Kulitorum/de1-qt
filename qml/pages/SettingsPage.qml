@@ -63,12 +63,15 @@ Page {
                         Button {
                             text: BLEManager.scanning ? "Stop Scan" : "Scan for DE1"
                             onClicked: {
+                                console.log("DE1 scan button clicked! scanning=" + BLEManager.scanning)
                                 if (BLEManager.scanning) {
                                     BLEManager.stopScan()
                                 } else {
                                     BLEManager.startScan()
                                 }
                             }
+                            onPressed: console.log("DE1 button PRESSED")
+                            onReleased: console.log("DE1 button RELEASED")
                         }
                     }
 
@@ -80,7 +83,7 @@ Page {
 
                     ListView {
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
+                        Layout.preferredHeight: 60
                         clip: true
                         model: BLEManager.discoveredDevices
 
@@ -102,6 +105,40 @@ Page {
                             text: "No devices found"
                             visible: parent.count === 0
                             color: Theme.textSecondaryColor
+                        }
+                    }
+
+                    // DE1 scan log
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: Qt.darker(Theme.surfaceColor, 1.2)
+                        radius: 4
+
+                        ScrollView {
+                            id: de1LogScroll
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            clip: true
+
+                            TextArea {
+                                id: de1LogText
+                                readOnly: true
+                                color: Theme.textSecondaryColor
+                                font.pixelSize: 11
+                                font.family: "monospace"
+                                wrapMode: Text.Wrap
+                                background: null
+                                text: ""
+                            }
+                        }
+
+                        Connections {
+                            target: BLEManager
+                            function onDe1LogMessage(message) {
+                                de1LogText.text += message + "\n"
+                                de1LogScroll.ScrollBar.vertical.position = 1.0 - de1LogScroll.ScrollBar.vertical.size
+                            }
                         }
                     }
                 }
@@ -205,7 +242,7 @@ Page {
 
                     ListView {
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
+                        Layout.preferredHeight: 60
                         clip: true
                         visible: !ScaleDevice || !ScaleDevice.connected
                         model: BLEManager.discoveredScales
@@ -238,6 +275,40 @@ Page {
                             text: "No scales found"
                             visible: parent.count === 0
                             color: Theme.textSecondaryColor
+                        }
+                    }
+
+                    // Scale scan log
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        color: Qt.darker(Theme.surfaceColor, 1.2)
+                        radius: 4
+
+                        ScrollView {
+                            id: scaleLogScroll
+                            anchors.fill: parent
+                            anchors.margins: 8
+                            clip: true
+
+                            TextArea {
+                                id: scaleLogText
+                                readOnly: true
+                                color: Theme.textSecondaryColor
+                                font.pixelSize: 11
+                                font.family: "monospace"
+                                wrapMode: Text.Wrap
+                                background: null
+                                text: ""
+                            }
+                        }
+
+                        Connections {
+                            target: BLEManager
+                            function onScaleLogMessage(message) {
+                                scaleLogText.text += message + "\n"
+                                scaleLogScroll.ScrollBar.vertical.position = 1.0 - scaleLogScroll.ScrollBar.vertical.size
+                            }
                         }
                     }
                 }

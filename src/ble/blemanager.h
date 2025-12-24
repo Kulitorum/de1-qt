@@ -37,6 +37,7 @@ public:
     // Scale address management
     void setSavedScaleAddress(const QString& address, const QString& type);
     Q_INVOKABLE void clearSavedScale();
+    Q_INVOKABLE void openLocationSettings();
 
 public slots:
     Q_INVOKABLE void tryDirectConnectToScale();
@@ -53,6 +54,8 @@ signals:
     void de1Discovered(const QBluetoothDeviceInfo& device);
     void scaleDiscovered(const QBluetoothDeviceInfo& device, const QString& type);
     void errorOccurred(const QString& error);
+    void de1LogMessage(const QString& message);
+    void scaleLogMessage(const QString& message);
 
 private slots:
     void onDeviceDiscovered(const QBluetoothDeviceInfo& device);

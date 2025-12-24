@@ -6,6 +6,11 @@
 #include <QTimer>
 #include <memory>
 
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#include <QCoreApplication>
+#endif
+
 #include "core/settings.h"
 #include "ble/blemanager.h"
 #include "ble/de1device.h"
@@ -159,6 +164,15 @@ int main(int argc, char *argv[])
         }, Qt::QueuedConnection);
 
     engine.load(url);
+
+#ifdef Q_OS_ANDROID
+    // Force landscape orientation on Android (after QML is loaded)
+    // SCREEN_ORIENTATION_LANDSCAPE = 0 (forced landscape)
+    QJniObject activity = QNativeInterface::QAndroidApplication::context();
+    if (activity.isValid()) {
+        activity.callMethod<void>("setRequestedOrientation", "(I)V", 0);
+    }
+#endif
 
     return app.exec();
 }
