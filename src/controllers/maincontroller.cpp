@@ -24,10 +24,11 @@ MainController::MainController(Settings* settings, DE1Device* device,
         connect(m_device, &DE1Device::shotSampleReceived,
                 this, &MainController::onShotSampleReceived);
 
-        // Upload profile when device connects
-        connect(m_device, &DE1Device::connectedChanged, this, [this]() {
-            if (m_device->isConnected() && m_currentProfile.mode() == Profile::Mode::FrameBased) {
-                qDebug() << "MainController: Device connected, uploading profile:" << m_currentProfile.title();
+        // Upload profile after device initial settings complete
+        // This ensures we upload AFTER sendInitialSettings() which writes a basic profile
+        connect(m_device, &DE1Device::initialSettingsComplete, this, [this]() {
+            if (m_currentProfile.mode() == Profile::Mode::FrameBased) {
+                qDebug() << "MainController: Initial settings complete, uploading profile:" << m_currentProfile.title();
                 uploadCurrentProfile();
             }
         });

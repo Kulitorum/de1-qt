@@ -708,6 +708,12 @@ void DE1Device::sendInitialSettings() {
     double groupTemp = 93.0;       // Group head temperature
 
     setShotSettings(steamTemp, steamDuration, hotWaterTemp, hotWaterVolume, groupTemp);
+
+    // Signal that initial settings are complete (after queue processes)
+    queueCommand([this]() {
+        qDebug() << "DE1Device: Initial settings complete";
+        emit initialSettingsComplete();
+    });
 }
 
 void DE1Device::setShotSettings(double steamTemp, int steamDuration,

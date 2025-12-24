@@ -101,6 +101,7 @@ signals:
     void waterLevelChanged();
     void firmwareVersionChanged();
     void profileUploaded(bool success);
+    void initialSettingsComplete();
     void errorOccurred(const QString& error);
 
 private slots:
