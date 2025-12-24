@@ -35,6 +35,17 @@ if(ANDROID)
     set(ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android")
     set(ANDROID_MIN_SDK_VERSION 28)
     set(ANDROID_TARGET_SDK_VERSION 34)
+
+    # Fetch OpenSSL for Android (required for HTTPS)
+    # See: https://github.com/KDAB/android_openssl
+    include(FetchContent)
+    FetchContent_Declare(
+        android_openssl
+        DOWNLOAD_EXTRACT_TIMESTAMP true
+        URL https://github.com/KDAB/android_openssl/archive/refs/heads/master.zip
+    )
+    FetchContent_MakeAvailable(android_openssl)
+    include(${android_openssl_SOURCE_DIR}/android_openssl.cmake)
 endif()
 
 if(IOS)
@@ -68,6 +79,7 @@ set(SOURCES
     src/models/shotdatamodel.cpp
     src/controllers/maincontroller.cpp
     src/controllers/directcontroller.cpp
+    src/screensaver/screensavervideomanager.cpp
 )
 
 set(HEADERS
@@ -96,6 +108,7 @@ set(HEADERS
     src/models/shotdatamodel.h
     src/controllers/maincontroller.h
     src/controllers/directcontroller.h
+    src/screensaver/screensavervideomanager.h
 )
 
 # Resources
@@ -144,6 +157,8 @@ set(QML_FILES
     qml/components/ActionButton.qml
     qml/components/CircularGauge.qml
     qml/components/ConnectionIndicator.qml
+    qml/components/PresetPillRow.qml
+    qml/components/TouchSlider.qml
     qml/components/ShotGraph.qml
     qml/components/StatusBar.qml
     qml/components/ProfileGraph.qml
@@ -173,6 +188,8 @@ if(ANDROID)
     set_target_properties(de1-qt PROPERTIES
         QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android"
     )
+    # Add OpenSSL libraries for HTTPS support
+    add_android_openssl_libraries(de1-qt)
 endif()
 
 # iOS deployment

@@ -18,6 +18,10 @@ DE1Device::~DE1Device() {
 }
 
 bool DE1Device::isConnected() const {
+    // Simulation mode always reports connected
+    if (m_simulationMode) {
+        return true;
+    }
     // After service discovery, controller is in DiscoveredState, not ConnectedState
     return m_controller &&
            (m_controller->state() == QLowEnergyController::ConnectedState ||
@@ -27,6 +31,33 @@ bool DE1Device::isConnected() const {
 
 bool DE1Device::isConnecting() const {
     return m_connecting;
+}
+
+void DE1Device::setSimulationMode(bool enabled) {
+    if (m_simulationMode == enabled) {
+        return;
+    }
+    m_simulationMode = enabled;
+    qDebug() << "DE1Device: Simulation mode" << (enabled ? "ENABLED" : "DISABLED");
+
+    if (enabled) {
+        // Set some default simulated state
+        m_state = DE1::State::Idle;
+        m_subState = DE1::SubState::Ready;
+        m_pressure = 0.0;
+        m_flow = 0.0;
+        m_headTemp = 93.0;
+        m_mixTemp = 92.5;
+        m_waterLevel = 75.0;
+        m_firmwareVersion = "SIM-1.0";
+        emit stateChanged();
+        emit subStateChanged();
+        emit waterLevelChanged();
+        emit firmwareVersionChanged();
+    }
+
+    emit simulationModeChanged();
+    emit connectedChanged();
 }
 
 void DE1Device::connectToDevice(const QString& address) {

@@ -11,7 +11,32 @@ ScaleDevice::~ScaleDevice() {
 }
 
 bool ScaleDevice::isConnected() const {
+    // Simulation mode always reports connected
+    if (m_simulationMode) {
+        return true;
+    }
     return m_connected;
+}
+
+void ScaleDevice::setSimulationMode(bool enabled) {
+    if (m_simulationMode == enabled) {
+        return;
+    }
+    m_simulationMode = enabled;
+    qDebug() << "ScaleDevice: Simulation mode" << (enabled ? "ENABLED" : "DISABLED");
+
+    if (enabled) {
+        // Set some default simulated state
+        m_weight = 0.0;
+        m_flowRate = 0.0;
+        m_batteryLevel = 85;
+        emit weightChanged(m_weight);
+        emit flowRateChanged(m_flowRate);
+        emit batteryLevelChanged(m_batteryLevel);
+    }
+
+    emit simulationModeChanged();
+    emit connectedChanged();
 }
 
 void ScaleDevice::disconnectFromScale() {

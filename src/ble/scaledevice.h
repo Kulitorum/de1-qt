@@ -10,6 +10,7 @@ class ScaleDevice : public QObject {
     Q_OBJECT
 
     Q_PROPERTY(bool connected READ isConnected NOTIFY connectedChanged)
+    Q_PROPERTY(bool simulationMode READ simulationMode WRITE setSimulationMode NOTIFY simulationModeChanged)
     Q_PROPERTY(double weight READ weight NOTIFY weightChanged)
     Q_PROPERTY(double flowRate READ flowRate NOTIFY flowRateChanged)
     Q_PROPERTY(int batteryLevel READ batteryLevel NOTIFY batteryLevelChanged)
@@ -28,6 +29,9 @@ public:
     virtual QString name() const = 0;
     virtual QString type() const = 0;
 
+    bool simulationMode() const { return m_simulationMode; }
+    void setSimulationMode(bool enabled);
+
 public slots:
     virtual void tare() = 0;
     virtual void startTimer() {}
@@ -44,6 +48,7 @@ signals:
     void batteryLevelChanged(int level);
     void buttonPressed(int button);
     void errorOccurred(const QString& error);
+    void simulationModeChanged();
 
 protected:
     void setConnected(bool connected);
@@ -57,6 +62,7 @@ protected:
 
 private:
     bool m_connected = false;
+    bool m_simulationMode = false;
     double m_weight = 0.0;
     double m_flowRate = 0.0;
     int m_batteryLevel = 100;

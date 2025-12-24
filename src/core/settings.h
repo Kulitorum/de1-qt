@@ -93,6 +93,10 @@ public:
     QString currentProfile() const;
     void setCurrentProfile(const QString& profile);
 
+    // Generic settings access (for extensibility)
+    Q_INVOKABLE QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
+    Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
+
 signals:
     void machineAddressChanged();
     void scaleAddressChanged();
@@ -108,6 +112,7 @@ signals:
     void waterVolumeChanged();
     void skinChanged();
     void currentProfileChanged();
+    void valueChanged(const QString& key);
 
 private:
     QSettings m_settings;

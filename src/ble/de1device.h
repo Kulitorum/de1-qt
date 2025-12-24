@@ -31,6 +31,7 @@ class DE1Device : public QObject {
 
     Q_PROPERTY(bool connected READ isConnected NOTIFY connectedChanged)
     Q_PROPERTY(bool connecting READ isConnecting NOTIFY connectingChanged)
+    Q_PROPERTY(bool simulationMode READ simulationMode WRITE setSimulationMode NOTIFY simulationModeChanged)
     Q_PROPERTY(int state READ stateInt NOTIFY stateChanged)
     Q_PROPERTY(int subState READ subStateInt NOTIFY subStateChanged)
     Q_PROPERTY(QString stateString READ stateString NOTIFY stateChanged)
@@ -61,6 +62,10 @@ public:
     double mixTemperature() const { return m_mixTemp; }
     double waterLevel() const { return m_waterLevel; }
     QString firmwareVersion() const { return m_firmwareVersion; }
+
+    // Simulation mode for GUI development without hardware
+    bool simulationMode() const { return m_simulationMode; }
+    void setSimulationMode(bool enabled);
 
 public slots:
     void connectToDevice(const QString& address);
@@ -103,6 +108,7 @@ signals:
     void profileUploaded(bool success);
     void initialSettingsComplete();
     void errorOccurred(const QString& error);
+    void simulationModeChanged();
 
 private slots:
     void onControllerConnected();
@@ -145,4 +151,5 @@ private:
     QTimer m_commandTimer;
     bool m_writePending = false;
     bool m_connecting = false;
+    bool m_simulationMode = false;
 };

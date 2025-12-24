@@ -8,68 +8,70 @@ Page {
     objectName: "screensaverPage"
     background: Rectangle { color: "black" }
 
-    // Apple TV aerial screensaver videos from Internet Archive (tvOS 10, 1080p)
-    // Source: https://archive.org/details/apple-wallpapers-and-screensavers
-    readonly property string videoBaseUrl: "https://archive.org/download/apple-wallpapers-and-screensavers/tvOS/tvOS%2010/"
-    readonly property var videoFiles: [
-        "b1-1.mp4",      // San Francisco
-        "b1-2.mp4",      // San Francisco
-        "b2-1.mp4",      // New York
-        "b2-2.mp4",      // New York
-        "b3-1.mp4",      // Hawaii
-        "b4-1.mp4",      // China
-        "b5-1.mp4",      // London
-        "b6-1.mp4",      // Dubai
-        "b7-1.mp4",      // Liwa
-        "b8-1.mp4",      // Greenland
-        "b9-1.mp4",      // Los Angeles
-        "b10-1.mp4"      // Hong Kong
-    ]
-
-    property int currentVideoIndex: Math.floor(Math.random() * videoFiles.length)
     property int videoFailCount: 0
-    property bool videoDisabled: false
+    property bool videoPlaying: false
     property string lastFailedSource: ""
 
     Component.onCompleted: {
-        // Start with a random video
-        currentVideoIndex = Math.floor(Math.random() * videoFiles.length)
-        tryPlayVideo()
+        playNextVideo()
     }
 
-    function tryPlayVideo() {
-        if (videoDisabled || videoFailCount >= videoFiles.length) {
-            // All videos failed, give up and use fallback
-            console.log("All videos failed, using fallback animation")
-            videoDisabled = true
-            mediaPlayer.stop()
+    // Listen for new videos becoming available (downloaded)
+    Connections {
+        target: ScreensaverManager
+        function onVideoReady(path) {
+            // A video just finished downloading - try to play if we're showing fallback
+            if (!videoPlaying) {
+                console.log("[Screensaver] New video ready, starting playback")
+                playNextVideo()
+            }
+        }
+        function onCatalogUpdated() {
+            // Catalog loaded - try to play if we're showing fallback
+            if (!videoPlaying && ScreensaverManager.itemCount > 0) {
+                console.log("[Screensaver] Catalog updated, trying playback")
+                playNextVideo()
+            }
+        }
+    }
+
+    function playNextVideo() {
+        if (!ScreensaverManager.enabled) {
             return
         }
-        var url = videoBaseUrl + videoFiles[currentVideoIndex]
-        mediaPlayer.source = url
-        mediaPlayer.play()
+
+        var source = ScreensaverManager.getNextVideoSource()
+        if (source && source.length > 0) {
+            console.log("[Screensaver] Playing:", source)
+            videoPlaying = true
+            mediaPlayer.source = source
+            mediaPlayer.play()
+        } else {
+            // No cached videos yet - show fallback, wait for downloads
+            console.log("[Screensaver] No cached videos yet, showing fallback")
+            videoPlaying = false
+        }
     }
 
     function handleVideoFailure() {
-        if (videoDisabled) return
-
-        // Prevent handling the same failure twice (both onError and onMediaStatus can fire)
+        // Prevent handling the same failure twice
         var currentSource = mediaPlayer.source.toString()
         if (currentSource === lastFailedSource) return
         lastFailedSource = currentSource
 
         videoFailCount++
-        console.log("Video failed (" + videoFailCount + "/" + videoFiles.length + "):", videoFiles[currentVideoIndex])
+        console.log("[Screensaver] Video failed (" + videoFailCount + ")")
 
-        if (videoFailCount >= videoFiles.length) {
-            console.log("All videos failed, using fallback animation")
-            videoDisabled = true
+        if (videoFailCount >= 5) {
+            console.log("[Screensaver] Too many failures, showing fallback")
+            videoPlaying = false
             mediaPlayer.stop()
+            videoFailCount = 0  // Reset for when new videos download
             return
         }
 
-        currentVideoIndex = (currentVideoIndex + 1) % videoFiles.length
-        tryPlayVideo()
+        // Try next cached video
+        playNextVideo()
     }
 
     MediaPlayer {
@@ -79,11 +81,12 @@ Page {
 
         onMediaStatusChanged: {
             if (mediaStatus === MediaPlayer.EndOfMedia) {
+                // Mark current video as played for LRU tracking
+                ScreensaverManager.markVideoPlayed(source.toString())
                 // Play next video (reset fail count on success)
                 videoFailCount = 0
                 lastFailedSource = ""
-                currentVideoIndex = (currentVideoIndex + 1) % videoFiles.length
-                tryPlayVideo()
+                playNextVideo()
             } else if (mediaStatus === MediaPlayer.InvalidMedia ||
                        mediaStatus === MediaPlayer.NoMedia) {
                 handleVideoFailure()
@@ -95,7 +98,6 @@ Page {
         }
 
         onPlaybackStateChanged: {
-            // Reset fail count when video starts playing successfully
             if (playbackState === MediaPlayer.PlayingState) {
                 videoFailCount = 0
                 lastFailedSource = ""
@@ -107,17 +109,16 @@ Page {
         id: videoOutput
         anchors.fill: parent
         fillMode: VideoOutput.PreserveAspectCrop
-        visible: !videoDisabled
+        visible: videoPlaying
     }
 
-    // Fallback: show a subtle animation if video fails
+    // Fallback: show a subtle animation while no cached videos
     Rectangle {
         id: fallbackBackground
         anchors.fill: parent
-        visible: videoDisabled || mediaPlayer.playbackState !== MediaPlayer.PlayingState
-        z: 1  // Above VideoOutput
+        visible: !videoPlaying || mediaPlayer.playbackState !== MediaPlayer.PlayingState
+        z: 1
 
-        // Subtle gradient animation as fallback
         Rectangle {
             id: gradientRect
             anchors.fill: parent
@@ -143,12 +144,33 @@ Page {
         }
     }
 
+    // Credits display at bottom (one-liner for current video)
+    Rectangle {
+        z: 2
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 40
+        color: Qt.rgba(0, 0, 0, 0.5)
+        visible: ScreensaverManager.currentVideoAuthor.length > 0 &&
+                 mediaPlayer.playbackState === MediaPlayer.PlayingState
+
+        Text {
+            anchors.centerIn: parent
+            text: "Video by " + ScreensaverManager.currentVideoAuthor + " (Pexels)"
+            color: "white"
+            opacity: 0.7
+            font.pixelSize: 14
+        }
+    }
+
     // Clock display
     Text {
         z: 2
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: 50
+        anchors.bottomMargin: 60  // Above credits bar
         text: Qt.formatTime(currentTime, "hh:mm")
         color: "white"
         opacity: 0.8
@@ -162,6 +184,30 @@ Page {
             running: true
             repeat: true
             onTriggered: parent.currentTime = new Date()
+        }
+    }
+
+    // Download progress indicator (subtle)
+    Rectangle {
+        z: 2
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 3
+        color: "transparent"
+        visible: ScreensaverManager.isDownloading
+
+        Rectangle {
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            width: parent.width * ScreensaverManager.downloadProgress
+            color: Theme.primaryColor
+            opacity: 0.6
+
+            Behavior on width {
+                NumberAnimation { duration: 300 }
+            }
         }
     }
 
@@ -219,11 +265,9 @@ Page {
     Connections {
         target: DE1Device
         function onStateChanged() {
-            // If DE1 wakes up externally, wake the app too
             var state = DE1Device.stateString
             if (state !== "Sleep" && state !== "GoingToSleep") {
                 mediaPlayer.stop()
-                // Wake the scale (enable LCD) or try to reconnect
                 if (ScaleDevice && ScaleDevice.connected) {
                     ScaleDevice.wake()
                 } else {

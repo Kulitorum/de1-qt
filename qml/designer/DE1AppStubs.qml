@@ -85,13 +85,13 @@ QtObject {
     // Settings stub
     property QtObject settings: QtObject {
         property int steamTimeout: 30
-        property int steamFlow: 700
+        property int steamFlow: 150
         property int steamTemperature: 160
         property int selectedSteamCup: 0
         property var steamCupPresets: [
-            { name: "Small", duration: 20, flow: 600 },
-            { name: "Medium", duration: 30, flow: 700 },
-            { name: "Large", duration: 45, flow: 800 }
+            { name: "Small", duration: 20, flow: 100 },
+            { name: "Medium", duration: 30, flow: 150 },
+            { name: "Large", duration: 45, flow: 200 }
         ]
         function getSteamCupPreset(idx) { return steamCupPresets[idx] }
         function updateSteamCupPreset(idx, name, dur, flow) {}

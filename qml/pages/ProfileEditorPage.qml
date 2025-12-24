@@ -239,7 +239,7 @@ Page {
                     font: Theme.bodyFont
                 }
 
-                Slider {
+                TouchSlider {
                     id: targetWeightSlider
                     Layout.preferredWidth: Theme.scaled(200)
                     from: 20
@@ -539,35 +539,15 @@ Page {
                         Layout.fillWidth: true
                         spacing: Theme.scaled(15)
 
-                        Slider {
+                        TouchSlider {
                             id: setpointSlider
                             Layout.fillWidth: true
                             from: 0
                             to: step && step.pump === "flow" ? 8 : 12
                             value: step ? (step.pump === "flow" ? step.flow : step.pressure) : 0
                             stepSize: 0.1
-                            handle: Rectangle {
-                                x: setpointSlider.leftPadding + setpointSlider.visualPosition * (setpointSlider.availableWidth - width)
-                                y: setpointSlider.topPadding + setpointSlider.availableHeight / 2 - height / 2
-                                width: Theme.scaled(20)
-                                height: Theme.scaled(20)
-                                radius: width / 2
-                                color: step && step.pump === "flow" ? Theme.flowGoalColor : Theme.pressureGoalColor
-                            }
-                            background: Rectangle {
-                                x: setpointSlider.leftPadding
-                                y: setpointSlider.topPadding + setpointSlider.availableHeight / 2 - height / 2
-                                width: setpointSlider.availableWidth
-                                height: Theme.scaled(4)
-                                radius: Theme.scaled(2)
-                                color: Qt.rgba(255, 255, 255, 0.2)
-                                Rectangle {
-                                    width: setpointSlider.visualPosition * parent.width
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: step && step.pump === "flow" ? Theme.flowGoalColor : Theme.pressureGoalColor
-                                }
-                            }
+                            handleColor: step && step.pump === "flow" ? Theme.flowGoalColor : Theme.pressureGoalColor
+                            progressColor: step && step.pump === "flow" ? Theme.flowGoalColor : Theme.pressureGoalColor
                             onMoved: {
                                 if (profile && selectedStepIndex >= 0) {
                                     if (profile.steps[selectedStepIndex].pump === "flow") {
@@ -604,35 +584,15 @@ Page {
                         Layout.fillWidth: true
                         spacing: Theme.scaled(15)
 
-                        Slider {
+                        TouchSlider {
                             id: tempSlider
                             Layout.fillWidth: true
                             from: 70
                             to: 100
                             value: step ? step.temperature : 93
                             stepSize: 0.5
-                            handle: Rectangle {
-                                x: tempSlider.leftPadding + tempSlider.visualPosition * (tempSlider.availableWidth - width)
-                                y: tempSlider.topPadding + tempSlider.availableHeight / 2 - height / 2
-                                width: Theme.scaled(20)
-                                height: Theme.scaled(20)
-                                radius: width / 2
-                                color: Theme.temperatureGoalColor
-                            }
-                            background: Rectangle {
-                                x: tempSlider.leftPadding
-                                y: tempSlider.topPadding + tempSlider.availableHeight / 2 - height / 2
-                                width: tempSlider.availableWidth
-                                height: Theme.scaled(4)
-                                radius: Theme.scaled(2)
-                                color: Qt.rgba(255, 255, 255, 0.2)
-                                Rectangle {
-                                    width: tempSlider.visualPosition * parent.width
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: Theme.temperatureGoalColor
-                                }
-                            }
+                            handleColor: Theme.temperatureGoalColor
+                            progressColor: Theme.temperatureGoalColor
                             onMoved: {
                                 if (profile && selectedStepIndex >= 0) {
                                     profile.steps[selectedStepIndex].temperature = value
@@ -665,35 +625,15 @@ Page {
                         Layout.fillWidth: true
                         spacing: Theme.scaled(15)
 
-                        Slider {
+                        TouchSlider {
                             id: durationSlider
                             Layout.fillWidth: true
                             from: 0
                             to: 120
                             value: step ? step.seconds : 30
                             stepSize: 1
-                            handle: Rectangle {
-                                x: durationSlider.leftPadding + durationSlider.visualPosition * (durationSlider.availableWidth - width)
-                                y: durationSlider.topPadding + durationSlider.availableHeight / 2 - height / 2
-                                width: Theme.scaled(20)
-                                height: Theme.scaled(20)
-                                radius: width / 2
-                                color: Theme.accentColor
-                            }
-                            background: Rectangle {
-                                x: durationSlider.leftPadding
-                                y: durationSlider.topPadding + durationSlider.availableHeight / 2 - height / 2
-                                width: durationSlider.availableWidth
-                                height: Theme.scaled(4)
-                                radius: Theme.scaled(2)
-                                color: Qt.rgba(255, 255, 255, 0.2)
-                                Rectangle {
-                                    width: durationSlider.visualPosition * parent.width
-                                    height: parent.height
-                                    radius: parent.radius
-                                    color: Theme.accentColor
-                                }
-                            }
+                            handleColor: Theme.accentColor
+                            progressColor: Theme.accentColor
                             onMoved: {
                                 if (profile && selectedStepIndex >= 0) {
                                     profile.steps[selectedStepIndex].seconds = value
@@ -879,7 +819,7 @@ Page {
                             enabled: exitIfCheck.checked
                             spacing: Theme.scaled(10)
 
-                            Slider {
+                            TouchSlider {
                                 id: exitValueSlider
                                 Layout.fillWidth: true
                                 from: 0
@@ -939,7 +879,7 @@ Page {
                         anchors.fill: parent
                         spacing: Theme.scaled(10)
 
-                        Slider {
+                        TouchSlider {
                             id: limiterSlider
                             Layout.fillWidth: true
                             from: 0

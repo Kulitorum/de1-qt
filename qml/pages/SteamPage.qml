@@ -14,9 +14,10 @@ Page {
     property int editingCupIndex: -1  // For the edit popup
 
     // Helper to format flow as readable value (handles undefined/NaN)
+    // Steam flow is stored as 0.01 ml/s units (e.g., 150 = 1.5 ml/s)
     function flowToDisplay(flow) {
         if (flow === undefined || flow === null || isNaN(flow)) {
-            return "7.0"  // Default
+            return "1.5"  // Default
         }
         return (flow / 100).toFixed(1)
     }
@@ -29,7 +30,7 @@ Page {
 
     function getCurrentCupFlow() {
         var preset = Settings.getSteamCupPreset(Settings.selectedSteamCup)
-        return (preset && preset.flow !== undefined) ? preset.flow : 700
+        return (preset && preset.flow !== undefined) ? preset.flow : 150
     }
 
     function getCurrentCupName() {
@@ -112,12 +113,12 @@ Page {
                     }
                 }
 
-                Slider {
+                TouchSlider {
                     id: steamingFlowSlider
                     Layout.fillWidth: true
-                    from: 200
-                    to: 1200
-                    stepSize: 10
+                    from: 40
+                    to: 250
+                    stepSize: 5
                     value: Settings.steamFlow
                     onMoved: MainController.setSteamFlowImmediate(value)
                 }
@@ -242,7 +243,7 @@ Page {
                                             if (!moved && !held) {
                                                 // Simple click - select the cup
                                                 Settings.selectedSteamCup = cupDelegate.cupIndex
-                                                var flow = modelData.flow !== undefined ? modelData.flow : 700
+                                                var flow = modelData.flow !== undefined ? modelData.flow : 150
                                                 durationSlider.value = modelData.duration
                                                 flowSlider.value = flow
                                                 Settings.steamTimeout = modelData.duration
@@ -341,7 +342,7 @@ Page {
                         }
                     }
 
-                    Slider {
+                    TouchSlider {
                         id: durationSlider
                         Layout.fillWidth: true
                         from: 1
@@ -387,12 +388,12 @@ Page {
                         }
                     }
 
-                    Slider {
+                    TouchSlider {
                         id: flowSlider
                         Layout.fillWidth: true
-                        from: 200
-                        to: 1200
-                        stepSize: 10
+                        from: 40
+                        to: 250
+                        stepSize: 5
                         value: getCurrentCupFlow()
                         onMoved: MainController.setSteamFlowImmediate(value)
                         onPressedChanged: {
@@ -440,7 +441,7 @@ Page {
                         }
                     }
 
-                    Slider {
+                    TouchSlider {
                         id: steamTempSlider
                         Layout.fillWidth: true
                         from: 120
@@ -657,7 +658,7 @@ Page {
                             if (editCupNameInput.text.trim() !== "") {
                                 var preset = Settings.getSteamCupPreset(editingCupIndex)
                                 var duration = preset ? preset.duration : 30
-                                var flow = (preset && preset.flow !== undefined) ? preset.flow : 700
+                                var flow = (preset && preset.flow !== undefined) ? preset.flow : 150
                                 Settings.updateSteamCupPreset(editingCupIndex, editCupNameInput.text.trim(), duration, flow)
                             }
                             editCupPopup.close()
@@ -766,7 +767,7 @@ Page {
                         onClicked: {
                             if (newCupName.text.trim() !== "") {
                                 var presetCount = Settings.steamCupPresets.length
-                                Settings.addSteamCupPreset(newCupName.text.trim(), 30, 700)
+                                Settings.addSteamCupPreset(newCupName.text.trim(), 30, 150)
                                 Settings.selectedSteamCup = presetCount  // Select the new cup
                                 newCupName.text = ""
                                 addCupDialog.close()

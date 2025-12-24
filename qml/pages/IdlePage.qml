@@ -10,40 +10,92 @@ Page {
 
     Component.onCompleted: root.currentPageTitle = ""
 
-    // Main action buttons - centered on screen
-    RowLayout {
-        anchors.centerIn: parent
-        spacing: 30
+    // Track which function's presets are showing
+    property string activePresetFunction: ""  // "", "steam", "espresso" (future)
 
-        ActionButton {
-            text: "Espresso"
-            iconSource: "qrc:/icons/espresso.svg"
-            enabled: DE1Device.connected
-            onClicked: {
-                // Open profile editor - shot is started physically on group head
-                root.goToProfileEditor()
+    // Click away to hide presets
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        enabled: activePresetFunction !== ""
+        onClicked: activePresetFunction = ""
+    }
+
+    // Main content area - centered
+    ColumnLayout {
+        anchors.centerIn: parent
+        spacing: Theme.scaled(20)
+
+        // Main action buttons row
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: 30
+
+            ActionButton {
+                text: "Espresso"
+                iconSource: "qrc:/icons/espresso.svg"
+                enabled: DE1Device.connected
+                onClicked: root.goToProfileEditor()
+            }
+
+            ActionButton {
+                text: "Steam"
+                iconSource: "qrc:/icons/steam.svg"
+                enabled: DE1Device.connected
+                onClicked: {
+                    activePresetFunction = (activePresetFunction === "steam") ? "" : "steam"
+                }
+                onPressAndHold: root.goToSteam()
+                onDoubleClicked: root.goToSteam()
+            }
+
+            ActionButton {
+                text: "Hot Water"
+                iconSource: "qrc:/icons/water.svg"
+                enabled: DE1Device.connected
+                onClicked: root.goToHotWater()
+            }
+
+            ActionButton {
+                text: "Flush"
+                iconSource: "qrc:/icons/flush.svg"
+                enabled: MachineState.isReady && DE1Device.connected
+                onClicked: DE1Device.startFlush()
             }
         }
 
-        ActionButton {
-            text: "Steam"
-            iconSource: "qrc:/icons/steam.svg"
-            enabled: DE1Device.connected
-            onClicked: root.goToSteam()
-        }
+        // Preset row with animation
+        Item {
+            Layout.alignment: Qt.AlignHCenter
+            Layout.preferredHeight: activePresetFunction === "steam" ? steamPresetRow.implicitHeight : 0
+            Layout.preferredWidth: steamPresetRow.implicitWidth
+            clip: true
 
-        ActionButton {
-            text: "Hot Water"
-            iconSource: "qrc:/icons/water.svg"
-            enabled: DE1Device.connected
-            onClicked: root.goToHotWater()
-        }
+            Behavior on Layout.preferredHeight {
+                NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+            }
 
-        ActionButton {
-            text: "Flush"
-            iconSource: "qrc:/icons/flush.svg"
-            enabled: MachineState.isReady && DE1Device.connected
-            onClicked: DE1Device.startFlush()
+            PresetPillRow {
+                id: steamPresetRow
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: activePresetFunction === "steam"
+                opacity: visible ? 1.0 : 0.0
+
+                presets: Settings.steamCupPresets
+                selectedIndex: Settings.selectedSteamCup
+
+                onPresetSelected: function(index) {
+                    Settings.selectedSteamCup = index
+                    var preset = Settings.getSteamCupPreset(index)
+                    if (preset) {
+                        Settings.steamTimeout = preset.duration
+                        Settings.steamFlow = preset.flow !== undefined ? preset.flow : 150
+                    }
+                    MainController.applySteamSettings()
+                }
+
+                Behavior on opacity { NumberAnimation { duration: 150 } }
+            }
         }
     }
 

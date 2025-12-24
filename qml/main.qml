@@ -44,13 +44,65 @@ ApplicationWindow {
         onTriggered: Qt.quit()
     }
 
+    // Auto-sleep inactivity timer
+    property int autoSleepMinutes: {
+        var val = Settings.value("autoSleepMinutes", 0)
+        return (val === undefined || val === null) ? 0 : parseInt(val)
+    }
+
+    Timer {
+        id: inactivityTimer
+        interval: root.autoSleepMinutes * 60 * 1000  // Convert minutes to ms
+        running: root.autoSleepMinutes > 0 && pageStack.currentItem &&
+                 pageStack.currentItem.objectName !== "screensaverPage"
+        repeat: false
+        onTriggered: {
+            console.log("Auto-sleep triggered after", root.autoSleepMinutes, "minutes of inactivity")
+            triggerAutoSleep()
+        }
+    }
+
+    // Restart timer when settings change
+    Connections {
+        target: Settings
+        function onValueChanged(key) {
+            if (key === "autoSleepMinutes") {
+                var val = Settings.value("autoSleepMinutes", 0)
+                root.autoSleepMinutes = (val === undefined || val === null) ? 0 : parseInt(val)
+                resetInactivityTimer()
+            }
+        }
+    }
+
+    function resetInactivityTimer() {
+        if (root.autoSleepMinutes > 0) {
+            inactivityTimer.restart()
+        }
+    }
+
+    function triggerAutoSleep() {
+        // Put scale to sleep
+        if (ScaleDevice && ScaleDevice.connected) {
+            ScaleDevice.sleep()
+        }
+        // Put DE1 to sleep
+        if (DE1Device && DE1Device.connected) {
+            DE1Device.goToSleep()
+        }
+        // Show screensaver
+        goToScreensaver()
+    }
+
     // Current page title - set by each page
     property string currentPageTitle: ""
 
     // Update scale factor when window resizes
     onWidthChanged: updateScale()
     onHeightChanged: updateScale()
-    Component.onCompleted: updateScale()
+    Component.onCompleted: {
+        updateScale()
+        console.log("Auto-sleep setting:", root.autoSleepMinutes, "minutes (0 = never)")
+    }
 
     function updateScale() {
         // Scale based on the smaller ratio to maintain aspect ratio
@@ -229,5 +281,57 @@ ApplicationWindow {
 
     function goToScreensaver() {
         pageStack.replace(screensaverPage)
+    }
+
+    // Touch capture to reset inactivity timer (transparent, doesn't block input)
+    MouseArea {
+        anchors.fill: parent
+        z: 1000  // Above everything
+        propagateComposedEvents: true
+        onPressed: function(mouse) {
+            resetInactivityTimer()
+            mouse.accepted = false  // Let the touch through
+        }
+        onReleased: function(mouse) { mouse.accepted = false }
+        onClicked: function(mouse) { mouse.accepted = false }
+    }
+
+    // Keyboard shortcut handler (Shift+D for simulation mode)
+    Item {
+        focus: true
+        Keys.onPressed: function(event) {
+            // Shift+D toggles simulation mode for GUI development
+            if (event.key === Qt.Key_D && (event.modifiers & Qt.ShiftModifier)) {
+                var newState = !DE1Device.simulationMode
+                console.log("Toggling simulation mode:", newState ? "ON" : "OFF")
+                DE1Device.simulationMode = newState
+                if (ScaleDevice) {
+                    ScaleDevice.simulationMode = newState
+                }
+                event.accepted = true
+            }
+        }
+    }
+
+    // Simulation mode indicator banner
+    Rectangle {
+        visible: DE1Device.simulationMode
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottomMargin: 10
+        width: simLabel.implicitWidth + 20
+        height: simLabel.implicitHeight + 10
+        radius: 4
+        color: "#E65100"
+        z: 999
+
+        Text {
+            id: simLabel
+            anchors.centerIn: parent
+            text: "⚠ SIMULATION MODE (Shift+D to toggle)"
+            color: "white"
+            font.pixelSize: 14
+            font.bold: true
+        }
     }
 }

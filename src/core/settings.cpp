@@ -13,13 +13,13 @@ Settings::Settings(QObject* parent)
         QJsonObject small;
         small["name"] = "Small";
         small["duration"] = 30;
-        small["flow"] = 700;
+        small["flow"] = 150;  // 1.5 ml/s
         defaultPresets.append(small);
 
         QJsonObject large;
         large["name"] = "Large";
         large["duration"] = 60;
-        large["flow"] = 700;
+        large["flow"] = 150;  // 1.5 ml/s
         defaultPresets.append(large);
 
         m_settings.setValue("steam/cupPresets", QJsonDocument(defaultPresets).toJson());
@@ -107,7 +107,7 @@ void Settings::setSteamTimeout(int timeout) {
 }
 
 int Settings::steamFlow() const {
-    return m_settings.value("steam/flow", 700).toInt();
+    return m_settings.value("steam/flow", 150).toInt();  // 150 = 1.5 ml/s (range: 40-250)
 }
 
 void Settings::setSteamFlow(int flow) {
@@ -290,4 +290,14 @@ void Settings::setCurrentProfile(const QString& profile) {
         m_settings.setValue("profile/current", profile);
         emit currentProfileChanged();
     }
+}
+
+// Generic settings access
+QVariant Settings::value(const QString& key, const QVariant& defaultValue) const {
+    return m_settings.value(key, defaultValue);
+}
+
+void Settings::setValue(const QString& key, const QVariant& value) {
+    m_settings.setValue(key, value);
+    emit valueChanged(key);
 }

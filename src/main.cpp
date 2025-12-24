@@ -20,10 +20,11 @@
 #include "machine/machinestate.h"
 #include "models/shotdatamodel.h"
 #include "controllers/maincontroller.h"
+#include "screensaver/screensavervideomanager.h"
 
 using namespace Qt::StringLiterals;
 
-// Custom message handler to filter noisy Windows BLE driver messages
+// Custom message handler to filter noisy BLE driver messages
 static QtMessageHandler originalHandler = nullptr;
 void messageFilter(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
@@ -31,8 +32,18 @@ void messageFilter(QtMsgType type, const QMessageLogContext &context, const QStr
     if (msg.contains("Windows.Devices.Bluetooth") ||
         msg.contains("ReturnHr") ||
         msg.contains("LogHr")) {
-        return;  // Suppress these messages
+        return;
     }
+
+    // Filter out Android QtBluetoothGatt noise (check both category and message)
+    const char* cat = context.category ? context.category : "";
+    if (QString::fromLatin1(cat).contains("QtBluetoothGatt") ||
+        msg.contains("Perform next BTLE IO") ||
+        msg.contains("Performing queued job") ||
+        msg.contains("BluetoothGatt")) {
+        return;
+    }
+
     if (originalHandler) {
         originalHandler(type, context, msg);
     }
@@ -62,6 +73,7 @@ int main(int argc, char *argv[])
     ShotDataModel shotDataModel;
     MachineState machineState(&de1Device);
     MainController mainController(&settings, &de1Device, &machineState, &shotDataModel);
+    ScreensaverVideoManager screensaverManager(&settings);
 
     // Set up QML engine
     QQmlApplicationEngine engine;
@@ -148,6 +160,7 @@ int main(int argc, char *argv[])
     context->setContextProperty("MachineState", &machineState);
     context->setContextProperty("ShotDataModel", &shotDataModel);
     context->setContextProperty("MainController", &mainController);
+    context->setContextProperty("ScreensaverManager", &screensaverManager);
 
     // Register types for QML (use different names to avoid conflict with context properties)
     qmlRegisterUncreatableType<DE1Device>("DE1App", 1, 0, "DE1DeviceType",

@@ -10,14 +10,80 @@ Page {
 
     Component.onCompleted: root.currentPageTitle = "Settings"
 
+    // Tap 5x anywhere for simulation mode
+    property int simTapCount: 0
+
+    Timer {
+        id: simTapResetTimer
+        interval: 2000
+        onTriggered: simTapCount = 0
+    }
+
+    // Simulation mode hint toast
+    Rectangle {
+        id: simToast
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 150
+        width: simToastText.implicitWidth + 30
+        height: simToastText.implicitHeight + 16
+        radius: height / 2
+        color: "#333"
+        opacity: 0
+        z: 100
+
+        Text {
+            id: simToastText
+            anchors.centerIn: parent
+            text: simTapCount >= 5 ?
+                  (DE1Device.simulationMode ? "Simulation ON" : "Simulation OFF") :
+                  (5 - simTapCount) + " taps to toggle simulation"
+            color: "white"
+            font.pixelSize: 14
+        }
+
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+
+        Timer {
+            id: simToastHideTimer
+            interval: 1500
+            onTriggered: simToast.opacity = 0
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        z: -1  // Behind all other controls
+        onClicked: {
+            simTapCount++
+            simTapResetTimer.restart()
+
+            if (simTapCount >= 5) {
+                var newState = !DE1Device.simulationMode
+                console.log("Simulation mode toggled:", newState ? "ON" : "OFF")
+                DE1Device.simulationMode = newState
+                if (ScaleDevice) {
+                    ScaleDevice.simulationMode = newState
+                }
+                simToast.opacity = 1
+                simToastHideTimer.restart()
+                simTapCount = 0
+            } else if (simTapCount >= 3) {
+                simToast.opacity = 1
+                simToastHideTimer.restart()
+            }
+        }
+    }
+
     // Main content area
     Item {
+        id: mainContentArea
         anchors.top: parent.top
         anchors.topMargin: Theme.scaled(60)
         anchors.left: parent.left
         anchors.right: parent.right
-        anchors.bottom: aboutBox.top
-        anchors.bottomMargin: 15
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 200  // Space for bottom panels + nav bar
         anchors.leftMargin: Theme.standardMargin
         anchors.rightMargin: Theme.standardMargin
 
@@ -316,40 +382,199 @@ Page {
         }
     }
 
-    // About - bottom left
-    Rectangle {
-        id: aboutBox
+    // Bottom panels row
+    RowLayout {
         anchors.left: parent.left
+        anchors.right: parent.right
         anchors.bottom: parent.bottom
         anchors.leftMargin: Theme.standardMargin
+        anchors.rightMargin: Theme.standardMargin
         anchors.bottomMargin: 85
-        width: 200
-        height: 80
-        color: Theme.surfaceColor
-        radius: Theme.cardRadius
+        spacing: 15
+        height: 100
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 12
-            spacing: 2
+        // About - bottom left
+        Rectangle {
+            id: aboutBox
+            Layout.preferredWidth: 140
+            Layout.fillHeight: true
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
 
-            Text {
-                text: "DE1 Controller"
-                color: Theme.textColor
-                font.pixelSize: 14
-                font.bold: true
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 2
+
+                Text {
+                    text: "DE1 Controller"
+                    color: Theme.textColor
+                    font.pixelSize: 14
+                    font.bold: true
+                }
+
+                Text {
+                    text: "Version 1.0.0"
+                    color: DE1Device.simulationMode ? Theme.primaryColor : Theme.textSecondaryColor
+                    font.pixelSize: 12
+                }
+
+                Text {
+                    text: DE1Device.simulationMode ? "SIM MODE" : "Built with Qt 6"
+                    color: DE1Device.simulationMode ? Theme.primaryColor : Theme.textSecondaryColor
+                    font.pixelSize: 12
+                    font.bold: DE1Device.simulationMode
+                }
+            }
+        }
+
+        // Auto-sleep settings
+        Rectangle {
+            Layout.preferredWidth: 220
+            Layout.fillHeight: true
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+
+            // Map slider position (0-8) to minutes (0=never, then 15,30,45,60,90,120,180,240)
+            property var sleepValues: [0, 15, 30, 45, 60, 90, 120, 180, 240]
+            property int currentMinutes: Settings.value("autoSleepMinutes", 0)
+
+            function minutesToIndex(mins) {
+                for (var i = 0; i < sleepValues.length; i++) {
+                    if (sleepValues[i] === mins) return i
+                }
+                return 0  // Default to "Never"
             }
 
-            Text {
-                text: "Version 1.0.0"
-                color: Theme.textSecondaryColor
-                font.pixelSize: 12
+            function formatTime(mins) {
+                if (mins === 0) return "Never"
+                if (mins < 60) return mins + " min"
+                var hours = mins / 60
+                if (hours === 1) return "1 hour"
+                return hours + " hours"
             }
 
-            Text {
-                text: "Built with Qt 6"
-                color: Theme.textSecondaryColor
-                font.pixelSize: 12
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 4
+
+                Text {
+                    text: "Auto-Sleep"
+                    color: Theme.textColor
+                    font.pixelSize: 14
+                    font.bold: true
+                }
+
+                Text {
+                    text: parent.parent.formatTime(parent.parent.currentMinutes)
+                    color: Theme.primaryColor
+                    font.pixelSize: 16
+                    font.bold: true
+                }
+
+                Slider {
+                    Layout.fillWidth: true
+                    from: 0
+                    to: 8
+                    stepSize: 1
+                    value: parent.parent.minutesToIndex(parent.parent.currentMinutes)
+                    onMoved: {
+                        var mins = parent.parent.sleepValues[Math.round(value)]
+                        parent.parent.currentMinutes = mins
+                        Settings.setValue("autoSleepMinutes", mins)
+                    }
+                }
+            }
+        }
+
+        // Screensaver settings
+        Rectangle {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 12
+                spacing: 20
+
+                ColumnLayout {
+                    spacing: 4
+
+                    Text {
+                        text: "Screensaver"
+                        color: Theme.textColor
+                        font.pixelSize: 14
+                        font.bold: true
+                    }
+
+                    Text {
+                        text: ScreensaverManager.itemCount + " videos" +
+                              (ScreensaverManager.isDownloading ? " (downloading...)" : "")
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: 12
+                    }
+
+                    Text {
+                        text: "Cache: " + (ScreensaverManager.cacheUsedBytes / 1024 / 1024).toFixed(0) + " MB / " +
+                              (ScreensaverManager.maxCacheBytes / 1024 / 1024 / 1024).toFixed(1) + " GB"
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: 12
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                ColumnLayout {
+                    spacing: 8
+
+                    RowLayout {
+                        spacing: 10
+
+                        Text {
+                            text: "Enabled"
+                            color: Theme.textColor
+                            font.pixelSize: 12
+                        }
+
+                        Switch {
+                            checked: ScreensaverManager.enabled
+                            onCheckedChanged: ScreensaverManager.enabled = checked
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: 10
+
+                        Text {
+                            text: "Cache"
+                            color: Theme.textColor
+                            font.pixelSize: 12
+                        }
+
+                        Switch {
+                            checked: ScreensaverManager.cacheEnabled
+                            onCheckedChanged: ScreensaverManager.cacheEnabled = checked
+                        }
+                    }
+                }
+
+                ColumnLayout {
+                    spacing: 8
+
+                    Button {
+                        text: "Refresh"
+                        onClicked: ScreensaverManager.refreshCatalog()
+                        enabled: !ScreensaverManager.isRefreshing
+                    }
+
+                    Button {
+                        text: "Clear Cache"
+                        onClicked: ScreensaverManager.clearCache()
+                    }
+                }
             }
         }
     }
