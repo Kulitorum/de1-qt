@@ -17,6 +17,7 @@
 #include "ble/de1device.h"
 #include "ble/scaledevice.h"
 #include "ble/scales/scalefactory.h"
+#include "ble/scales/flowscale.h"
 #include "machine/machinestate.h"
 #include "models/shotdatamodel.h"
 #include "controllers/maincontroller.h"
@@ -69,11 +70,15 @@ int main(int argc, char *argv[])
     Settings settings;
     BLEManager bleManager;
     DE1Device de1Device;
-    std::unique_ptr<ScaleDevice> scale;
+    std::unique_ptr<ScaleDevice> physicalScale;  // Physical BLE scale (when connected)
+    FlowScale flowScale;  // Virtual scale using DE1 flow data (always available)
     ShotDataModel shotDataModel;
     MachineState machineState(&de1Device);
     MainController mainController(&settings, &de1Device, &machineState, &shotDataModel);
     ScreensaverVideoManager screensaverManager(&settings);
+
+    // Set FlowScale as default (used when no physical scale connected)
+    machineState.setScale(&flowScale);
 
     // Set up QML engine
     QQmlApplicationEngine engine;
@@ -89,22 +94,22 @@ int main(int argc, char *argv[])
 
     // Connect to any supported scale when discovered
     QObject::connect(&bleManager, &BLEManager::scaleDiscovered,
-                     [&scale, &machineState, &engine, &bleManager, &settings](const QBluetoothDeviceInfo& device, const QString& type) {
+                     [&physicalScale, &flowScale, &machineState, &mainController, &engine, &bleManager, &settings](const QBluetoothDeviceInfo& device, const QString& type) {
         // Don't connect if we already have a connected scale
-        if (scale && scale->isConnected()) {
+        if (physicalScale && physicalScale->isConnected()) {
             return;
         }
 
         // If we already have a scale object, just reconnect to it
-        if (scale) {
+        if (physicalScale) {
             qDebug() << "Reconnecting to" << type << "scale:" << device.name();
-            scale->connectToDevice(device);
+            physicalScale->connectToDevice(device);
             return;
         }
 
         // Create new scale object
-        scale = ScaleFactory::createScale(device, type);
-        if (!scale) {
+        physicalScale = ScaleFactory::createScale(device, type);
+        if (!physicalScale) {
             qWarning() << "Failed to create scale for type:" << type;
             return;
         }
@@ -115,28 +120,41 @@ int main(int argc, char *argv[])
         settings.setScaleAddress(device.address().toString());
         settings.setScaleType(type);
 
-        // Connect scale to MachineState for stop-on-weight functionality
-        machineState.setScale(scale.get());
+        // Switch MachineState to use physical scale instead of FlowScale
+        machineState.setScale(physicalScale.get());
 
         // Connect scale to BLEManager for auto-scan control
-        bleManager.setScaleDevice(scale.get());
+        bleManager.setScaleDevice(physicalScale.get());
+
+        // Connect weight updates to MainController for graph data
+        QObject::connect(physicalScale.get(), &ScaleDevice::weightChanged,
+                         &mainController, &MainController::onScaleWeightChanged);
 
         // Log scale weight during shots
-        QObject::connect(scale.get(), &ScaleDevice::weightChanged,
-                         [&scale, &machineState]() {
-            if (scale && machineState.isFlowing()) {
+        QObject::connect(physicalScale.get(), &ScaleDevice::weightChanged,
+                         [&physicalScale, &machineState]() {
+            if (physicalScale && machineState.isFlowing()) {
                 qDebug().nospace()
-                    << "SCALE weight:" << QString::number(scale->weight(), 'f', 1) << "g "
-                    << "flow:" << QString::number(scale->flowRate(), 'f', 2) << "g/s";
+                    << "SCALE weight:" << QString::number(physicalScale->weight(), 'f', 1) << "g "
+                    << "flow:" << QString::number(physicalScale->flowRate(), 'f', 2) << "g/s";
+            }
+        });
+
+        // When physical scale disconnects, fall back to FlowScale
+        QObject::connect(physicalScale.get(), &ScaleDevice::connectedChanged,
+                         [&physicalScale, &flowScale, &machineState]() {
+            if (physicalScale && !physicalScale->isConnected()) {
+                qDebug() << "Physical scale disconnected, falling back to FlowScale";
+                machineState.setScale(&flowScale);
             }
         });
 
         // Update QML context when scale is created
         QQmlContext* context = engine.rootContext();
-        context->setContextProperty("ScaleDevice", scale.get());
+        context->setContextProperty("ScaleDevice", physicalScale.get());
 
         // Connect to the scale
-        scale->connectToDevice(device);
+        physicalScale->connectToDevice(device);
     });
 
     // Load saved scale address for direct wake connection
@@ -151,12 +169,16 @@ int main(int argc, char *argv[])
     // Start scanning (will also find scales if direct connect fails)
     QTimer::singleShot(1000, &bleManager, &BLEManager::startScan);
 
+    // Connect FlowScale weight updates to MainController (for when no physical scale)
+    QObject::connect(&flowScale, &ScaleDevice::weightChanged,
+                     &mainController, &MainController::onScaleWeightChanged);
+
     // Expose C++ objects to QML
     QQmlContext* context = engine.rootContext();
     context->setContextProperty("Settings", &settings);
     context->setContextProperty("BLEManager", &bleManager);
     context->setContextProperty("DE1Device", &de1Device);
-    context->setContextProperty("ScaleDevice", scale.get());  // nullptr initially, updated when scale connects
+    context->setContextProperty("ScaleDevice", &flowScale);  // FlowScale initially, updated when physical scale connects
     context->setContextProperty("MachineState", &machineState);
     context->setContextProperty("ShotDataModel", &shotDataModel);
     context->setContextProperty("MainController", &mainController);
@@ -191,7 +213,7 @@ int main(int argc, char *argv[])
     // Cross-platform lifecycle handling: sleep/wake devices when app is suspended/resumed
     // This handles cases like swiping away from Recent Apps (Android/iOS) or minimizing (desktop)
     QObject::connect(&app, &QGuiApplication::applicationStateChanged,
-                     [&de1Device, &scale, &bleManager, &settings](Qt::ApplicationState state) {
+                     [&de1Device, &physicalScale, &bleManager, &settings](Qt::ApplicationState state) {
         static bool wasSuspended = false;
 
         if (state == Qt::ApplicationSuspended) {
@@ -199,8 +221,8 @@ int main(int argc, char *argv[])
             qDebug() << "App suspended - putting devices to sleep";
             wasSuspended = true;
 
-            if (scale && scale->isConnected()) {
-                scale->sleep();
+            if (physicalScale && physicalScale->isConnected()) {
+                physicalScale->sleep();
             }
             if (de1Device.isConnected()) {
                 de1Device.goToSleep();
@@ -217,8 +239,8 @@ int main(int argc, char *argv[])
             }
 
             // Try to reconnect/wake scale
-            if (scale && scale->isConnected()) {
-                scale->wake();
+            if (physicalScale && physicalScale->isConnected()) {
+                physicalScale->wake();
             } else if (!settings.scaleAddress().isEmpty()) {
                 // Scale disconnected while suspended - try to reconnect
                 QTimer::singleShot(500, &bleManager, &BLEManager::tryDirectConnectToScale);

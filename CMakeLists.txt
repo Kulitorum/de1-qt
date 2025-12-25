@@ -73,6 +73,7 @@ set(SOURCES
     src/ble/scales/solobaristascale.cpp
     src/ble/scales/atomhearteclairscale.cpp
     src/ble/scales/variaakuscale.cpp
+    src/ble/scales/flowscale.cpp
     src/machine/machinestate.cpp
     src/profile/profile.cpp
     src/profile/profileframe.cpp
@@ -102,6 +103,7 @@ set(HEADERS
     src/ble/scales/solobaristascale.h
     src/ble/scales/atomhearteclairscale.h
     src/ble/scales/variaakuscale.h
+    src/ble/scales/flowscale.h
     src/machine/machinestate.h
     src/profile/profile.h
     src/profile/profileframe.h

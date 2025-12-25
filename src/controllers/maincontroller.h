@@ -55,6 +55,7 @@ public slots:
 
     void onEspressoCycleStarted();
     void onShotEnded();
+    void onScaleWeightChanged(double weight);  // Called by scale weight updates
 
 signals:
     void currentProfileChanged();
@@ -64,7 +65,6 @@ signals:
 
 private slots:
     void onShotSampleReceived(const ShotSample& sample);
-    void onWeightChanged(double weight);
 
 private:
     void loadDefaultProfile();
@@ -82,6 +82,7 @@ private:
     double m_lastSampleTime = 0;  // For delta time calculation
     bool m_extractionStarted = false;
     int m_lastFrameNumber = -1;
+    bool m_tareDone = false;  // Track if we've tared for this shot
 
     QString m_baseProfileName;
     bool m_profileModified = false;

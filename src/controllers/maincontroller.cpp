@@ -415,6 +415,7 @@ void MainController::onEspressoCycleStarted() {
     m_shotStartTime = 0;
     m_extractionStarted = false;
     m_lastFrameNumber = -1;
+    m_tareDone = false;  // Reset tare flag for new shot
     if (m_shotDataModel) {
         m_shotDataModel->clear();
     }
@@ -477,6 +478,13 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
         QString frameName;
         int frameIndex = sample.frameNumber;
 
+        // Tare scale when frame 0 starts (first profile frame, after machine's internal preheat)
+        if (!m_tareDone && frameIndex == 0) {
+            qDebug() << "=== TARE: Frame 0 started ===";
+            m_machineState->tareScale();
+            m_tareDone = true;
+        }
+
         // Look up frame name from current profile
         const auto& steps = m_currentProfile.steps();
         if (frameIndex >= 0 && frameIndex < steps.size()) {
@@ -512,11 +520,19 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
     }
 }
 
-void MainController::onWeightChanged(double weight) {
+void MainController::onScaleWeightChanged(double weight) {
     if (!m_shotDataModel || !m_machineState) return;
 
+    // Only record weight during espresso phases
+    MachineState::Phase phase = m_machineState->phase();
+    bool isEspressoPhase = (phase == MachineState::Phase::EspressoPreheating ||
+                           phase == MachineState::Phase::Preinfusion ||
+                           phase == MachineState::Phase::Pouring ||
+                           phase == MachineState::Phase::Ending);
+
+    if (!isEspressoPhase) return;
+
     double time = m_machineState->shotTime();
-    // Flow rate would come from scale device
     m_shotDataModel->addWeightSample(time, weight, 0);
 }
 
