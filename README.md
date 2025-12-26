@@ -1,6 +1,6 @@
-# DE1 Controller
+# Decenza DE1
 
-A Qt/QML controller application for the Decent DE1 espresso machine with Bluetooth LE connectivity.
+A modern Qt/QML controller application for the Decent DE1 espresso machine with Bluetooth LE connectivity.
 
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-blue)
 ![Qt](https://img.shields.io/badge/Qt-6.8+-green)
@@ -11,12 +11,25 @@ A Qt/QML controller application for the Decent DE1 espresso machine with Bluetoo
 - **Bluetooth LE connectivity** to DE1 espresso machine and compatible scales
 - **Real-time shot monitoring** with pressure, flow, temperature, and weight graphs
 - **Profile editor** with visual frame-based editing
+- **Profile favorites** for quick access to your preferred profiles
 - **Multiple scale support**: Acaia, Decent, Felicita, Skale, Bookoo, and more
+- **Screensaver** with beautiful videos from Pexels
+- **Visualizer.coffee integration** for shot history and analysis
 - **Cross-platform**: Windows, macOS, Linux, Android, iOS
 
 ## Screenshots
 
-*Coming soon*
+| Idle | Shot Graph |
+|:----:|:----------:|
+| ![Idle](screenshots/idle-page.png) | ![Shot Graph](screenshots/shot-graph.png) |
+
+| Profile Selector | Profile Editor |
+|:----------------:|:--------------:|
+| ![Profile Selector](screenshots/profile-selector.png) | ![Profile Editor](screenshots/profile-editor.png) |
+
+| Steam Settings |
+|:--------------:|
+| ![Steam Settings](screenshots/steam-settings.png) |
 
 ## Requirements
 
@@ -117,7 +130,7 @@ cmake -DCMAKE_PREFIX_PATH=/path/to/Qt/6.x.x/gcc_64 ..
 cmake --build . --parallel
 
 # Run
-./de1-qt
+./Decenza_DE1
 ```
 
 ## Project Structure
@@ -133,6 +146,7 @@ de1-qt/
 │   ├── core/          # Settings, utilities
 │   ├── machine/       # Machine state management
 │   ├── models/        # Data models (shot data, profiles)
+│   ├── network/       # Visualizer.coffee integration
 │   └── profile/       # Profile parsing and management
 ├── qml/
 │   ├── components/    # Reusable QML components
@@ -204,3 +218,8 @@ This application implements the DE1 Bluetooth LE protocol based on publicly avai
 - [Decent Espresso](https://decentespresso.com/) for creating the DE1 machine
 - The Qt Project for the excellent cross-platform framework
 - The open-source coffee community for protocol documentation
+- [Pexels](https://pexels.com/) for screensaver videos
+
+## Disclaimer
+
+Decenza DE1 is an independent, community-developed application and is not affiliated with, endorsed by, or supported by Decent Espresso. "Decent" and "DE1" are trademarks of Decent Espresso.
