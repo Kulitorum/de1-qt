@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
-import DE1App
+import DecenzaDE1
 
 ColumnLayout {
     property bool machineConnected: false

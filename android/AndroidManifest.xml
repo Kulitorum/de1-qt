@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.decentespresso.de1qt"
+    package="io.github.kulitorum.decenza_de1"
     android:versionCode="1"
     android:versionName="1.0.0">
 
@@ -16,7 +16,7 @@
 
     <application
         android:name="org.qtproject.qt.android.bindings.QtApplication"
-        android:label="DE1 Controller"
+        android:label="Decenza DE1"
         android:icon="@drawable/icon"
         android:theme="@style/AppTheme"
         android:allowBackup="true">
@@ -33,7 +33,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <meta-data android:name="android.app.lib_name" android:value="de1-qt" />
+            <meta-data android:name="android.app.lib_name" android:value="Decenza_DE1" />
         </activity>
     </application>
 

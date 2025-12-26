@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtMultimedia
-import DE1App
+import DecenzaDE1
 
 Page {
     id: screensaverPage

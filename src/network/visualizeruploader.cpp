@@ -276,7 +276,7 @@ QByteArray VisualizerUploader::buildShotJson(ShotDataModel* shotData,
 
     // App info
     QJsonObject app;
-    app["name"] = "DE1 Qt";
+    app["name"] = "Decenza DE1";
     app["version"] = "1.0.0";
     root["app"] = app;
 

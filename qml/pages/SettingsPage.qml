@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import DE1App
+import DecenzaDE1
 import "../components"
 
 Page {
@@ -578,7 +578,7 @@ Page {
                             Item { Layout.fillHeight: true }
 
                             Text {
-                                text: "DE1 Controller"
+                                text: "Decenza DE1"
                                 color: Theme.textColor
                                 font.pixelSize: 14
                             }

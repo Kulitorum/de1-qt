@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(de1-qt VERSION 1.0.0 LANGUAGES CXX)
+project(Decenza_DE1 VERSION 1.0.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -131,14 +131,14 @@ set(HEADERS
 qt_add_resources(RESOURCES resources/resources.qrc)
 
 # Main executable
-qt_add_executable(de1-qt
+qt_add_executable(Decenza_DE1
     ${SOURCES}
     ${HEADERS}
     ${RESOURCES}
 )
 
 # Link libraries
-target_link_libraries(de1-qt PRIVATE
+target_link_libraries(Decenza_DE1 PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Widgets
@@ -152,7 +152,7 @@ target_link_libraries(de1-qt PRIVATE
 )
 
 # Include directories
-target_include_directories(de1-qt PRIVATE
+target_include_directories(Decenza_DE1 PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_BINARY_DIR}  # For buildinfo.h
 )
@@ -184,8 +184,8 @@ set(QML_FILES
     qml/components/ProfileGraph.qml
 )
 
-qt_add_qml_module(de1-qt
-    URI DE1App
+qt_add_qml_module(Decenza_DE1
+    URI DecenzaDE1
     VERSION 1.0
     QML_FILES ${QML_FILES}
 )
@@ -199,36 +199,36 @@ add_custom_target(increment_build_number ALL
     BYPRODUCTS ${BUILD_INFO_HEADER}
     COMMENT "Incrementing build number..."
 )
-add_dependencies(de1-qt increment_build_number)
+add_dependencies(Decenza_DE1 increment_build_number)
 set_source_files_properties(src/main.cpp PROPERTIES OBJECT_DEPENDS ${BUILD_INFO_HEADER})
 
 # Force QML resource rebuild when source files change
 # Delete the compiled resource file to force rcc regeneration
-set(QML_RCC_CPP "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_de1-qt_raw_qml_0.cpp")
+set(QML_RCC_CPP "${CMAKE_CURRENT_BINARY_DIR}/.qt/rcc/qrc_Decenza_DE1_raw_qml_0.cpp")
 
 add_custom_target(qml_force_rebuild ALL
     COMMAND ${CMAKE_COMMAND} -E rm -f ${QML_RCC_CPP}
     COMMENT "Invalidating QML resources for rebuild..."
 )
-add_dependencies(de1-qt qml_force_rebuild)
+add_dependencies(Decenza_DE1 qml_force_rebuild)
 
 # Also add QML files as sources so IDE can find them
-set_property(TARGET de1-qt APPEND PROPERTY SOURCES ${QML_FILES})
+set_property(TARGET Decenza_DE1 APPEND PROPERTY SOURCES ${QML_FILES})
 
 # Android deployment
 if(ANDROID)
-    set_target_properties(de1-qt PROPERTIES
+    set_target_properties(Decenza_DE1 PROPERTIES
         QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android"
     )
     # Add OpenSSL libraries for HTTPS support
-    add_android_openssl_libraries(de1-qt)
+    add_android_openssl_libraries(Decenza_DE1)
 endif()
 
 # iOS deployment
 if(IOS)
-    set_target_properties(de1-qt PROPERTIES
+    set_target_properties(Decenza_DE1 PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/ios/Info.plist"
-        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "com.decentespresso.de1qt"
+        XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "io.github.kulitorum.decenza_de1"
     )
 endif()

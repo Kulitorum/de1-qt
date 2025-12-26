@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import DE1App
+import DecenzaDE1
 import "../components"
 
 Page {

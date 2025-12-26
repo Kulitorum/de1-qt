@@ -1,14 +1,14 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import DE1App
+import DecenzaDE1
 
 ApplicationWindow {
     id: root
     visible: true
     width: 1280
     height: 800
-    title: "DE1 Controller"
+    title: "Decenza DE1"
     color: Theme.backgroundColor
 
     // Put machine and scale to sleep when closing the app
@@ -300,7 +300,7 @@ ApplicationWindow {
     // First-run welcome dialog
     Dialog {
         id: firstRunDialog
-        title: "Welcome to DE1 Controller"
+        title: "Welcome to Decenza DE1"
         modal: true
         anchors.centerIn: parent
         closePolicy: Popup.NoAutoClose

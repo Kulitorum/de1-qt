@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
     // Set application metadata
     app.setOrganizationName("DecentEspresso");
     app.setOrganizationDomain("decentespresso.com");
-    app.setApplicationName("DE1 Controller");
+    app.setApplicationName("Decenza DE1");
     app.setApplicationVersion("1.0.0");
 
     // Use Material style for modern look
@@ -121,6 +121,7 @@ int main(int argc, char *argv[])
         // If we already have a scale object, just reconnect to it
         if (physicalScale) {
             qDebug() << "Reconnecting to" << type << "scale:" << device.name();
+            flowScaleFallbackTimer.stop();  // Stop timer - we found a scale
             physicalScale->connectToDevice(device);
             return;
         }
@@ -209,13 +210,13 @@ int main(int argc, char *argv[])
     context->setContextProperty("BuildNumber", BUILD_NUMBER_STRING);
 
     // Register types for QML (use different names to avoid conflict with context properties)
-    qmlRegisterUncreatableType<DE1Device>("DE1App", 1, 0, "DE1DeviceType",
+    qmlRegisterUncreatableType<DE1Device>("DecenzaDE1", 1, 0, "DE1DeviceType",
         "DE1Device is created in C++");
-    qmlRegisterUncreatableType<MachineState>("DE1App", 1, 0, "MachineStateType",
+    qmlRegisterUncreatableType<MachineState>("DecenzaDE1", 1, 0, "MachineStateType",
         "MachineState is created in C++");
 
     // Load main QML file (QTP0001 NEW policy uses /qt/qml/ prefix)
-    const QUrl url(u"qrc:/qt/qml/DE1App/qml/main.qml"_s);
+    const QUrl url(u"qrc:/qt/qml/DecenzaDE1/qml/main.qml"_s);
 
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
         &app, [url](QObject *obj, const QUrl &objUrl) {

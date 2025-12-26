@@ -1,6 +1,6 @@
 import QtQuick
 import QtQuick.Controls
-import DE1App
+import DecenzaDE1
 
 Button {
     id: control

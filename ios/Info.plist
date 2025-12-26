@@ -3,13 +3,13 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleDisplayName</key>
-    <string>DE1 Controller</string>
+    <string>Decenza DE1</string>
     <key>CFBundleExecutable</key>
-    <string>de1-qt</string>
+    <string>Decenza_DE1</string>
     <key>CFBundleIdentifier</key>
-    <string>com.decentespresso.de1qt</string>
+    <string>io.github.kulitorum.decenza_de1</string>
     <key>CFBundleName</key>
-    <string>DE1 Controller</string>
+    <string>Decenza DE1</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
