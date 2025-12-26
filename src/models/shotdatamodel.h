@@ -32,6 +32,15 @@ public:
                                      QLineSeries* weight, QLineSeries* extractionMarker,
                                      const QVariantList& frameMarkers);
 
+    // Data export for visualizer upload
+    const QVector<QPointF>& pressureData() const { return m_pressurePoints; }
+    const QVector<QPointF>& flowData() const { return m_flowPoints; }
+    const QVector<QPointF>& temperatureData() const { return m_temperaturePoints; }
+    const QVector<QPointF>& pressureGoalData() const { return m_pressureGoalPoints; }
+    const QVector<QPointF>& flowGoalData() const { return m_flowGoalPoints; }
+    const QVector<QPointF>& temperatureGoalData() const { return m_temperatureGoalPoints; }
+    const QVector<QPointF>& weightData() const { return m_weightPoints; }
+
 public slots:
     void clear();
 

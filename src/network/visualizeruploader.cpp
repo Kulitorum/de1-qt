@@ -173,7 +173,7 @@ QByteArray VisualizerUploader::buildShotJson(ShotDataModel* shotData,
     QJsonObject root;
 
     // Timestamp (Unix epoch in seconds)
-    root["clock"] = static_cast<qint64>(QDateTime::currentSecsSinceEpoch());
+    root["timestamp"] = static_cast<qint64>(QDateTime::currentSecsSinceEpoch());
 
     // Get data from ShotDataModel
     const auto& pressureData = shotData->pressureData();
@@ -227,12 +227,13 @@ QByteArray VisualizerUploader::buildShotJson(ShotDataModel* shotData,
     }
 
     // Weight data (scaled back - we divided by 5 for display)
+    // This goes in flow.by_weight for flow-based weight estimate
     if (!weightData.isEmpty()) {
         QJsonArray weightValues;
         for (const auto& pt : weightData) {
             weightValues.append(pt.y() * 5.0);  // Undo the /5 scaling
         }
-        flow["weight"] = weightValues;
+        flow["by_weight"] = weightValues;
     }
     root["flow"] = flow;
 
@@ -259,13 +260,14 @@ QByteArray VisualizerUploader::buildShotJson(ShotDataModel* shotData,
     profile["title"] = profileTitle;
     root["profile"] = profile;
 
-    // Totals
+    // Totals - weight should be an array (espresso_weight time series)
     QJsonObject totals;
-    if (finalWeight > 0) {
-        totals["weight"] = finalWeight;
-    } else if (!weightData.isEmpty()) {
-        // Use last weight value if no final weight provided
-        totals["weight"] = weightData.last().y() * 5.0;
+    if (!weightData.isEmpty()) {
+        QJsonArray totalWeightValues;
+        for (const auto& pt : weightData) {
+            totalWeightValues.append(pt.y() * 5.0);  // Undo the /5 scaling
+        }
+        totals["weight"] = totalWeightValues;
     }
     if (doseWeight > 0) {
         totals["dose"] = doseWeight;

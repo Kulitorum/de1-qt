@@ -156,8 +156,12 @@ void BLEManager::doStartScan() {
     emit scanningChanged();
     emit de1LogMessage("Scanning for devices...");
 
+    qDebug() << "Starting BLE scan with timeout:" << m_discoveryAgent->lowEnergyDiscoveryTimeout() << "ms";
+
     // Scan for BLE devices only
     m_discoveryAgent->start(QBluetoothDeviceDiscoveryAgent::LowEnergyMethod);
+
+    qDebug() << "BLE scan started, isActive:" << m_discoveryAgent->isActive();
 }
 
 void BLEManager::stopScan() {
@@ -178,6 +182,8 @@ void BLEManager::clearDevices() {
 }
 
 void BLEManager::onDeviceDiscovered(const QBluetoothDeviceInfo& device) {
+    qDebug() << "Device discovered:" << device.name() << device.address().toString();
+
     // Check if it's a DE1
     if (isDE1Device(device)) {
         // Avoid duplicates
@@ -215,6 +221,7 @@ void BLEManager::onDeviceDiscovered(const QBluetoothDeviceInfo& device) {
 }
 
 void BLEManager::onScanFinished() {
+    qDebug() << "BLE scan finished";
     m_scanning = false;
     m_scanningForScales = false;
     emit de1LogMessage("Scan complete");

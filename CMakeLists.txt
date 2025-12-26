@@ -93,6 +93,7 @@ set(SOURCES
     src/controllers/maincontroller.cpp
     src/controllers/directcontroller.cpp
     src/screensaver/screensavervideomanager.cpp
+    src/network/visualizeruploader.cpp
 )
 
 set(HEADERS
@@ -123,6 +124,7 @@ set(HEADERS
     src/controllers/maincontroller.h
     src/controllers/directcontroller.h
     src/screensaver/screensavervideomanager.h
+    src/network/visualizeruploader.h
 )
 
 # Resources

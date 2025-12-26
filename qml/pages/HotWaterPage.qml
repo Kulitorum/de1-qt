@@ -338,16 +338,6 @@ Page {
             }
 
             Item { Layout.fillHeight: true }
-
-            // Start button
-            ActionButton {
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: 300
-                Layout.preferredHeight: 80
-                text: "START"
-                enabled: MachineState.isReady
-                onClicked: DE1Device.startHotWater()
-            }
         }
     }
 

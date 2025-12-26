@@ -713,6 +713,51 @@ void Settings::setCurrentProfile(const QString& profile) {
     }
 }
 
+// Visualizer settings
+QString Settings::visualizerUsername() const {
+    return m_settings.value("visualizer/username", "").toString();
+}
+
+void Settings::setVisualizerUsername(const QString& username) {
+    if (visualizerUsername() != username) {
+        m_settings.setValue("visualizer/username", username);
+        emit visualizerUsernameChanged();
+    }
+}
+
+QString Settings::visualizerPassword() const {
+    return m_settings.value("visualizer/password", "").toString();
+}
+
+void Settings::setVisualizerPassword(const QString& password) {
+    if (visualizerPassword() != password) {
+        m_settings.setValue("visualizer/password", password);
+        emit visualizerPasswordChanged();
+    }
+}
+
+bool Settings::visualizerAutoUpload() const {
+    return m_settings.value("visualizer/autoUpload", true).toBool();
+}
+
+void Settings::setVisualizerAutoUpload(bool enabled) {
+    if (visualizerAutoUpload() != enabled) {
+        m_settings.setValue("visualizer/autoUpload", enabled);
+        emit visualizerAutoUploadChanged();
+    }
+}
+
+double Settings::visualizerMinDuration() const {
+    return m_settings.value("visualizer/minDuration", 6.0).toDouble();
+}
+
+void Settings::setVisualizerMinDuration(double seconds) {
+    if (visualizerMinDuration() != seconds) {
+        m_settings.setValue("visualizer/minDuration", seconds);
+        emit visualizerMinDurationChanged();
+    }
+}
+
 // Generic settings access
 QVariant Settings::value(const QString& key, const QVariant& defaultValue) const {
     return m_settings.value(key, defaultValue);

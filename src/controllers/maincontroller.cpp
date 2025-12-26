@@ -3,6 +3,7 @@
 #include "../ble/de1device.h"
 #include "../machine/machinestate.h"
 #include "../models/shotdatamodel.h"
+#include "../network/visualizeruploader.h"
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -41,6 +42,9 @@ MainController::MainController(Settings* settings, DE1Device* device,
         connect(m_machineState, &MachineState::shotEnded,
                 this, &MainController::onShotEnded);
     }
+
+    // Create visualizer uploader
+    m_visualizer = new VisualizerUploader(m_settings, this);
 
     // Load initial profile
     refreshProfiles();
@@ -438,7 +442,28 @@ void MainController::onEspressoCycleStarted() {
 }
 
 void MainController::onShotEnded() {
-    // Could save shot history here
+    // Upload to visualizer.coffee if enabled
+    if (m_settings && m_settings->visualizerAutoUpload() && m_shotDataModel && m_visualizer) {
+        double duration = m_shotDataModel->maxTime();
+        QString profileTitle = m_currentProfile.title();
+
+        // Get final weight from shot data
+        const auto& weightData = m_shotDataModel->weightData();
+        double finalWeight = 0;
+        if (!weightData.isEmpty()) {
+            finalWeight = weightData.last().y() * 5.0;  // Undo the /5 scaling
+        }
+
+        double doseWeight = m_settings->targetWeight();  // Use target weight as dose
+
+        qDebug() << "MainController: Shot ended, uploading to visualizer -"
+                 << "Profile:" << profileTitle
+                 << "Duration:" << duration << "s"
+                 << "Weight:" << finalWeight << "g";
+
+        m_visualizer->uploadShot(m_shotDataModel, profileTitle, duration, finalWeight, doseWeight);
+    }
+
     // Note: Don't reset m_extractionStarted here - it's reset in onEspressoCycleStarted
     // Resetting here causes duplicate "extraction started" markers when entering Ending phase
 }

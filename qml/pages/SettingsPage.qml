@@ -143,6 +143,24 @@ Page {
                 radius: 6
             }
         }
+
+        TabButton {
+            text: "Visualizer"
+            width: implicitWidth
+            font.pixelSize: 14
+            font.bold: tabBar.currentIndex === 3
+            contentItem: Text {
+                text: parent.text
+                font: parent.font
+                color: tabBar.currentIndex === 3 ? Theme.primaryColor : Theme.textSecondaryColor
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
+            background: Rectangle {
+                color: tabBar.currentIndex === 3 ? Theme.surfaceColor : "transparent"
+                radius: 6
+            }
+        }
     }
 
     // Tab content area
@@ -835,6 +853,309 @@ Page {
 
                             Item { Layout.fillWidth: true }
                         }
+                    }
+                }
+            }
+        }
+
+        // ============ VISUALIZER TAB ============
+        Item {
+            id: visualizerTab
+
+            // Connection test result message
+            property string testResultMessage: ""
+            property bool testResultSuccess: false
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: 15
+
+                // Account settings
+                Rectangle {
+                    Layout.preferredWidth: 350
+                    Layout.fillHeight: true
+                    color: Theme.surfaceColor
+                    radius: Theme.cardRadius
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 12
+
+                        Text {
+                            text: "Visualizer.coffee Account"
+                            color: Theme.textColor
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        Text {
+                            text: "Upload your shots to visualizer.coffee for tracking and analysis"
+                            color: Theme.textSecondaryColor
+                            font.pixelSize: 12
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
+
+                        Item { height: 5 }
+
+                        // Username
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Text {
+                                text: "Username / Email"
+                                color: Theme.textSecondaryColor
+                                font.pixelSize: 12
+                            }
+
+                            TextField {
+                                id: usernameField
+                                Layout.fillWidth: true
+                                text: Settings.visualizerUsername
+                                placeholderText: "your@email.com"
+                                font: Theme.bodyFont
+                                color: Theme.textColor
+                                placeholderTextColor: Theme.textSecondaryColor
+                                background: Rectangle {
+                                    color: Theme.backgroundColor
+                                    radius: 4
+                                    border.color: usernameField.activeFocus ? Theme.primaryColor : Theme.textSecondaryColor
+                                    border.width: 1
+                                }
+                                onTextChanged: Settings.visualizerUsername = text
+                            }
+                        }
+
+                        // Password
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+
+                            Text {
+                                text: "Password"
+                                color: Theme.textSecondaryColor
+                                font.pixelSize: 12
+                            }
+
+                            TextField {
+                                id: passwordField
+                                Layout.fillWidth: true
+                                text: Settings.visualizerPassword
+                                placeholderText: "••••••••"
+                                echoMode: TextInput.Password
+                                font: Theme.bodyFont
+                                color: Theme.textColor
+                                placeholderTextColor: Theme.textSecondaryColor
+                                background: Rectangle {
+                                    color: Theme.backgroundColor
+                                    radius: 4
+                                    border.color: passwordField.activeFocus ? Theme.primaryColor : Theme.textSecondaryColor
+                                    border.width: 1
+                                }
+                                onTextChanged: Settings.visualizerPassword = text
+                            }
+                        }
+
+                        Item { height: 5 }
+
+                        // Test connection button
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 10
+
+                            Button {
+                                text: "Test Connection"
+                                enabled: usernameField.text.length > 0 && passwordField.text.length > 0
+                                onClicked: {
+                                    visualizerTab.testResultMessage = "Testing..."
+                                    MainController.visualizer.testConnection()
+                                }
+                                background: Rectangle {
+                                    implicitWidth: 140
+                                    implicitHeight: 40
+                                    radius: 6
+                                    color: parent.enabled ? Theme.primaryColor : Theme.backgroundColor
+                                    border.color: parent.enabled ? Theme.primaryColor : Theme.textSecondaryColor
+                                    border.width: 1
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: parent.enabled ? "white" : Theme.textSecondaryColor
+                                    font: Theme.bodyFont
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+
+                            Text {
+                                text: visualizerTab.testResultMessage
+                                color: visualizerTab.testResultSuccess ? Theme.successColor : Theme.errorColor
+                                font.pixelSize: 12
+                                visible: visualizerTab.testResultMessage.length > 0
+                            }
+                        }
+
+                        Connections {
+                            target: MainController.visualizer
+                            function onConnectionTestResult(success, message) {
+                                visualizerTab.testResultSuccess = success
+                                visualizerTab.testResultMessage = message
+                            }
+                        }
+
+                        Item { Layout.fillHeight: true }
+
+                        // Sign up link
+                        Text {
+                            text: "Don't have an account? Sign up at visualizer.coffee"
+                            color: Theme.primaryColor
+                            font.pixelSize: 12
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: Qt.openUrlExternally("https://visualizer.coffee/users/sign_up")
+                            }
+                        }
+                    }
+                }
+
+                // Upload settings
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: Theme.surfaceColor
+                    radius: Theme.cardRadius
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        spacing: 12
+
+                        Text {
+                            text: "Upload Settings"
+                            color: Theme.textColor
+                            font.pixelSize: 16
+                            font.bold: true
+                        }
+
+                        // Auto-upload toggle
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 15
+
+                            ColumnLayout {
+                                spacing: 2
+
+                                Text {
+                                    text: "Auto-Upload Shots"
+                                    color: Theme.textColor
+                                    font.pixelSize: 14
+                                }
+
+                                Text {
+                                    text: "Automatically upload espresso shots after completion"
+                                    color: Theme.textSecondaryColor
+                                    font.pixelSize: 12
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Switch {
+                                checked: Settings.visualizerAutoUpload
+                                onCheckedChanged: Settings.visualizerAutoUpload = checked
+                            }
+                        }
+
+                        // Minimum duration
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 15
+
+                            ColumnLayout {
+                                spacing: 2
+
+                                Text {
+                                    text: "Minimum Duration"
+                                    color: Theme.textColor
+                                    font.pixelSize: 14
+                                }
+
+                                Text {
+                                    text: "Only upload shots longer than this (skip aborted shots)"
+                                    color: Theme.textSecondaryColor
+                                    font.pixelSize: 12
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            ValueInput {
+                                id: minDurationInput
+                                value: Settings.visualizerMinDuration
+                                from: 0
+                                to: 30
+                                stepSize: 1
+                                suffix: " sec"
+                                Layout.preferredWidth: 120
+
+                                onValueModified: function(newValue) {
+                                    Settings.visualizerMinDuration = newValue
+                                }
+                            }
+                        }
+
+                        Item { height: 10 }
+
+                        // Last upload status
+                        Rectangle {
+                            Layout.fillWidth: true
+                            height: statusColumn.implicitHeight + 20
+                            color: Qt.darker(Theme.surfaceColor, 1.2)
+                            radius: 8
+
+                            ColumnLayout {
+                                id: statusColumn
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 6
+
+                                Text {
+                                    text: "Last Upload"
+                                    color: Theme.textSecondaryColor
+                                    font.pixelSize: 12
+                                }
+
+                                Text {
+                                    text: MainController.visualizer.lastUploadStatus || "No uploads yet"
+                                    color: MainController.visualizer.lastUploadStatus.indexOf("Failed") >= 0 ?
+                                           Theme.errorColor :
+                                           MainController.visualizer.lastUploadStatus.indexOf("successful") >= 0 ?
+                                           Theme.successColor : Theme.textColor
+                                    font.pixelSize: 14
+                                }
+
+                                Text {
+                                    text: MainController.visualizer.lastShotUrl
+                                    color: Theme.primaryColor
+                                    font.pixelSize: 12
+                                    visible: MainController.visualizer.lastShotUrl.length > 0
+
+                                    MouseArea {
+                                        anchors.fill: parent
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: Qt.openUrlExternally(MainController.visualizer.lastShotUrl)
+                                    }
+                                }
+                            }
+                        }
+
+                        Item { Layout.fillHeight: true }
                     }
                 }
             }

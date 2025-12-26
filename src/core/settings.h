@@ -51,6 +51,12 @@ class Settings : public QObject {
     Q_PROPERTY(QString skinPath READ skinPath NOTIFY skinChanged)
     Q_PROPERTY(QString currentProfile READ currentProfile WRITE setCurrentProfile NOTIFY currentProfileChanged)
 
+    // Visualizer settings
+    Q_PROPERTY(QString visualizerUsername READ visualizerUsername WRITE setVisualizerUsername NOTIFY visualizerUsernameChanged)
+    Q_PROPERTY(QString visualizerPassword READ visualizerPassword WRITE setVisualizerPassword NOTIFY visualizerPasswordChanged)
+    Q_PROPERTY(bool visualizerAutoUpload READ visualizerAutoUpload WRITE setVisualizerAutoUpload NOTIFY visualizerAutoUploadChanged)
+    Q_PROPERTY(double visualizerMinDuration READ visualizerMinDuration WRITE setVisualizerMinDuration NOTIFY visualizerMinDurationChanged)
+
 public:
     explicit Settings(QObject* parent = nullptr);
 
@@ -146,6 +152,19 @@ public:
     QString currentProfile() const;
     void setCurrentProfile(const QString& profile);
 
+    // Visualizer settings
+    QString visualizerUsername() const;
+    void setVisualizerUsername(const QString& username);
+
+    QString visualizerPassword() const;
+    void setVisualizerPassword(const QString& password);
+
+    bool visualizerAutoUpload() const;
+    void setVisualizerAutoUpload(bool enabled);
+
+    double visualizerMinDuration() const;
+    void setVisualizerMinDuration(double seconds);
+
     // Generic settings access (for extensibility)
     Q_INVOKABLE QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
     Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
@@ -173,6 +192,10 @@ signals:
     void flushSecondsChanged();
     void skinChanged();
     void currentProfileChanged();
+    void visualizerUsernameChanged();
+    void visualizerPasswordChanged();
+    void visualizerAutoUploadChanged();
+    void visualizerMinDurationChanged();
     void valueChanged(const QString& key);
 
 private:
