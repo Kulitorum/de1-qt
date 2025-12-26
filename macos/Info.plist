@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>Decenza DE1</string>
+    <key>CFBundleExecutable</key>
+    <string>Decenza_DE1</string>
+    <key>CFBundleIdentifier</key>
+    <string>io.github.kulitorum.decenza_de1</string>
+    <key>CFBundleName</key>
+    <string>Decenza DE1</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>NSBluetoothAlwaysUsageDescription</key>
+    <string>This app uses Bluetooth to connect to your DE1 espresso machine and scales.</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+</dict>
+</plist>

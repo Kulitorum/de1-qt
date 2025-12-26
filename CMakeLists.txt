@@ -232,3 +232,11 @@ if(IOS)
         XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "io.github.kulitorum.decenza_de1"
     )
 endif()
+
+# macOS deployment
+if(APPLE AND NOT IOS)
+    set_target_properties(Decenza_DE1 PROPERTIES
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/macos/Info.plist"
+    )
+endif()
