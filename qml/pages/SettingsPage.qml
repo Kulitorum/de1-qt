@@ -174,18 +174,57 @@ Page {
                 }
             }
 
-            Text {
+            Row {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "CPU: All cores @ 100%"
-                color: "#ff6666"
-                font.pixelSize: 24
-            }
+                spacing: 40
 
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "GPU: Heavy animations"
-                color: "#66ff66"
-                font.pixelSize: 24
+                Column {
+                    spacing: 4
+                    Text {
+                        text: "CPU"
+                        color: "#ff6666"
+                        font.pixelSize: 18
+                        font.bold: true
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Text {
+                        text: BatteryDrainer.cpuLoad.toFixed(0) + "%"
+                        color: "#ff6666"
+                        font.pixelSize: 36
+                        font.bold: true
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Text {
+                        text: "All cores maxed"
+                        color: "#ff9999"
+                        font.pixelSize: 14
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
+
+                Column {
+                    spacing: 4
+                    Text {
+                        text: "GPU"
+                        color: "#66ff66"
+                        font.pixelSize: 18
+                        font.bold: true
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Text {
+                        text: "100%"
+                        color: "#66ff66"
+                        font.pixelSize: 36
+                        font.bold: true
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                    Text {
+                        text: "58 animations"
+                        color: "#99ff99"
+                        font.pixelSize: 14
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+                }
             }
 
             Text {
