@@ -247,6 +247,7 @@ Page {
             ConnectionIndicator {
                 machineConnected: DE1Device.connected
                 scaleConnected: ScaleDevice && ScaleDevice.connected
+                isFlowScale: ScaleDevice && ScaleDevice.name === "Flow Scale"
             }
         }
     }

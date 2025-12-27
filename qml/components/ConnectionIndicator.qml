@@ -5,6 +5,7 @@ import DecenzaDE1
 ColumnLayout {
     property bool machineConnected: false
     property bool scaleConnected: false
+    property bool isFlowScale: false
 
     spacing: 5
 
@@ -28,7 +29,12 @@ ColumnLayout {
 
     Text {
         Layout.alignment: Qt.AlignHCenter
-        text: "Machine" + (scaleConnected ? " + Scale" : "")
+        text: {
+            if (!machineConnected) return "Machine"
+            if (scaleConnected && !isFlowScale) return "Machine + Scale"
+            if (isFlowScale) return "Machine + Simulated Scale"
+            return "Machine"
+        }
         color: Theme.textSecondaryColor
         font: Theme.labelFont
     }

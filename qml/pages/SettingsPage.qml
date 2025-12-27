@@ -522,10 +522,18 @@ Page {
                             }
 
                             Text {
-                                text: (ScaleDevice && ScaleDevice.connected) ? "Connected" :
-                                      BLEManager.scaleConnectionFailed ? "Not found" : "Disconnected"
-                                color: (ScaleDevice && ScaleDevice.connected) ? Theme.successColor :
-                                       BLEManager.scaleConnectionFailed ? Theme.errorColor : Theme.textSecondaryColor
+                                text: {
+                                    if (ScaleDevice && ScaleDevice.connected) {
+                                        return ScaleDevice.name === "Flow Scale" ? "Simulated" : "Connected"
+                                    }
+                                    return BLEManager.scaleConnectionFailed ? "Not found" : "Disconnected"
+                                }
+                                color: {
+                                    if (ScaleDevice && ScaleDevice.connected) {
+                                        return ScaleDevice.name === "Flow Scale" ? Theme.warningColor : Theme.successColor
+                                    }
+                                    return BLEManager.scaleConnectionFailed ? Theme.errorColor : Theme.textSecondaryColor
+                                }
                             }
 
                             Item { Layout.fillWidth: true }
@@ -579,8 +587,8 @@ Page {
                             Button {
                                 text: "Forget"
                                 onClicked: {
-                                    Settings.setScaleAddress("")
-                                    Settings.setScaleType("")
+                                    Settings.scaleAddress = ""
+                                    Settings.scaleType = ""
                                     BLEManager.clearSavedScale()
                                 }
                             }
