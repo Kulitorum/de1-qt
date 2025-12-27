@@ -7,15 +7,15 @@ Rectangle {
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 10
-        anchors.rightMargin: 20
-        spacing: 15
+        anchors.leftMargin: Theme.chartMarginSmall
+        anchors.rightMargin: Theme.spacingLarge
+        spacing: Theme.spacingMedium
 
         // Page title (from root.currentPageTitle)
         Text {
             text: root.currentPageTitle
             color: Theme.textColor
-            font.pixelSize: 20
+            font.pixelSize: Theme.scaled(20)
             font.bold: true
             Layout.preferredWidth: implicitWidth
             elide: Text.ElideRight
@@ -24,7 +24,7 @@ Rectangle {
         // Separator after title (if title exists)
         Rectangle {
             width: 1
-            height: 30
+            height: Theme.scaled(30)
             color: Theme.textSecondaryColor
             opacity: 0.3
             visible: root.currentPageTitle !== ""
@@ -56,7 +56,7 @@ Rectangle {
         // Separator
         Rectangle {
             width: 1
-            height: 30
+            height: Theme.scaled(30)
             color: Theme.textSecondaryColor
             opacity: 0.3
         }
@@ -71,7 +71,7 @@ Rectangle {
         // Separator
         Rectangle {
             width: 1
-            height: 30
+            height: Theme.scaled(30)
             color: Theme.textSecondaryColor
             opacity: 0.3
         }
@@ -81,13 +81,13 @@ Rectangle {
             visible: BLEManager.scaleConnectionFailed || (BLEManager.hasSavedScale && (!ScaleDevice || !ScaleDevice.connected))
             color: BLEManager.scaleConnectionFailed ? Theme.errorColor : "transparent"
             radius: 4
-            Layout.preferredHeight: 40
-            Layout.preferredWidth: scaleWarningRow.implicitWidth + 16
+            Layout.preferredHeight: Theme.touchTargetMin
+            Layout.preferredWidth: scaleWarningRow.implicitWidth + Theme.spacingMedium
 
             Row {
                 id: scaleWarningRow
                 anchors.centerIn: parent
-                spacing: 5
+                spacing: Theme.spacingSmall
 
                 Text {
                     text: BLEManager.scaleConnectionFailed ? "Scale not found" :
@@ -116,14 +116,14 @@ Rectangle {
 
         // Scale connected indicator
         Row {
-            spacing: 5
+            spacing: Theme.spacingSmall
             visible: ScaleDevice && ScaleDevice.connected
 
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: 8
-                height: 8
-                radius: 4
+                width: Theme.scaled(8)
+                height: Theme.scaled(8)
+                radius: Theme.scaled(4)
                 color: Theme.weightColor
             }
 
@@ -137,20 +137,20 @@ Rectangle {
         // Separator
         Rectangle {
             width: 1
-            height: 30
+            height: Theme.scaled(30)
             color: Theme.textSecondaryColor
             opacity: 0.3
         }
 
         // Connection indicator
         Row {
-            spacing: 5
+            spacing: Theme.spacingSmall
 
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: 10
-                height: 10
-                radius: 5
+                width: Theme.scaled(10)
+                height: Theme.scaled(10)
+                radius: Theme.scaled(5)
                 color: DE1Device.connected ? Theme.successColor : Theme.errorColor
             }
 

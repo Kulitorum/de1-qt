@@ -263,7 +263,7 @@ Page {
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: 50
-        anchors.bottomMargin: 60  // Above credits bar
+        anchors.bottomMargin: Theme.chartMarginLarge + Theme.scaled(20)  // Above credits bar
         text: Qt.formatTime(currentTime, "hh:mm")
         color: "white"
         opacity: 0.8

@@ -52,7 +52,7 @@ Page {
     // Main content area
     Item {
         anchors.top: parent.top
-        anchors.topMargin: 80
+        anchors.topMargin: Theme.pageTopMargin
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: bottomBar.top

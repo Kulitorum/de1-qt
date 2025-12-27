@@ -35,11 +35,11 @@ Page {
     Rectangle {
         id: statusBanner
         anchors.top: parent.top
-        anchors.topMargin: 100
+        anchors.topMargin: Theme.pageTopMargin + Theme.scaled(20)
         anchors.horizontalCenter: parent.horizontalCenter
-        width: statusText.width + 40
-        height: 36
-        radius: 18
+        width: statusText.width + Theme.spacingLarge * 2
+        height: Theme.scaled(36)
+        radius: Theme.scaled(18)
         color: MachineState.phase === MachineStateType.Phase.EspressoPreheating ?
                Theme.accentColor : "transparent"
         visible: MachineState.phase === MachineStateType.Phase.EspressoPreheating
@@ -59,26 +59,26 @@ Page {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 100
+        height: Theme.scaled(100)
         color: Qt.darker(Theme.surfaceColor, 1.3)
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 15
-            spacing: 15
+            anchors.margins: Theme.spacingMedium
+            spacing: Theme.spacingMedium
 
             // Back button (large hitbox, icon aligned left)
             RoundButton {
-                Layout.preferredWidth: 80
-                Layout.preferredHeight: 70
+                Layout.preferredWidth: Theme.scaled(80)
+                Layout.preferredHeight: Theme.bottomBarHeight
                 flat: true
                 icon.source: "qrc:/icons/back.svg"
-                icon.width: 28
-                icon.height: 28
+                icon.width: Theme.scaled(28)
+                icon.height: Theme.scaled(28)
                 icon.color: Theme.textColor
                 display: AbstractButton.IconOnly
                 leftPadding: 0
-                rightPadding: 52
+                rightPadding: Theme.scaled(52)
                 onClicked: {
                     DE1Device.stopOperation()
                     root.goToIdle()
@@ -87,13 +87,13 @@ Page {
 
             // Timer
             ColumnLayout {
-                Layout.preferredWidth: 100
-                spacing: 2
+                Layout.preferredWidth: Theme.scaled(100)
+                spacing: Theme.scaled(2)
 
                 Text {
                     text: MachineState.shotTime.toFixed(1) + "s"
                     color: Theme.textColor
-                    font.pixelSize: 36
+                    font.pixelSize: Theme.scaled(36)
                     font.weight: Font.Bold
                 }
                 Text {
@@ -107,21 +107,21 @@ Page {
             Rectangle {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
-                Layout.topMargin: 10
-                Layout.bottomMargin: 10
+                Layout.topMargin: Theme.chartMarginSmall
+                Layout.bottomMargin: Theme.chartMarginSmall
                 color: Theme.textSecondaryColor
                 opacity: 0.3
             }
 
             // Pressure
             ColumnLayout {
-                Layout.preferredWidth: 80
-                spacing: 2
+                Layout.preferredWidth: Theme.scaled(80)
+                spacing: Theme.scaled(2)
 
                 Text {
                     text: DE1Device.pressure.toFixed(1)
                     color: Theme.pressureColor
-                    font.pixelSize: 28
+                    font.pixelSize: Theme.scaled(28)
                     font.weight: Font.Medium
                 }
                 Text {
@@ -133,13 +133,13 @@ Page {
 
             // Flow
             ColumnLayout {
-                Layout.preferredWidth: 80
-                spacing: 2
+                Layout.preferredWidth: Theme.scaled(80)
+                spacing: Theme.scaled(2)
 
                 Text {
                     text: DE1Device.flow.toFixed(1)
                     color: Theme.flowColor
-                    font.pixelSize: 28
+                    font.pixelSize: Theme.scaled(28)
                     font.weight: Font.Medium
                 }
                 Text {
@@ -151,13 +151,13 @@ Page {
 
             // Temperature
             ColumnLayout {
-                Layout.preferredWidth: 80
-                spacing: 2
+                Layout.preferredWidth: Theme.scaled(80)
+                spacing: Theme.scaled(2)
 
                 Text {
                     text: DE1Device.temperature.toFixed(1)
                     color: Theme.temperatureColor
-                    font.pixelSize: 28
+                    font.pixelSize: Theme.scaled(28)
                     font.weight: Font.Medium
                 }
                 Text {
@@ -171,8 +171,8 @@ Page {
             Rectangle {
                 Layout.preferredWidth: 1
                 Layout.fillHeight: true
-                Layout.topMargin: 10
-                Layout.bottomMargin: 10
+                Layout.topMargin: Theme.chartMarginSmall
+                Layout.bottomMargin: Theme.chartMarginSmall
                 color: Theme.textSecondaryColor
                 opacity: 0.3
             }
@@ -180,29 +180,29 @@ Page {
             // Weight with progress
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 4
+                spacing: Theme.scaled(4)
 
                 RowLayout {
-                    spacing: 8
+                    spacing: Theme.spacingSmall
 
                     Text {
                         text: espressoPage.currentWeight.toFixed(1)
                         color: Theme.weightColor
-                        font.pixelSize: 28
+                        font.pixelSize: Theme.scaled(28)
                         font.weight: Font.Medium
                         Layout.alignment: Qt.AlignBaseline
                     }
                     Text {
                         text: "/ " + MainController.targetWeight.toFixed(0) + " g"
                         color: Theme.textSecondaryColor
-                        font.pixelSize: 18
+                        font.pixelSize: Theme.scaled(18)
                         Layout.alignment: Qt.AlignBaseline
                     }
                 }
 
                 ProgressBar {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 8
+                    Layout.preferredHeight: Theme.spacingSmall
                     from: 0
                     to: MainController.targetWeight
                     value: espressoPage.currentWeight

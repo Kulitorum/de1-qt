@@ -16,27 +16,33 @@ Item {
     readonly property real startAngle: 135
     readonly property real sweepAngle: 270
 
-    implicitWidth: 120
-    implicitHeight: 140
+    implicitWidth: Theme.gaugeSize
+    implicitHeight: Theme.gaugeSize + Theme.scaled(20)
+
+    // Gauge sizing calculations
+    readonly property int gaugeWidth: Theme.gaugeSize
+    readonly property real gaugeCenter: gaugeWidth / 2
+    readonly property real gaugeStroke: Theme.scaled(8)
+    readonly property real gaugeRadius: gaugeCenter - gaugeStroke / 2 - Theme.scaled(8)
 
     Shape {
         id: gauge
         anchors.horizontalCenter: parent.horizontalCenter
-        width: 100
-        height: 100
+        width: root.gaugeWidth
+        height: root.gaugeWidth
 
         // Background arc
         ShapePath {
             strokeColor: Qt.rgba(root.color.r, root.color.g, root.color.b, 0.2)
-            strokeWidth: 8
+            strokeWidth: root.gaugeStroke
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
 
             PathAngleArc {
-                centerX: 50
-                centerY: 50
-                radiusX: 42
-                radiusY: 42
+                centerX: root.gaugeCenter
+                centerY: root.gaugeCenter
+                radiusX: root.gaugeRadius
+                radiusY: root.gaugeRadius
                 startAngle: root.startAngle
                 sweepAngle: root.sweepAngle
             }
@@ -45,15 +51,15 @@ Item {
         // Value arc
         ShapePath {
             strokeColor: root.color
-            strokeWidth: 8
+            strokeWidth: root.gaugeStroke
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
 
             PathAngleArc {
-                centerX: 50
-                centerY: 50
-                radiusX: 42
-                radiusY: 42
+                centerX: root.gaugeCenter
+                centerY: root.gaugeCenter
+                radiusX: root.gaugeRadius
+                radiusY: root.gaugeRadius
                 startAngle: root.startAngle
                 sweepAngle: root.sweepAngle * root.normalizedValue
             }
@@ -63,13 +69,13 @@ Item {
     // Value text
     Column {
         anchors.centerIn: gauge
-        anchors.verticalCenterOffset: -5
+        anchors.verticalCenterOffset: Theme.scaled(-5)
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: root.value.toFixed(1)
             color: Theme.textColor
-            font.pixelSize: 20
+            font.pixelSize: Theme.scaled(20)
             font.bold: true
         }
 
@@ -85,7 +91,7 @@ Item {
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: gauge.bottom
-        anchors.topMargin: 5
+        anchors.topMargin: Theme.scaled(5)
         text: root.label
         color: Theme.textSecondaryColor
         font: Theme.labelFont

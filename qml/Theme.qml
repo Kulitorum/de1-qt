@@ -51,6 +51,36 @@ QtObject {
     readonly property int smallMargin: scaled(8)
     readonly property int graphLineWidth: Math.max(2, scaled(3))
 
+    // Layout constants
+    readonly property int statusBarHeight: scaled(70)
+    readonly property int bottomBarHeight: scaled(70)
+    readonly property int pageTopMargin: scaled(80)
+
+    // Touch targets (44dp minimum per Apple/Google guidelines)
+    readonly property int touchTargetMin: scaled(44)
+    readonly property int touchTargetMedium: scaled(48)
+    readonly property int touchTargetLarge: scaled(56)
+
+    // Spacing
+    readonly property int spacingSmall: scaled(8)
+    readonly property int spacingMedium: scaled(16)
+    readonly property int spacingLarge: scaled(24)
+
+    // Dialogs
+    readonly property int dialogWidth: scaled(380)
+
+    // Settings columns
+    readonly property int settingsColumnMin: scaled(280)
+    readonly property int settingsColumnMax: scaled(400)
+
+    // Gauges
+    readonly property int gaugeSize: scaled(120)
+
+    // Charts
+    readonly property int chartMarginSmall: scaled(10)
+    readonly property int chartMarginLarge: scaled(40)
+    readonly property int chartFontSize: scaled(14)
+
     // Shadows
     readonly property color shadowColor: "#40000000"
 

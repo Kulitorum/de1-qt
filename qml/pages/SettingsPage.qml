@@ -26,7 +26,7 @@ Page {
         id: simToast
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 150
+        anchors.bottomMargin: Theme.scaled(150)
         width: simToastText.implicitWidth + 30
         height: simToastText.implicitHeight + 16
         radius: height / 2
@@ -256,7 +256,7 @@ Page {
     TabBar {
         id: tabBar
         anchors.top: parent.top
-        anchors.topMargin: 80
+        anchors.topMargin: Theme.pageTopMargin
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.leftMargin: Theme.standardMargin
@@ -362,11 +362,11 @@ Page {
     StackLayout {
         id: tabContent
         anchors.top: tabBar.bottom
-        anchors.topMargin: 15
+        anchors.topMargin: Theme.spacingMedium
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: bottomBar.top
-        anchors.bottomMargin: 15
+        anchors.bottomMargin: Theme.spacingMedium
         anchors.leftMargin: Theme.standardMargin
         anchors.rightMargin: Theme.standardMargin
 
@@ -376,7 +376,7 @@ Page {
         Item {
             RowLayout {
                 anchors.fill: parent
-                spacing: 15
+                spacing: Theme.spacingMedium
 
                 // Machine Connection
                 Rectangle {

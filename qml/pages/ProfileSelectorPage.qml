@@ -15,8 +15,8 @@ Page {
     RowLayout {
         anchors.fill: parent
         anchors.margins: Theme.standardMargin
-        anchors.topMargin: 80
-        anchors.bottomMargin: 80
+        anchors.topMargin: Theme.pageTopMargin
+        anchors.bottomMargin: Theme.pageTopMargin
         spacing: Theme.scaled(20)
 
         // LEFT SIDE: All available profiles

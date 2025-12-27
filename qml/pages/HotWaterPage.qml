@@ -39,8 +39,8 @@ Page {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: Theme.standardMargin
-        anchors.topMargin: 80
-        anchors.bottomMargin: 80  // Space for bottom bar
+        anchors.topMargin: Theme.pageTopMargin
+        anchors.bottomMargin: Theme.pageTopMargin  // Space for bottom bar
         spacing: 15
 
         // === DISPENSING VIEW ===

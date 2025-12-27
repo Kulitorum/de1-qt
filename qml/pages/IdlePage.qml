@@ -201,17 +201,17 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: Theme.standardMargin
-        anchors.topMargin: 80  // Leave room for status bar
+        anchors.topMargin: Theme.pageTopMargin  // Leave room for status bar
         spacing: Theme.scaled(20)
 
         // Status section
         RowLayout {
             Layout.alignment: Qt.AlignHCenter
-            spacing: 50
+            spacing: Theme.scaled(50)
 
             // Temperature
             Column {
-                spacing: 5
+                spacing: Theme.spacingSmall
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: DE1Device.temperature.toFixed(1) + "°C"
@@ -228,7 +228,7 @@ Page {
 
             // Water level
             Column {
-                spacing: 5
+                spacing: Theme.spacingSmall
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: DE1Device.waterLevel.toFixed(0) + "%"

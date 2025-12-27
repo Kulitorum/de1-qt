@@ -192,8 +192,8 @@ ApplicationWindow {
         property bool isLocationError: false
 
         Column {
-            spacing: 16
-            width: 320
+            spacing: Theme.spacingMedium
+            width: Theme.dialogWidth
 
             Label {
                 text: bleErrorDialog.errorMessage
@@ -253,14 +253,14 @@ ApplicationWindow {
         anchors.centerIn: parent
 
         Column {
-            spacing: 16
-            width: 380
+            spacing: Theme.spacingMedium
+            width: Theme.dialogWidth
 
             Label {
                 text: "No Bluetooth scale was detected.\n\nUsing estimated weight from DE1 flow measurement instead.\n\nYou can search for your scale in Settings → Bluetooth."
                 wrapMode: Text.Wrap
                 width: parent.width
-                font.pixelSize: 15
+                font: Theme.labelFont
             }
 
             Button {
@@ -279,14 +279,14 @@ ApplicationWindow {
         anchors.centerIn: parent
 
         Column {
-            spacing: 16
-            width: 380
+            spacing: Theme.spacingMedium
+            width: Theme.dialogWidth
 
             Label {
                 text: "Your Bluetooth scale has disconnected.\n\nUsing estimated weight from DE1 flow measurement until the scale reconnects.\n\nCheck that your scale is powered on and in range."
                 wrapMode: Text.Wrap
                 width: parent.width
-                font.pixelSize: 15
+                font: Theme.labelFont
             }
 
             Button {
@@ -306,14 +306,14 @@ ApplicationWindow {
         closePolicy: Popup.NoAutoClose
 
         Column {
-            spacing: 20
-            width: 400
+            spacing: Theme.spacingLarge
+            width: Theme.dialogWidth
 
             Label {
                 text: "Before we begin:\n\n• Turn on your DE1 by holding the middle stop button for a few seconds\n• Power on your Bluetooth scale\n\nThe app will search for your DE1 espresso machine and compatible scales."
                 wrapMode: Text.Wrap
                 width: parent.width
-                font.pixelSize: 16
+                font: Theme.bodyFont
             }
 
             Button {
@@ -357,7 +357,7 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.left: parent.left
         anchors.right: parent.right
-        height: 70
+        height: Theme.statusBarHeight
         z: 100
         visible: !screensaverActive
     }

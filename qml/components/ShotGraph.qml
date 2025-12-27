@@ -9,10 +9,10 @@ ChartView {
     plotAreaColor: Qt.darker(Theme.surfaceColor, 1.3)
     legend.visible: false
 
-    margins.top: 10
-    margins.bottom: 60
-    margins.left: 10
-    margins.right: 10
+    margins.top: Theme.chartMarginSmall
+    margins.bottom: Theme.chartMarginLarge + Theme.scaled(20)
+    margins.left: Theme.chartMarginSmall
+    margins.right: Theme.chartMarginSmall
 
     // Register series with C++ model on completion
     Component.onCompleted: {
@@ -178,13 +178,13 @@ ChartView {
 
             Text {
                 text: markerLabel
-                font.pixelSize: 18
+                font.pixelSize: Theme.scaled(18)
                 font.bold: isStart
                 color: isStart ? Theme.accentColor : Qt.rgba(255, 255, 255, 0.8)
                 rotation: -90
                 transformOrigin: Item.TopLeft
-                x: 4
-                y: 8 + width
+                x: Theme.scaled(4)
+                y: Theme.scaled(8) + width
 
                 Rectangle {
                     z: -1
@@ -201,32 +201,32 @@ ChartView {
     Column {
         anchors.bottom: parent.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        anchors.bottomMargin: 8
-        spacing: 4
+        anchors.bottomMargin: Theme.spacingSmall
+        spacing: Theme.scaled(4)
 
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 24
+            spacing: Theme.spacingLarge
 
             Row {
-                spacing: 6
-                Rectangle { width: 24; height: 4; radius: 2; color: Theme.pressureColor; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "Pressure"; color: Theme.textSecondaryColor; font.pixelSize: 13 }
+                spacing: Theme.spacingSmall
+                Rectangle { width: Theme.scaled(24); height: Theme.scaled(4); radius: 2; color: Theme.pressureColor; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: "Pressure"; color: Theme.textSecondaryColor; font: Theme.labelFont }
             }
             Row {
-                spacing: 6
-                Rectangle { width: 24; height: 4; radius: 2; color: Theme.flowColor; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "Flow"; color: Theme.textSecondaryColor; font.pixelSize: 13 }
+                spacing: Theme.spacingSmall
+                Rectangle { width: Theme.scaled(24); height: Theme.scaled(4); radius: 2; color: Theme.flowColor; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: "Flow"; color: Theme.textSecondaryColor; font: Theme.labelFont }
             }
             Row {
-                spacing: 6
-                Rectangle { width: 24; height: 4; radius: 2; color: Theme.temperatureColor; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "Temp"; color: Theme.textSecondaryColor; font.pixelSize: 13 }
+                spacing: Theme.spacingSmall
+                Rectangle { width: Theme.scaled(24); height: Theme.scaled(4); radius: 2; color: Theme.temperatureColor; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: "Temp"; color: Theme.textSecondaryColor; font: Theme.labelFont }
             }
             Row {
-                spacing: 6
-                Rectangle { width: 24; height: 4; radius: 2; color: Theme.weightColor; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "Weight"; color: Theme.textSecondaryColor; font.pixelSize: 13 }
+                spacing: Theme.spacingSmall
+                Rectangle { width: Theme.scaled(24); height: Theme.scaled(4); radius: 2; color: Theme.weightColor; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: "Weight"; color: Theme.textSecondaryColor; font: Theme.labelFont }
             }
         }
 
@@ -234,7 +234,7 @@ ChartView {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "Solid = actual  · · · Dashed = target"
             color: Qt.rgba(255, 255, 255, 0.5)
-            font.pixelSize: 11
+            font: Theme.captionFont
         }
     }
 }

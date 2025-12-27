@@ -25,7 +25,7 @@ Item {
     // Signals
     signal moved()
 
-    implicitWidth: 200
+    implicitWidth: Theme.scaled(200)
     implicitHeight: Theme.scaled(60)
 
     RowLayout {
