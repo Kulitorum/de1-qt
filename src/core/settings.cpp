@@ -7,6 +7,12 @@
 #include <QtMath>
 #include <QColor>
 
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#include <QJniEnvironment>
+#include <QCoreApplication>
+#endif
+
 Settings::Settings(QObject* parent)
     : QObject(parent)
     , m_settings("DecentEspresso", "DE1Qt")
@@ -807,6 +813,29 @@ void Settings::setScreenBrightness(double brightness) {
     double clamped = qBound(0.0, brightness, 1.0);
     if (qAbs(screenBrightness() - clamped) > 0.001) {
         m_settings.setValue("theme/screenBrightness", clamped);
+
+#ifdef Q_OS_ANDROID
+        // Must run on Android UI thread
+        float androidBrightness = (clamped < 0.01) ? 0.01f : static_cast<float>(clamped);
+        QNativeInterface::QAndroidApplication::runOnAndroidMainThread([androidBrightness]() {
+            QJniObject activity = QNativeInterface::QAndroidApplication::context();
+            if (activity.isValid()) {
+                QJniObject window = activity.callObjectMethod(
+                    "getWindow", "()Landroid/view/Window;");
+                if (window.isValid()) {
+                    QJniObject params = window.callObjectMethod(
+                        "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
+                    if (params.isValid()) {
+                        params.setField<jfloat>("screenBrightness", androidBrightness);
+                        window.callMethod<void>("setAttributes",
+                            "(Landroid/view/WindowManager$LayoutParams;)V",
+                            params.object());
+                    }
+                }
+            }
+        });
+#endif
+
         emit screenBrightnessChanged();
     }
 }
@@ -815,6 +844,11 @@ void Settings::setThemeColor(const QString& colorName, const QString& colorValue
     QVariantMap colors = customThemeColors();
     colors[colorName] = colorValue;
     setCustomThemeColors(colors);
+
+    // Mark as custom theme when user edits any color
+    if (activeThemeName() != "Custom") {
+        setActiveThemeName("Custom");
+    }
 }
 
 QString Settings::getThemeColor(const QString& colorName) const {
@@ -831,68 +865,128 @@ void Settings::resetThemeToDefault() {
 }
 
 QVariantList Settings::getPresetThemes() const {
-    QVariantList presets;
+    QVariantList themes;
 
-    // Default theme (current dark purple)
+    // Default theme (built-in, always first)
     QVariantMap defaultTheme;
     defaultTheme["name"] = "Default";
-    defaultTheme["description"] = "Original dark purple theme";
     defaultTheme["primaryColor"] = "#4e85f4";
-    defaultTheme["backgroundColor"] = "#1a1a2e";
-    presets.append(defaultTheme);
+    defaultTheme["isBuiltIn"] = true;
+    themes.append(defaultTheme);
 
-    // Ocean theme
-    QVariantMap ocean;
-    ocean["name"] = "Ocean";
-    ocean["description"] = "Deep blue-green";
-    ocean["primaryColor"] = "#00a8cc";
-    ocean["backgroundColor"] = "#0a1628";
-    presets.append(ocean);
+    // Load user-saved themes
+    QJsonArray userThemes = QJsonDocument::fromJson(
+        m_settings.value("theme/userThemes", "[]").toByteArray()
+    ).array();
 
-    // Forest theme
-    QVariantMap forest;
-    forest["name"] = "Forest";
-    forest["description"] = "Earthy green";
-    forest["primaryColor"] = "#2ecc71";
-    forest["backgroundColor"] = "#1a2f1a";
-    presets.append(forest);
+    for (const QJsonValue& val : userThemes) {
+        QJsonObject obj = val.toObject();
+        QVariantMap theme;
+        theme["name"] = obj["name"].toString();
+        theme["primaryColor"] = obj["colors"].toObject()["primaryColor"].toString();
+        theme["isBuiltIn"] = false;
+        themes.append(theme);
+    }
 
-    // Sunset theme
-    QVariantMap sunset;
-    sunset["name"] = "Sunset";
-    sunset["description"] = "Warm red-orange";
-    sunset["primaryColor"] = "#e74c3c";
-    sunset["backgroundColor"] = "#2c1a1a";
-    presets.append(sunset);
-
-    // Monochrome theme
-    QVariantMap mono;
-    mono["name"] = "Monochrome";
-    mono["description"] = "Elegant grayscale";
-    mono["primaryColor"] = "#888888";
-    mono["backgroundColor"] = "#1a1a1a";
-    presets.append(mono);
-
-    return presets;
+    return themes;
 }
 
 void Settings::applyPresetTheme(const QString& name) {
-    QVariantList presets = getPresetThemes();
-    for (const QVariant& preset : presets) {
-        QVariantMap theme = preset.toMap();
-        if (theme["name"].toString() == name) {
-            // Extract HSL from primary color and generate full palette
-            QString primaryHex = theme["primaryColor"].toString();
-            QColor primary(primaryHex);
-            double h = primary.hslHueF() * 360.0;
-            double s = primary.hslSaturationF() * 100.0;
-            double l = primary.lightnessF() * 100.0;
+    QVariantMap palette;
 
-            QVariantMap palette = generatePalette(h, s, l);
+    if (name == "Default") {
+        // Exact Theme.qml defaults
+        palette["backgroundColor"] = "#1a1a2e";
+        palette["surfaceColor"] = "#252538";
+        palette["primaryColor"] = "#4e85f4";
+        palette["secondaryColor"] = "#c0c5e3";
+        palette["textColor"] = "#ffffff";
+        palette["textSecondaryColor"] = "#a0a8b8";
+        palette["accentColor"] = "#e94560";
+        palette["successColor"] = "#00ff88";
+        palette["warningColor"] = "#ffaa00";
+        palette["errorColor"] = "#ff4444";
+        palette["borderColor"] = "#3a3a4e";
+        palette["pressureColor"] = "#18c37e";
+        palette["pressureGoalColor"] = "#69fdb3";
+        palette["flowColor"] = "#4e85f4";
+        palette["flowGoalColor"] = "#7aaaff";
+        palette["temperatureColor"] = "#e73249";
+        palette["temperatureGoalColor"] = "#ffa5a6";
+        palette["weightColor"] = "#a2693d";
+
+        setCustomThemeColors(palette);
+        setActiveThemeName(name);
+        return;
+    }
+
+    // Look for user theme
+    QJsonArray userThemes = QJsonDocument::fromJson(
+        m_settings.value("theme/userThemes", "[]").toByteArray()
+    ).array();
+
+    for (const QJsonValue& val : userThemes) {
+        QJsonObject obj = val.toObject();
+        if (obj["name"].toString() == name) {
+            QJsonObject colors = obj["colors"].toObject();
+            for (const QString& key : colors.keys()) {
+                palette[key] = colors[key].toString();
+            }
             setCustomThemeColors(palette);
             setActiveThemeName(name);
             return;
         }
+    }
+}
+
+void Settings::saveCurrentTheme(const QString& name) {
+    if (name.isEmpty() || name == "Default") {
+        return; // Can't save with empty name or overwrite Default
+    }
+
+    // Load existing user themes
+    QJsonArray userThemes = QJsonDocument::fromJson(
+        m_settings.value("theme/userThemes", "[]").toByteArray()
+    ).array();
+
+    // Remove existing theme with same name (if any)
+    for (int i = userThemes.size() - 1; i >= 0; --i) {
+        if (userThemes[i].toObject()["name"].toString() == name) {
+            userThemes.removeAt(i);
+        }
+    }
+
+    // Create new theme entry
+    QJsonObject newTheme;
+    newTheme["name"] = name;
+    newTheme["colors"] = QJsonObject::fromVariantMap(customThemeColors());
+    userThemes.append(newTheme);
+
+    // Save to settings
+    m_settings.setValue("theme/userThemes", QJsonDocument(userThemes).toJson(QJsonDocument::Compact));
+    setActiveThemeName(name);
+}
+
+void Settings::deleteUserTheme(const QString& name) {
+    if (name == "Default") {
+        return; // Can't delete Default
+    }
+
+    QJsonArray userThemes = QJsonDocument::fromJson(
+        m_settings.value("theme/userThemes", "[]").toByteArray()
+    ).array();
+
+    for (int i = userThemes.size() - 1; i >= 0; --i) {
+        if (userThemes[i].toObject()["name"].toString() == name) {
+            userThemes.removeAt(i);
+        }
+    }
+
+    m_settings.setValue("theme/userThemes", QJsonDocument(userThemes).toJson(QJsonDocument::Compact));
+
+    // If we deleted the active theme, switch to Default
+    if (activeThemeName() == name) {
+        applyPresetTheme("Default");
     }
 }
 

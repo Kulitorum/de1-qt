@@ -28,9 +28,28 @@ Rectangle {
 
         // Back button (square hitbox, full bar height)
         Item {
+            id: backButton
             visible: root.showBackButton
             Layout.preferredWidth: Theme.bottomBarHeight
             Layout.preferredHeight: Theme.bottomBarHeight
+
+            activeFocusOnTab: true
+
+            Accessible.role: Accessible.Button
+            Accessible.name: "Back"
+            Accessible.description: "Go back to previous screen"
+            Accessible.focusable: true
+
+            // Focus indicator
+            Rectangle {
+                anchors.fill: parent
+                anchors.margins: -Theme.focusMargin
+                visible: backButton.activeFocus
+                color: "transparent"
+                border.width: Theme.focusBorderWidth
+                border.color: Theme.focusColor
+                radius: 4
+            }
 
             Image {
                 anchors.centerIn: parent
@@ -39,9 +58,15 @@ Rectangle {
                 sourceSize.height: Theme.scaled(28)
             }
 
-            MouseArea {
+            Keys.onReturnPressed: root.backClicked()
+            Keys.onEnterPressed: root.backClicked()
+            Keys.onEscapePressed: root.backClicked()
+
+            AccessibleMouseArea {
                 anchors.fill: parent
-                onClicked: root.backClicked()
+                accessibleName: "Back. Return to previous screen"
+                accessibleItem: backButton
+                onAccessibleClicked: root.backClicked()
             }
         }
 

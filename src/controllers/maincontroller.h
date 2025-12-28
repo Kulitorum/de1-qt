@@ -23,6 +23,7 @@ class MainController : public QObject {
     Q_PROPERTY(QVariantList availableProfiles READ availableProfiles NOTIFY profilesChanged)
     Q_PROPERTY(VisualizerUploader* visualizer READ visualizer CONSTANT)
     Q_PROPERTY(bool calibrationMode READ isCalibrationMode NOTIFY calibrationModeChanged)
+    Q_PROPERTY(QString currentFrameName READ currentFrameName NOTIFY frameChanged)
 
 public:
     explicit MainController(Settings* settings, DE1Device* device,
@@ -37,6 +38,7 @@ public:
     QVariantList availableProfiles() const;
     VisualizerUploader* visualizer() const { return m_visualizer; }
     bool isCalibrationMode() const { return m_calibrationMode; }
+    QString currentFrameName() const { return m_currentFrameName; }
 
     const Profile& currentProfile() const { return m_currentProfile; }
 
@@ -78,6 +80,9 @@ signals:
     void profilesChanged();
     void calibrationModeChanged();
 
+    // Accessibility: emitted when extraction frame changes
+    void frameChanged(int frameIndex, const QString& frameName);
+
 private slots:
     void onShotSampleReceived(const ShotSample& sample);
 
@@ -104,6 +109,7 @@ private:
     QString m_baseProfileName;
     bool m_profileModified = false;
     bool m_calibrationMode = false;
+    QString m_currentFrameName;  // For accessibility announcements
 
     QTimer m_settingsTimer;  // Delayed settings application after connection
 };

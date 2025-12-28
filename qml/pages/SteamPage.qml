@@ -283,6 +283,7 @@ Page {
 
                         // Add button
                         Rectangle {
+                            id: addPitcherButton
                             width: 36
                             height: 36
                             radius: 18
@@ -297,9 +298,11 @@ Page {
                                 font.pixelSize: 20
                             }
 
-                            MouseArea {
+                            AccessibleMouseArea {
                                 anchors.fill: parent
-                                onClicked: addPitcherDialog.open()
+                                accessibleName: "Add new steam preset"
+                                accessibleItem: addPitcherButton
+                                onAccessibleClicked: addPitcherDialog.open()
                             }
                         }
                     }
@@ -546,8 +549,9 @@ Page {
             RowLayout {
                 spacing: 10
 
-                Button {
+                AccessibleButton {
                     text: "Delete"
+                    accessibleName: "Delete preset"
                     onClicked: {
                         Settings.removeSteamPitcherPreset(editingPitcherIndex)
                         editPitcherPopup.close()
@@ -569,8 +573,9 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                AccessibleButton {
                     text: "Cancel"
+                    accessibleName: "Cancel"
                     onClicked: editPitcherPopup.close()
                     background: Rectangle {
                         implicitWidth: 70
@@ -587,8 +592,9 @@ Page {
                     }
                 }
 
-                Button {
+                AccessibleButton {
                     text: "Save"
+                    accessibleName: "Save preset"
                     onClicked: {
                         var preset = Settings.getSteamPitcherPreset(editingPitcherIndex)
                         Settings.updateSteamPitcherPreset(editingPitcherIndex, editPitcherNameInput.text, preset.duration, preset.flow)
@@ -688,8 +694,9 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                AccessibleButton {
                     text: "Cancel"
+                    accessibleName: "Cancel"
                     onClicked: addPitcherDialog.close()
                     background: Rectangle {
                         implicitWidth: 70
@@ -706,8 +713,9 @@ Page {
                     }
                 }
 
-                Button {
+                AccessibleButton {
                     text: "Add"
+                    accessibleName: "Add preset"
                     onClicked: {
                         if (newPitcherName.text.trim() !== "") {
                             var presetCount = Settings.steamPitcherPresets.length

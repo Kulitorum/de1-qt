@@ -713,8 +713,12 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
 
         m_shotDataModel->addPhaseMarker(time, frameName, frameIndex);
         m_lastFrameNumber = sample.frameNumber;
+        m_currentFrameName = frameName;  // Store for accessibility QML binding
 
         qDebug() << "Frame change:" << frameIndex << "->" << frameName << "at" << time << "s";
+
+        // Accessibility: notify of frame change for tick sound
+        emit frameChanged(frameIndex, frameName);
     }
 
     // Determine active pump mode for current frame (to show only active goal curve)
@@ -763,7 +767,6 @@ void MainController::onScaleWeightChanged(double weight) {
     if (!isEspressoPhase) return;
 
     double time = m_machineState->shotTime();
-    qDebug() << "WEIGHT->GRAPH time:" << time << "weight:" << weight << "phase:" << static_cast<int>(phase);
     m_shotDataModel->addWeightSample(time, weight, 0);
 }
 

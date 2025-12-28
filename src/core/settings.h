@@ -181,6 +181,8 @@ public:
     Q_INVOKABLE void resetThemeToDefault();
     Q_INVOKABLE QVariantList getPresetThemes() const;
     Q_INVOKABLE void applyPresetTheme(const QString& name);
+    Q_INVOKABLE void saveCurrentTheme(const QString& name);
+    Q_INVOKABLE void deleteUserTheme(const QString& name);
     Q_INVOKABLE bool saveThemeToFile(const QString& filePath);
     Q_INVOKABLE bool loadThemeFromFile(const QString& filePath);
     Q_INVOKABLE QVariantMap generatePalette(double hue, double saturation, double lightness) const;

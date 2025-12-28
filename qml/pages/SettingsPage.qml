@@ -258,14 +258,13 @@ Page {
         anchors.top: parent.top
         anchors.topMargin: Theme.pageTopMargin
         anchors.left: parent.left
-        anchors.right: parent.right
         anchors.leftMargin: Theme.standardMargin
-        anchors.rightMargin: Theme.standardMargin
+        z: 2  // Above content frame
 
         // Announce tab when changed (accessibility)
         onCurrentIndexChanged: {
             if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
-                var tabNames = ["Bluetooth", "Preferences", "Screensaver", "Visualizer", "Accessibility", "Resolution", "Themes"]
+                var tabNames = ["Bluetooth", "Preferences", "Screensaver", "Visualizer", "Accessibility", "Themes", "Resolution"]
                 if (currentIndex >= 0 && currentIndex < tabNames.length) {
                     AccessibilityManager.announce(tabNames[currentIndex] + " tab")
                 }
@@ -286,7 +285,7 @@ Page {
             contentItem: Text {
                 text: parent.text
                 font: parent.font
-                color: tabBar.currentIndex === 0 ? Theme.primaryColor : Theme.textSecondaryColor
+                color: tabBar.currentIndex === 0 ? Theme.textColor : Theme.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -312,7 +311,7 @@ Page {
             contentItem: Text {
                 text: parent.text
                 font: parent.font
-                color: tabBar.currentIndex === 1 ? Theme.primaryColor : Theme.textSecondaryColor
+                color: tabBar.currentIndex === 1 ? Theme.textColor : Theme.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -338,7 +337,7 @@ Page {
             contentItem: Text {
                 text: parent.text
                 font: parent.font
-                color: tabBar.currentIndex === 2 ? Theme.primaryColor : Theme.textSecondaryColor
+                color: tabBar.currentIndex === 2 ? Theme.textColor : Theme.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -364,7 +363,7 @@ Page {
             contentItem: Text {
                 text: parent.text
                 font: parent.font
-                color: tabBar.currentIndex === 3 ? Theme.primaryColor : Theme.textSecondaryColor
+                color: tabBar.currentIndex === 3 ? Theme.textColor : Theme.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -390,7 +389,7 @@ Page {
             contentItem: Text {
                 text: parent.text
                 font: parent.font
-                color: tabBar.currentIndex === 4 ? Theme.primaryColor : Theme.textSecondaryColor
+                color: tabBar.currentIndex === 4 ? Theme.textColor : Theme.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -407,17 +406,16 @@ Page {
         }
 
         TabButton {
-            id: resolutionTabButton
-            text: "Resolution"
+            id: themesTabButton
+            text: "Themes"
             width: implicitWidth
-            visible: Qt.platform.os === "windows"
             font.pixelSize: 14
             font.bold: tabBar.currentIndex === 5
-            Accessible.name: "Resolution tab" + (tabBar.currentIndex === 5 ? ", selected" : "")
+            Accessible.name: "Themes tab" + (tabBar.currentIndex === 5 ? ", selected" : "")
             contentItem: Text {
                 text: parent.text
                 font: parent.font
-                color: tabBar.currentIndex === 5 ? Theme.primaryColor : Theme.textSecondaryColor
+                color: tabBar.currentIndex === 5 ? Theme.textColor : Theme.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -427,23 +425,26 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Resolution tab" + (tabBar.currentIndex === 5 ? ", selected" : "")
-                accessibleItem: resolutionTabButton
+                accessibleName: "Themes tab" + (tabBar.currentIndex === 5 ? ", selected" : "")
+                accessibleItem: themesTabButton
                 onAccessibleClicked: tabBar.currentIndex = 5
             }
         }
 
+        // NOTE: Keep conditionally-visible tabs (like Resolution) at the END
+        // so they don't leave gaps when hidden on other platforms
         TabButton {
-            id: themesTabButton
-            text: "Themes"
+            id: resolutionTabButton
+            text: "Resolution"
             width: implicitWidth
+            visible: Qt.platform.os === "windows"
             font.pixelSize: 14
             font.bold: tabBar.currentIndex === 6
-            Accessible.name: "Themes tab" + (tabBar.currentIndex === 6 ? ", selected" : "")
+            Accessible.name: "Resolution tab" + (tabBar.currentIndex === 6 ? ", selected" : "")
             contentItem: Text {
                 text: parent.text
                 font: parent.font
-                color: tabBar.currentIndex === 6 ? Theme.primaryColor : Theme.textSecondaryColor
+                color: tabBar.currentIndex === 6 ? Theme.textColor : Theme.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
@@ -453,8 +454,8 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Themes tab" + (tabBar.currentIndex === 6 ? ", selected" : "")
-                accessibleItem: themesTabButton
+                accessibleName: "Resolution tab" + (tabBar.currentIndex === 6 ? ", selected" : "")
+                accessibleItem: resolutionTabButton
                 onAccessibleClicked: tabBar.currentIndex = 6
             }
         }
@@ -1673,7 +1674,7 @@ Page {
                         Text {
                             id: signUpLink
                             text: "Don't have an account? Sign up at visualizer.coffee"
-                            color: Theme.primaryColor
+                            color: Theme.textSecondaryColor
                             font.pixelSize: 12
                             Layout.fillWidth: true
                             wrapMode: Text.WordWrap
@@ -2056,7 +2057,327 @@ Page {
             }
         }
 
+        // ============ THEMES TAB ============
+        Item {
+            id: themesTab
+
+            // Currently selected color for editing
+            property string selectedColorName: "primaryColor"
+            property color selectedColorValue: Theme.primaryColor
+
+            // Color definitions with display names and categories
+            property var colorDefinitions: [
+                { category: "Core UI", colors: [
+                    { name: "backgroundColor", display: "Background" },
+                    { name: "surfaceColor", display: "Surface" },
+                    { name: "primaryColor", display: "Primary" },
+                    { name: "secondaryColor", display: "Secondary" },
+                    { name: "textColor", display: "Text" },
+                    { name: "textSecondaryColor", display: "Text Secondary" },
+                    { name: "accentColor", display: "Accent" },
+                    { name: "borderColor", display: "Border" }
+                ]},
+                { category: "Status", colors: [
+                    { name: "successColor", display: "Success" },
+                    { name: "warningColor", display: "Warning" },
+                    { name: "errorColor", display: "Error" }
+                ]},
+                { category: "Chart", colors: [
+                    { name: "pressureColor", display: "Pressure" },
+                    { name: "pressureGoalColor", display: "Pressure Goal" },
+                    { name: "flowColor", display: "Flow" },
+                    { name: "flowGoalColor", display: "Flow Goal" },
+                    { name: "temperatureColor", display: "Temperature" },
+                    { name: "temperatureGoalColor", display: "Temp Goal" },
+                    { name: "weightColor", display: "Weight" }
+                ]}
+            ]
+
+            function getColorValue(colorName) {
+                return Theme[colorName] || "#ffffff"
+            }
+
+            function selectColor(colorName) {
+                selectedColorName = colorName
+                selectedColorValue = getColorValue(colorName)
+                colorEditor.setColor(selectedColorValue)
+            }
+
+            function applyColorChange(newColor) {
+                Settings.setThemeColor(selectedColorName, newColor.toString())
+                selectedColorValue = newColor
+            }
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: Theme.spacingMedium
+
+                // Left panel - Color list
+                Rectangle {
+                    Layout.preferredWidth: parent.width * 0.4
+                    Layout.fillHeight: true
+                    color: Theme.surfaceColor
+                    radius: Theme.cardRadius
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.spacingMedium
+                        spacing: Theme.spacingSmall
+
+                        Text {
+                            text: "Theme: " + Settings.activeThemeName
+                            color: Theme.textColor
+                            font: Theme.subtitleFont
+                        }
+
+                        ScrollView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                            contentWidth: availableWidth
+                            clip: true
+
+                            ColumnLayout {
+                                width: parent.width
+                                spacing: Theme.spacingSmall
+
+                                Repeater {
+                                    model: themesTab.colorDefinitions
+
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        spacing: 4
+
+                                        // Category header
+                                        Text {
+                                            text: modelData.category
+                                            color: Theme.textSecondaryColor
+                                            font: Theme.labelFont
+                                            topPadding: index > 0 ? Theme.spacingSmall : 0
+                                        }
+
+                                        // Color swatches in this category
+                                        Repeater {
+                                            id: colorRepeater
+                                            property var colorList: modelData.colors
+                                            model: colorList.length
+
+                                            ColorSwatch {
+                                                property var colorData: colorRepeater.colorList[index]
+                                                Layout.fillWidth: true
+                                                colorName: colorData.name
+                                                displayName: colorData.display
+                                                colorValue: themesTab.getColorValue(colorData.name)
+                                                selected: themesTab.selectedColorName === colorData.name
+                                                onClicked: themesTab.selectColor(colorData.name)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Bottom buttons
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.spacingSmall
+
+                            Button {
+                                text: "Reset"
+                                onClicked: Settings.resetThemeToDefault()
+                                background: Rectangle {
+                                    color: Theme.errorColor
+                                    radius: Theme.buttonRadius
+                                    opacity: parent.pressed ? 0.8 : 1.0
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+                        }
+                    }
+                }
+
+                // Right panel - Color editor
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    color: Theme.surfaceColor
+                    radius: Theme.cardRadius
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.spacingMedium
+                        spacing: Theme.spacingSmall
+
+                        Text {
+                            text: "Edit: " + themesTab.selectedColorName
+                            color: Theme.textColor
+                            font: Theme.subtitleFont
+                        }
+
+                        ColorEditor {
+                            id: colorEditor
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 140
+
+                            Component.onCompleted: setColor(themesTab.selectedColorValue)
+
+                            onColorChanged: {
+                                themesTab.applyColorChange(colorEditor.color)
+                            }
+                        }
+
+                            // Preset themes in horizontal scroll
+                            ScrollView {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 44
+                                ScrollBar.horizontal.policy: ScrollBar.AsNeeded
+                                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
+                                contentHeight: availableHeight
+                                clip: true
+
+                                Row {
+                                    height: parent.height
+                                    spacing: Theme.spacingSmall
+
+                                    Repeater {
+                                        id: presetRepeater
+                                        model: Settings.getPresetThemes()
+
+                                        Rectangle {
+                                            height: 36
+                                            width: presetRow.width + (modelData.isBuiltIn ? 0 : deleteBtn.width + 4)
+                                            color: modelData.primaryColor
+                                            radius: Theme.buttonRadius
+                                            border.color: Settings.activeThemeName === modelData.name ? "white" : "transparent"
+                                            border.width: 2
+
+                                            Row {
+                                                id: presetRow
+                                                anchors.left: parent.left
+                                                anchors.verticalCenter: parent.verticalCenter
+                                                leftPadding: 12
+                                                rightPadding: modelData.isBuiltIn ? 12 : 4
+
+                                                Text {
+                                                    text: modelData.name
+                                                    color: "white"
+                                                    font: Theme.labelFont
+                                                    anchors.verticalCenter: parent.verticalCenter
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        anchors.margins: -8
+                                                        onClicked: Settings.applyPresetTheme(modelData.name)
+                                                    }
+                                                }
+                                            }
+
+                                            // Delete button for user themes
+                                            Rectangle {
+                                                id: deleteBtn
+                                                visible: !modelData.isBuiltIn
+                                                width: 24
+                                                height: 24
+                                                radius: 12
+                                                color: deleteArea.pressed ? Qt.darker(parent.color, 1.3) : Qt.darker(parent.color, 1.15)
+                                                anchors.right: parent.right
+                                                anchors.rightMargin: 6
+                                                anchors.verticalCenter: parent.verticalCenter
+
+                                                Text {
+                                                    text: "✕"
+                                                    color: "white"
+                                                    font.pixelSize: 12
+                                                    font.bold: true
+                                                    anchors.centerIn: parent
+                                                }
+
+                                                MouseArea {
+                                                    id: deleteArea
+                                                    anchors.fill: parent
+                                                    onClicked: {
+                                                        Settings.deleteUserTheme(modelData.name)
+                                                        presetRepeater.model = Settings.getPresetThemes()
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Save current theme button
+                                    Rectangle {
+                                        height: 36
+                                        width: saveText.width + 24
+                                        color: Theme.surfaceColor
+                                        radius: Theme.buttonRadius
+                                        border.color: Theme.borderColor
+                                        border.width: 1
+
+                                        Text {
+                                            id: saveText
+                                            text: "+ Save"
+                                            color: Theme.textColor
+                                            font: Theme.labelFont
+                                            anchors.centerIn: parent
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onClicked: saveThemeDialog.open()
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Random theme button
+                            Button {
+                                Layout.fillWidth: true
+                                text: "Random Theme"
+                                onClicked: {
+                                    var randomHue = Math.random() * 360
+                                    var randomSat = 65 + Math.random() * 20  // 65-85%
+                                    var randomLight = 50 + Math.random() * 10  // 50-60%
+                                    var palette = Settings.generatePalette(randomHue, randomSat, randomLight)
+                                    Settings.customThemeColors = palette
+                                    Settings.setActiveThemeName("Custom")
+                                }
+                                background: Rectangle {
+                                    gradient: Gradient {
+                                        orientation: Gradient.Horizontal
+                                        GradientStop { position: 0.0; color: "#ff6b6b" }
+                                        GradientStop { position: 0.25; color: "#ffd93d" }
+                                        GradientStop { position: 0.5; color: "#6bcb77" }
+                                        GradientStop { position: 0.75; color: "#4d96ff" }
+                                        GradientStop { position: 1.0; color: "#9b59b6" }
+                                    }
+                                    radius: Theme.buttonRadius
+                                    opacity: parent.pressed ? 0.8 : 1.0
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: "white"
+                                    font.pixelSize: Theme.bodyFont.pixelSize
+                                    font.bold: true
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
         // ============ RESOLUTION TAB (Windows only) ============
+        // NOTE: Keep conditionally-visible tabs at the END of StackLayout
+        // so they don't create empty slots when hidden on other platforms
         Item {
             id: resolutionTab
             visible: Qt.platform.os === "windows"
@@ -2211,261 +2532,6 @@ Page {
                                             Window.window.height = modelData.height
                                         }
                                     }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // ============ THEMES TAB ============
-        Item {
-            id: themesTab
-
-            // Currently selected color for editing
-            property string selectedColorName: "primaryColor"
-            property color selectedColorValue: Theme.primaryColor
-
-            // Color definitions with display names and categories
-            property var colorDefinitions: [
-                { category: "Core UI", colors: [
-                    { name: "backgroundColor", display: "Background" },
-                    { name: "surfaceColor", display: "Surface" },
-                    { name: "primaryColor", display: "Primary" },
-                    { name: "secondaryColor", display: "Secondary" },
-                    { name: "textColor", display: "Text" },
-                    { name: "textSecondaryColor", display: "Text Secondary" },
-                    { name: "accentColor", display: "Accent" },
-                    { name: "borderColor", display: "Border" }
-                ]},
-                { category: "Status", colors: [
-                    { name: "successColor", display: "Success" },
-                    { name: "warningColor", display: "Warning" },
-                    { name: "errorColor", display: "Error" }
-                ]},
-                { category: "Chart", colors: [
-                    { name: "pressureColor", display: "Pressure" },
-                    { name: "pressureGoalColor", display: "Pressure Goal" },
-                    { name: "flowColor", display: "Flow" },
-                    { name: "flowGoalColor", display: "Flow Goal" },
-                    { name: "temperatureColor", display: "Temperature" },
-                    { name: "temperatureGoalColor", display: "Temp Goal" },
-                    { name: "weightColor", display: "Weight" }
-                ]}
-            ]
-
-            function getColorValue(colorName) {
-                return Theme[colorName] || "#ffffff"
-            }
-
-            function selectColor(colorName) {
-                selectedColorName = colorName
-                selectedColorValue = getColorValue(colorName)
-                colorEditor.setColor(selectedColorValue)
-            }
-
-            function applyColorChange(newColor) {
-                Settings.setThemeColor(selectedColorName, newColor.toString())
-                selectedColorValue = newColor
-            }
-
-            RowLayout {
-                anchors.fill: parent
-                spacing: Theme.spacingMedium
-
-                // Left panel - Color list
-                Rectangle {
-                    Layout.preferredWidth: parent.width * 0.4
-                    Layout.fillHeight: true
-                    color: Theme.surfaceColor
-                    radius: Theme.cardRadius
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: Theme.spacingMedium
-                        spacing: Theme.spacingSmall
-
-                        Text {
-                            text: "Theme: " + Settings.activeThemeName
-                            color: Theme.textColor
-                            font: Theme.subtitleFont
-                        }
-
-                        ScrollView {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            clip: true
-
-                            ColumnLayout {
-                                width: parent.width
-                                spacing: Theme.spacingSmall
-
-                                Repeater {
-                                    model: themesTab.colorDefinitions
-
-                                    ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 4
-
-                                        // Category header
-                                        Text {
-                                            text: modelData.category
-                                            color: Theme.textSecondaryColor
-                                            font: Theme.labelFont
-                                            topPadding: index > 0 ? Theme.spacingSmall : 0
-                                        }
-
-                                        // Color swatches in this category
-                                        Repeater {
-                                            id: colorRepeater
-                                            property var colorList: modelData.colors
-                                            model: colorList.length
-
-                                            ColorSwatch {
-                                                property var colorData: colorRepeater.colorList[index]
-                                                Layout.fillWidth: true
-                                                colorName: colorData.name
-                                                displayName: colorData.display
-                                                colorValue: themesTab.getColorValue(colorData.name)
-                                                selected: themesTab.selectedColorName === colorData.name
-                                                onClicked: themesTab.selectColor(colorData.name)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Bottom buttons
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: Theme.spacingSmall
-
-                            Button {
-                                text: "Reset"
-                                onClicked: Settings.resetThemeToDefault()
-                                background: Rectangle {
-                                    color: Theme.errorColor
-                                    radius: Theme.buttonRadius
-                                    opacity: parent.pressed ? 0.8 : 1.0
-                                }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                            }
-
-                            Item { Layout.fillWidth: true }
-                        }
-                    }
-                }
-
-                // Right panel - Color editor
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    color: Theme.surfaceColor
-                    radius: Theme.cardRadius
-
-                    ScrollView {
-                        anchors.fill: parent
-                        anchors.margins: Theme.spacingMedium
-                        clip: true
-                        contentWidth: availableWidth
-
-                        ColumnLayout {
-                            width: parent.width
-                            spacing: Theme.spacingSmall
-
-                            Text {
-                                text: "Edit: " + themesTab.selectedColorName
-                                color: Theme.textColor
-                                font: Theme.subtitleFont
-                            }
-
-                            ColorEditor {
-                                id: colorEditor
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 140
-
-                                Component.onCompleted: setColor(themesTab.selectedColorValue)
-
-                                onColorChanged: {
-                                    themesTab.applyColorChange(colorEditor.color)
-                                }
-                            }
-
-                            // Preset themes in horizontal scroll
-                            ScrollView {
-                                Layout.fillWidth: true
-                                Layout.preferredHeight: 44
-                                ScrollBar.horizontal.policy: ScrollBar.AsNeeded
-                                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
-                                clip: true
-
-                                Row {
-                                    spacing: Theme.spacingSmall
-
-                                    Repeater {
-                                        model: Settings.getPresetThemes()
-
-                                        Button {
-                                            height: 36
-                                            text: modelData.name
-                                            onClicked: Settings.applyPresetTheme(modelData.name)
-                                            background: Rectangle {
-                                                color: modelData.primaryColor
-                                                radius: Theme.buttonRadius
-                                                opacity: parent.pressed ? 0.8 : 1.0
-                                                border.color: Settings.activeThemeName === modelData.name ? "white" : "transparent"
-                                                border.width: 2
-                                            }
-                                            contentItem: Text {
-                                                text: parent.text
-                                                color: "white"
-                                                horizontalAlignment: Text.AlignHCenter
-                                                verticalAlignment: Text.AlignVCenter
-                                                font: Theme.labelFont
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Random theme button
-                            Button {
-                                Layout.fillWidth: true
-                                text: "Random Theme"
-                                onClicked: {
-                                    var randomHue = Math.random() * 360
-                                    var randomSat = 65 + Math.random() * 20  // 65-85%
-                                    var randomLight = 50 + Math.random() * 10  // 50-60%
-                                    var palette = Settings.generatePalette(randomHue, randomSat, randomLight)
-                                    Settings.customThemeColors = palette
-                                    Settings.setActiveThemeName("Custom")
-                                }
-                                background: Rectangle {
-                                    gradient: Gradient {
-                                        orientation: Gradient.Horizontal
-                                        GradientStop { position: 0.0; color: "#ff6b6b" }
-                                        GradientStop { position: 0.25; color: "#ffd93d" }
-                                        GradientStop { position: 0.5; color: "#6bcb77" }
-                                        GradientStop { position: 0.75; color: "#4d96ff" }
-                                        GradientStop { position: 1.0; color: "#9b59b6" }
-                                    }
-                                    radius: Theme.buttonRadius
-                                    opacity: parent.pressed ? 0.8 : 1.0
-                                }
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: "white"
-                                    font.pixelSize: Theme.bodyFont.pixelSize
-                                    font.bold: true
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
                                 }
                             }
                         }
@@ -3049,6 +3115,135 @@ Page {
                                 MainController.startVerificationDispense(flowCalibrationDialog.verificationTarget)
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    // Save Theme Dialog
+    Dialog {
+        id: saveThemeDialog
+        modal: true
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2 - keyboardOffset
+        width: 300
+        padding: 20
+
+        property string themeName: ""
+        property real keyboardOffset: 0
+
+        Behavior on y {
+            NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
+        }
+
+        // Shift dialog up when keyboard appears
+        Connections {
+            target: Qt.inputMethod
+            function onVisibleChanged() {
+                if (Qt.inputMethod.visible && saveThemeDialog.visible) {
+                    // Move dialog to upper third of screen
+                    saveThemeDialog.keyboardOffset = parent.height * 0.25
+                } else {
+                    saveThemeDialog.keyboardOffset = 0
+                }
+            }
+        }
+
+        background: Rectangle {
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+            border.color: Theme.borderColor
+            border.width: 1
+        }
+
+        onOpened: {
+            themeName = ""
+            themeNameInput.text = ""
+            themeNameInput.forceActiveFocus()
+        }
+
+        onClosed: {
+            keyboardOffset = 0
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: Theme.spacingMedium
+
+            Text {
+                text: "Save Theme"
+                color: Theme.textColor
+                font: Theme.subtitleFont
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            TextField {
+                id: themeNameInput
+                Layout.fillWidth: true
+                placeholderText: "Enter theme name"
+                color: Theme.textColor
+                placeholderTextColor: Theme.textSecondaryColor
+                background: Rectangle {
+                    color: Theme.backgroundColor
+                    radius: Theme.buttonRadius
+                    border.color: themeNameInput.activeFocus ? Theme.primaryColor : Theme.borderColor
+                    border.width: 1
+                }
+                onTextChanged: saveThemeDialog.themeName = text
+                onAccepted: {
+                    if (saveThemeDialog.themeName.trim().length > 0) {
+                        Settings.saveCurrentTheme(saveThemeDialog.themeName.trim())
+                        presetRepeater.model = Settings.getPresetThemes()
+                        saveThemeDialog.close()
+                    }
+                }
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: Theme.spacingSmall
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Cancel"
+                    onClicked: saveThemeDialog.close()
+                    background: Rectangle {
+                        color: Theme.surfaceColor
+                        radius: Theme.buttonRadius
+                        border.color: Theme.borderColor
+                        border.width: 1
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: Theme.textColor
+                        font: Theme.labelFont
+                        horizontalAlignment: Text.AlignHCenter
+                    }
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    text: "Save"
+                    enabled: saveThemeDialog.themeName.trim().length > 0
+                    onClicked: {
+                        var name = saveThemeDialog.themeName.trim()
+                        if (name.length > 0 && name !== "Default") {
+                            Settings.saveCurrentTheme(name)
+                            presetRepeater.model = Settings.getPresetThemes()
+                            saveThemeDialog.close()
+                        }
+                    }
+                    background: Rectangle {
+                        color: parent.enabled ? Theme.primaryColor : Theme.surfaceColor
+                        radius: Theme.buttonRadius
+                        opacity: parent.pressed ? 0.8 : 1.0
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: parent.enabled ? "white" : Theme.textSecondaryColor
+                        font: Theme.labelFont
+                        horizontalAlignment: Text.AlignHCenter
                     }
                 }
             }

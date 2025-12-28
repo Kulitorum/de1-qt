@@ -35,6 +35,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     Charts
     Svg
     Multimedia
+    TextToSpeech
 )
 
 # Silence Qt policy warnings
@@ -75,6 +76,7 @@ set(SOURCES
     src/core/batterymanager.cpp
     src/core/batterydrainer.cpp
     src/core/logger.cpp
+    src/core/accessibilitymanager.cpp
     src/ble/protocol/binarycodec.cpp
     src/ble/blemanager.cpp
     src/ble/de1device.cpp
@@ -108,6 +110,7 @@ set(HEADERS
     src/core/batterymanager.h
     src/core/batterydrainer.h
     src/core/logger.h
+    src/core/accessibilitymanager.h
     src/ble/protocol/binarycodec.h
     src/ble/protocol/de1characteristics.h
     src/ble/blemanager.h
@@ -159,6 +162,7 @@ target_link_libraries(Decenza_DE1 PRIVATE
     Qt6::Charts
     Qt6::Svg
     Qt6::Multimedia
+    Qt6::TextToSpeech
 )
 
 # Include directories
@@ -193,6 +197,12 @@ set(QML_FILES
     qml/components/StatusBar.qml
     qml/components/ProfileGraph.qml
     qml/components/BottomBar.qml
+    qml/components/AccessibleMouseArea.qml
+    qml/components/AccessibleButton.qml
+    qml/components/FocusIndicator.qml
+    qml/components/ColorWheel.qml
+    qml/components/ColorEditor.qml
+    qml/components/ColorSwatch.qml
 )
 
 qt_add_qml_module(Decenza_DE1

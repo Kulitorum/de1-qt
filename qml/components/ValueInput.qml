@@ -22,6 +22,44 @@ Item {
     // Signals - emits the new value for parent to apply
     signal valueModified(real newValue)
 
+    // Enable keyboard focus
+    activeFocusOnTab: true
+    focus: true
+
+    // Accessibility - expose as a slider
+    Accessible.role: Accessible.Slider
+    Accessible.name: root.displayText || (root.value.toFixed(root.decimals) + root.suffix)
+    Accessible.description: "Use plus and minus buttons to adjust. Tap center for full-screen editor."
+    Accessible.focusable: true
+
+    // Keyboard handling
+    Keys.onUpPressed: adjustValue(1)
+    Keys.onDownPressed: adjustValue(-1)
+    Keys.onLeftPressed: adjustValue(-1)
+    Keys.onRightPressed: adjustValue(1)
+
+    Keys.onReturnPressed: scrubberPopup.open()
+    Keys.onEnterPressed: scrubberPopup.open()
+    Keys.onSpacePressed: scrubberPopup.open()
+
+    // Page up/down for larger steps
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_PageUp) {
+            adjustValue(10)
+            event.accepted = true
+        } else if (event.key === Qt.Key_PageDown) {
+            adjustValue(-10)
+            event.accepted = true
+        }
+    }
+
+    // Announce value when focused (for accessibility)
+    onActiveFocusChanged: {
+        if (activeFocus && typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+            AccessibilityManager.announce(root.displayText || (root.value.toFixed(root.decimals) + " " + root.suffix))
+        }
+    }
+
     // Auto-size based on content
     // Buttons: 32 each, margins: 4 each side, spacing: 2 each side = 76 total fixed
     implicitWidth: Theme.scaled(76) + textMetrics.width + Theme.scaled(24)
@@ -33,6 +71,18 @@ Item {
         font.pixelSize: Theme.scaled(24)
         font.bold: true
         text: root.displayText || (root.value.toFixed(root.decimals) + root.suffix)
+    }
+
+    // Focus indicator around the entire control
+    Rectangle {
+        anchors.fill: valueDisplay
+        anchors.margins: -Theme.focusMargin
+        visible: root.activeFocus
+        color: "transparent"
+        border.width: Theme.focusBorderWidth
+        border.color: Theme.focusColor
+        radius: valueDisplay.radius + Theme.focusMargin
+        z: -1
     }
 
     // Compact value display
@@ -55,6 +105,10 @@ Item {
                 Layout.fillHeight: true
                 radius: Theme.scaled(8)
                 color: minusArea.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : "transparent"
+
+                Accessible.role: Accessible.Button
+                Accessible.name: "Decrease"
+                Accessible.focusable: true
 
                 Text {
                     anchors.centerIn: parent
@@ -258,6 +312,10 @@ Item {
                 radius: Theme.scaled(8)
                 color: plusArea.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : "transparent"
 
+                Accessible.role: Accessible.Button
+                Accessible.name: "Increase"
+                Accessible.focusable: true
+
                 Text {
                     anchors.centerIn: parent
                     text: "+"
@@ -296,6 +354,29 @@ Item {
         dim: false
         closePolicy: Popup.CloseOnPressOutside
 
+        Accessible.role: Accessible.Dialog
+        Accessible.name: "Value editor"
+
+        onOpened: {
+            popupValueContainer.forceActiveFocus()
+            if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                AccessibilityManager.announce("Value editor. Current value: " + root.value.toFixed(root.decimals) + " " + root.suffix.trim(), true)
+            }
+        }
+
+        // Escape to close
+        Keys.onEscapePressed: scrubberPopup.close()
+
+        // Arrow keys for adjustment
+        Keys.onUpPressed: adjustValue(1)
+        Keys.onDownPressed: adjustValue(-1)
+        Keys.onLeftPressed: adjustValue(-1)
+        Keys.onRightPressed: adjustValue(1)
+
+        // Enter to confirm and close
+        Keys.onReturnPressed: scrubberPopup.close()
+        Keys.onEnterPressed: scrubberPopup.close()
+
         background: Rectangle {
             color: "#80000000"
         }
@@ -332,6 +413,10 @@ Item {
                         Layout.fillHeight: true
                         radius: Theme.scaled(12)
                         color: popupMinusArea.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : "transparent"
+
+                        Accessible.role: Accessible.Button
+                        Accessible.name: "Decrease"
+                        Accessible.focusable: true
 
                         Text {
                             anchors.centerIn: parent
@@ -512,6 +597,10 @@ Item {
                         Layout.fillHeight: true
                         radius: Theme.scaled(12)
                         color: popupPlusArea.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : "transparent"
+
+                        Accessible.role: Accessible.Button
+                        Accessible.name: "Increase"
+                        Accessible.focusable: true
 
                         Text {
                             anchors.centerIn: parent

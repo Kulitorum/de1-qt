@@ -67,9 +67,11 @@ Page {
                                 elide: Text.ElideRight
                             }
 
-                            // Add to favorites button (only if not already a favorite and under limit)
+                            // Add to favorites button (show when not already a favorite)
                             RoundButton {
-                                visible: !Settings.isFavoriteProfile(modelData.name) && Settings.favoriteProfiles.length < 5
+                                id: addFavoriteButton
+                                visible: !Settings.isFavoriteProfile(modelData.name)
+                                enabled: Settings.favoriteProfiles.length < 5
                                 Layout.preferredWidth: Theme.scaled(40)
                                 Layout.preferredHeight: Theme.scaled(40)
                                 Layout.alignment: Qt.AlignVCenter
@@ -77,37 +79,91 @@ Page {
                                 text: "+"
                                 font.pixelSize: Theme.scaled(24)
                                 font.bold: true
-                                onClicked: {
+
+                                property bool favoritesFull: Settings.favoriteProfiles.length >= 5
+
+                                function doAddFavorite() {
+                                    if (!modelData) return
+                                    if (favoritesFull) {
+                                        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                                            AccessibilityManager.announce("Favorites full. Remove one to add more.")
+                                        }
+                                        return
+                                    }
                                     Settings.addFavoriteProfile(modelData.title, modelData.name)
+                                    if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                                        AccessibilityManager.announce(root.cleanForSpeech(modelData.title || modelData.name) + " added to favorites")
+                                    }
                                 }
+
+                                onClicked: doAddFavorite()
+
                                 contentItem: Text {
                                     text: parent.text
                                     font: parent.font
-                                    color: Theme.primaryColor
+                                    color: addFavoriteButton.favoritesFull ? Theme.textSecondaryColor : Theme.primaryColor
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                 }
                                 background: Rectangle {
                                     radius: width / 2
                                     color: "transparent"
-                                    border.color: Theme.primaryColor
+                                    border.color: addFavoriteButton.favoritesFull ? Theme.textSecondaryColor : Theme.primaryColor
                                     border.width: 1
+                                }
+
+                                AccessibleMouseArea {
+                                    anchors.fill: parent
+                                    accessibleName: {
+                                        if (!modelData) return ""
+                                        if (addFavoriteButton.favoritesFull) {
+                                            return "Favorites full, cannot add " + root.cleanForSpeech(modelData.title || modelData.name)
+                                        }
+                                        return "Add " + root.cleanForSpeech(modelData.title || modelData.name) + " to favorites"
+                                    }
+                                    accessibleItem: addFavoriteButton
+                                    onAccessibleClicked: addFavoriteButton.doAddFavorite()
                                 }
                             }
 
                             // Already favorite indicator
-                            Text {
+                            Item {
                                 visible: Settings.isFavoriteProfile(modelData.name)
-                                text: "\u2605"  // Star
-                                color: Theme.primaryColor
-                                font.pixelSize: Theme.scaled(20)
+                                Layout.preferredWidth: Theme.scaled(40)
+                                Layout.preferredHeight: Theme.scaled(40)
+                                Layout.alignment: Qt.AlignVCenter
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "\u2605"  // Star
+                                    color: Theme.primaryColor
+                                    font.pixelSize: Theme.scaled(20)
+                                }
+
+                                AccessibleMouseArea {
+                                    anchors.fill: parent
+                                    accessibleName: modelData ? (root.cleanForSpeech(modelData.title || modelData.name) + " is already a favorite") : ""
+                                    accessibleItem: parent
+                                    onAccessibleClicked: {
+                                        // Just announce, no action needed
+                                        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                                            AccessibilityManager.announce("Already in favorites")
+                                        }
+                                    }
+                                }
                             }
                         }
 
-                        MouseArea {
+                        AccessibleMouseArea {
                             anchors.fill: parent
                             z: -1
-                            onClicked: {
+                            accessibleName: modelData ? (root.cleanForSpeech(modelData.name) + " profile") : ""
+                            accessibleItem: parent
+                            onAccessibleClicked: {
+                                if (!modelData) return
+                                if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                                    AccessibilityManager.announce(root.cleanForSpeech(modelData.name) + " loaded")
+                                }
                                 MainController.loadProfile(modelData.name)
                             }
                         }
@@ -234,6 +290,7 @@ Page {
 
                                 // Edit button
                                 RoundButton {
+                                    id: editFavoriteButton
                                     Layout.preferredWidth: Theme.scaled(36)
                                     Layout.preferredHeight: Theme.scaled(36)
                                     flat: true
@@ -242,21 +299,44 @@ Page {
                                     icon.height: Theme.scaled(18)
                                     icon.color: index === Settings.selectedFavoriteProfile ?
                                                "white" : Theme.textColor
-                                    onClicked: {
+
+                                    function doEdit() {
+                                        if (!modelData) return
                                         Settings.selectedFavoriteProfile = index
                                         MainController.loadProfile(modelData.filename)
                                         root.goToProfileEditor()
+                                    }
+
+                                    onClicked: doEdit()
+
+                                    AccessibleMouseArea {
+                                        anchors.fill: parent
+                                        accessibleName: modelData ? ("Edit " + root.cleanForSpeech(modelData.name)) : ""
+                                        accessibleItem: editFavoriteButton
+                                        onAccessibleClicked: editFavoriteButton.doEdit()
                                     }
                                 }
 
                                 // Remove button
                                 RoundButton {
+                                    id: removeFavoriteButton
                                     Layout.preferredWidth: Theme.scaled(36)
                                     Layout.preferredHeight: Theme.scaled(36)
                                     flat: true
                                     text: "\u00D7"  // × multiplication sign
                                     font.pixelSize: Theme.scaled(20)
-                                    onClicked: Settings.removeFavoriteProfile(index)
+
+                                    function doRemove() {
+                                        if (!modelData) return
+                                        var name = root.cleanForSpeech(modelData.name)
+                                        Settings.removeFavoriteProfile(index)
+                                        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                                            AccessibilityManager.announce(name + " removed from favorites")
+                                        }
+                                    }
+
+                                    onClicked: doRemove()
+
                                     contentItem: Text {
                                         text: parent.text
                                         font: parent.font
@@ -268,13 +348,23 @@ Page {
                                         radius: width / 2
                                         color: "transparent"
                                     }
+
+                                    AccessibleMouseArea {
+                                        anchors.fill: parent
+                                        accessibleName: modelData ? ("Remove " + root.cleanForSpeech(modelData.name) + " from favorites") : ""
+                                        accessibleItem: removeFavoriteButton
+                                        onAccessibleClicked: removeFavoriteButton.doRemove()
+                                    }
                                 }
                             }
 
-                            MouseArea {
+                            AccessibleMouseArea {
                                 anchors.fill: parent
                                 z: -1
-                                onClicked: {
+                                accessibleName: modelData ? (root.cleanForSpeech(modelData.name) + (index === Settings.selectedFavoriteProfile ? ", selected favorite" : ", favorite")) : ""
+                                accessibleItem: favoritePill
+                                onAccessibleClicked: {
+                                    if (!modelData) return
                                     // Always load the profile when clicking
                                     MainController.loadProfile(modelData.filename)
                                     if (index === Settings.selectedFavoriteProfile) {
@@ -282,6 +372,9 @@ Page {
                                         root.goToProfileEditor()
                                     } else {
                                         // Select it (first click)
+                                        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                                            AccessibilityManager.announce(root.cleanForSpeech(modelData.name) + " selected")
+                                        }
                                         Settings.selectedFavoriteProfile = index
                                     }
                                 }

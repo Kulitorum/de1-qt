@@ -235,6 +235,7 @@ Page {
 
                         // Add button
                         Rectangle {
+                            id: addVesselButton
                             width: 36
                             height: 36
                             radius: 18
@@ -249,9 +250,11 @@ Page {
                                 font.pixelSize: 20
                             }
 
-                            MouseArea {
+                            AccessibleMouseArea {
                                 anchors.fill: parent
-                                onClicked: addVesselDialog.open()
+                                accessibleName: "Add new hot water preset"
+                                accessibleItem: addVesselButton
+                                onAccessibleClicked: addVesselDialog.open()
                             }
                         }
                     }
@@ -444,8 +447,9 @@ Page {
             RowLayout {
                 spacing: 10
 
-                Button {
+                AccessibleButton {
                     text: "Delete"
+                    accessibleName: "Delete preset"
                     onClicked: {
                         Settings.removeWaterVesselPreset(editingVesselIndex)
                         editVesselPopup.close()
@@ -467,8 +471,9 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                AccessibleButton {
                     text: "Cancel"
+                    accessibleName: "Cancel"
                     onClicked: editVesselPopup.close()
                     background: Rectangle {
                         implicitWidth: 70
@@ -485,8 +490,9 @@ Page {
                     }
                 }
 
-                Button {
+                AccessibleButton {
                     text: "Save"
+                    accessibleName: "Save preset"
                     onClicked: {
                         var preset = Settings.getWaterVesselPreset(editingVesselIndex)
                         Settings.updateWaterVesselPreset(editingVesselIndex, editVesselNameInput.text, preset.volume)
@@ -585,8 +591,9 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                AccessibleButton {
                     text: "Cancel"
+                    accessibleName: "Cancel"
                     onClicked: addVesselDialog.close()
                     background: Rectangle {
                         implicitWidth: 70
@@ -603,8 +610,9 @@ Page {
                     }
                 }
 
-                Button {
+                AccessibleButton {
                     text: "Add"
+                    accessibleName: "Add preset"
                     onClicked: {
                         if (newVesselNameInput.text.length > 0) {
                             Settings.addWaterVesselPreset(newVesselNameInput.text, 200)

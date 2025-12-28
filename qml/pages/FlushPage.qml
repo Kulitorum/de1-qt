@@ -242,6 +242,7 @@ Page {
 
                         // Add button
                         Rectangle {
+                            id: addPresetButton
                             width: 36
                             height: 36
                             radius: 18
@@ -256,9 +257,11 @@ Page {
                                 font.pixelSize: 20
                             }
 
-                            MouseArea {
+                            AccessibleMouseArea {
                                 anchors.fill: parent
-                                onClicked: addPresetDialog.open()
+                                accessibleName: "Add new flush preset"
+                                accessibleItem: addPresetButton
+                                onAccessibleClicked: addPresetDialog.open()
                             }
                         }
                     }
@@ -452,8 +455,9 @@ Page {
             RowLayout {
                 spacing: 10
 
-                Button {
+                AccessibleButton {
                     text: "Delete"
+                    accessibleName: "Delete preset"
                     onClicked: {
                         Settings.removeFlushPreset(editingPresetIndex)
                         editPresetPopup.close()
@@ -475,8 +479,9 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                AccessibleButton {
                     text: "Cancel"
+                    accessibleName: "Cancel"
                     onClicked: editPresetPopup.close()
                     background: Rectangle {
                         implicitWidth: 70
@@ -493,8 +498,9 @@ Page {
                     }
                 }
 
-                Button {
+                AccessibleButton {
                     text: "Save"
+                    accessibleName: "Save preset"
                     onClicked: {
                         var preset = Settings.getFlushPreset(editingPresetIndex)
                         Settings.updateFlushPreset(editingPresetIndex, editPresetNameInput.text, preset.flow, preset.seconds)
@@ -593,8 +599,9 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                AccessibleButton {
                     text: "Cancel"
+                    accessibleName: "Cancel"
                     onClicked: addPresetDialog.close()
                     background: Rectangle {
                         implicitWidth: 70
@@ -611,8 +618,9 @@ Page {
                     }
                 }
 
-                Button {
+                AccessibleButton {
                     text: "Add"
+                    accessibleName: "Add preset"
                     onClicked: {
                         if (newPresetNameInput.text.length > 0) {
                             Settings.addFlushPreset(newPresetNameInput.text, 6.0, 5.0)

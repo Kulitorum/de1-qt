@@ -5,20 +5,74 @@ import DecenzaDE1
 import "../components"
 
 Page {
+    id: idlePage
     objectName: "idlePage"
     background: Rectangle { color: Theme.backgroundColor }
 
-    Component.onCompleted: root.currentPageTitle = "Idle"
-    StackView.onActivated: root.currentPageTitle = "Idle"
+    Component.onCompleted: {
+        root.currentPageTitle = "Idle"
+        espressoButton.forceActiveFocus()
+    }
+    StackView.onActivated: {
+        root.currentPageTitle = "Idle"
+        espressoButton.forceActiveFocus()
+    }
 
     // Track which function's presets are showing
-    property string activePresetFunction: ""  // "", "steam", "espresso" (future)
+    property string activePresetFunction: ""  // "", "steam", "espresso", "hotwater", "flush"
 
-    // Click away to hide presets
+    // Announce presets when they appear (accessibility)
+    onActivePresetFunctionChanged: {
+        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled && activePresetFunction !== "") {
+            var presets = []
+            var selectedName = ""
+            switch (activePresetFunction) {
+                case "espresso":
+                    presets = Settings.favoriteProfiles
+                    if (Settings.selectedFavoriteProfile >= 0 && Settings.selectedFavoriteProfile < presets.length) {
+                        selectedName = presets[Settings.selectedFavoriteProfile].name
+                    }
+                    break
+                case "steam":
+                    presets = Settings.steamPitcherPresets
+                    if (Settings.selectedSteamPitcher >= 0 && Settings.selectedSteamPitcher < presets.length) {
+                        selectedName = presets[Settings.selectedSteamPitcher].name
+                    }
+                    break
+                case "hotwater":
+                    presets = Settings.waterVesselPresets
+                    if (Settings.selectedWaterVessel >= 0 && Settings.selectedWaterVessel < presets.length) {
+                        selectedName = presets[Settings.selectedWaterVessel].name
+                    }
+                    break
+                case "flush":
+                    presets = Settings.flushPresets
+                    if (Settings.selectedFlushPreset >= 0 && Settings.selectedFlushPreset < presets.length) {
+                        selectedName = presets[Settings.selectedFlushPreset].name
+                    }
+                    break
+            }
+
+            if (presets.length > 0) {
+                var names = []
+                for (var i = 0; i < presets.length; i++) {
+                    names.push(presets[i].name)
+                }
+                var announcement = presets.length + " presets: " + names.join(", ")
+                if (selectedName !== "") {
+                    announcement += ". " + selectedName + " is selected"
+                }
+                AccessibilityManager.announce(announcement)
+            }
+        }
+    }
+
+    // Click away to hide presets (disabled in accessibility mode to prevent mis-clicks)
     MouseArea {
         anchors.fill: parent
         z: -1
-        enabled: activePresetFunction !== ""
+        enabled: activePresetFunction !== "" &&
+                 !(typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled)
         onClicked: activePresetFunction = ""
     }
 
@@ -33,6 +87,7 @@ Page {
             spacing: Theme.scaled(30)
 
             ActionButton {
+                id: espressoButton
                 text: "Espresso"
                 iconSource: "qrc:/icons/espresso.svg"
                 enabled: DE1Device.connected
@@ -41,9 +96,15 @@ Page {
                 }
                 onPressAndHold: root.goToProfileSelector()
                 onDoubleClicked: root.goToProfileSelector()
+
+                KeyNavigation.right: steamButton
+                KeyNavigation.down: activePresetFunction === "espresso" ? espressoPresetRow : sleepButton
+
+                Accessible.description: "Start espresso. Double-tap to select profile. Long-press for settings."
             }
 
             ActionButton {
+                id: steamButton
                 text: "Steam"
                 iconSource: "qrc:/icons/steam.svg"
                 enabled: DE1Device.connected
@@ -52,9 +113,16 @@ Page {
                 }
                 onPressAndHold: root.goToSteam()
                 onDoubleClicked: root.goToSteam()
+
+                KeyNavigation.left: espressoButton
+                KeyNavigation.right: hotWaterButton
+                KeyNavigation.down: activePresetFunction === "steam" ? steamPresetRow : sleepButton
+
+                Accessible.description: "Start steaming milk. Long-press to configure."
             }
 
             ActionButton {
+                id: hotWaterButton
                 text: "Hot Water"
                 iconSource: "qrc:/icons/water.svg"
                 enabled: DE1Device.connected
@@ -63,9 +131,16 @@ Page {
                 }
                 onPressAndHold: root.goToHotWater()
                 onDoubleClicked: root.goToHotWater()
+
+                KeyNavigation.left: steamButton
+                KeyNavigation.right: flushButton
+                KeyNavigation.down: activePresetFunction === "hotwater" ? hotWaterPresetRow : settingsButton
+
+                Accessible.description: "Dispense hot water. Long-press to configure."
             }
 
             ActionButton {
+                id: flushButton
                 text: "Flush"
                 iconSource: "qrc:/icons/flush.svg"
                 enabled: DE1Device.connected
@@ -74,6 +149,11 @@ Page {
                 }
                 onPressAndHold: root.goToFlush()
                 onDoubleClicked: root.goToFlush()
+
+                KeyNavigation.left: hotWaterButton
+                KeyNavigation.down: activePresetFunction === "flush" ? flushPresetRow : settingsButton
+
+                Accessible.description: "Flush the group head. Long-press to configure."
             }
         }
 
@@ -109,6 +189,9 @@ Page {
                 presets: Settings.steamPitcherPresets
                 selectedIndex: Settings.selectedSteamPitcher
 
+                KeyNavigation.up: steamButton
+                KeyNavigation.down: sleepButton
+
                 onPresetSelected: function(index) {
                     Settings.selectedSteamPitcher = index
                     var preset = Settings.getSteamPitcherPreset(index)
@@ -131,6 +214,9 @@ Page {
                 presets: Settings.favoriteProfiles
                 selectedIndex: Settings.selectedFavoriteProfile
 
+                KeyNavigation.up: espressoButton
+                KeyNavigation.down: sleepButton
+
                 onPresetSelected: function(index) {
                     Settings.selectedFavoriteProfile = index
                     var preset = Settings.getFavoriteProfile(index)
@@ -150,6 +236,9 @@ Page {
 
                 presets: Settings.waterVesselPresets
                 selectedIndex: Settings.selectedWaterVessel
+
+                KeyNavigation.up: hotWaterButton
+                KeyNavigation.down: settingsButton
 
                 onPresetSelected: function(index) {
                     Settings.selectedWaterVessel = index
@@ -175,6 +264,9 @@ Page {
 
                 presets: Settings.flushPresets
                 selectedIndex: Settings.selectedFlushPreset
+
+                KeyNavigation.up: flushButton
+                KeyNavigation.down: settingsButton
 
                 onPresetSelected: function(index) {
                     Settings.selectedFlushPreset = index
@@ -267,23 +359,38 @@ Page {
             spacing: Theme.spacingMedium
 
             // Sleep button - fills bar height
-            Button {
+            Item {
+                id: sleepButton
                 Layout.fillHeight: true
+                Layout.preferredWidth: sleepButtonBg.implicitWidth
                 Layout.topMargin: Theme.spacingSmall
                 Layout.bottomMargin: Theme.spacingSmall
-                enabled: DE1Device.connected
-                onClicked: {
+                activeFocusOnTab: true
+
+                property bool enabled: DE1Device.connected
+
+                Accessible.role: Accessible.Button
+                Accessible.name: "Sleep"
+                Accessible.description: "Put the machine to sleep"
+                Accessible.focusable: true
+
+                KeyNavigation.up: espressoButton
+                KeyNavigation.right: settingsButton
+
+                function doSleep() {
+                    if (!enabled) return
                     // Put scale to sleep and disconnect (if connected)
                     if (ScaleDevice && ScaleDevice.connected) {
                         ScaleDevice.sleep()
-                        // Wait 300ms for command to be sent before disconnecting
                         scaleDisconnectTimer.start()
                     }
-                    // Put DE1 to sleep
                     DE1Device.goToSleep()
-                    // Show screensaver
                     root.goToScreensaver()
                 }
+
+                Keys.onReturnPressed: doSleep()
+                Keys.onEnterPressed: doSleep()
+                Keys.onSpacePressed: doSleep()
 
                 Timer {
                     id: scaleDisconnectTimer
@@ -295,13 +402,29 @@ Page {
                         }
                     }
                 }
-                background: Rectangle {
+
+                Rectangle {
+                    id: sleepButtonBg
+                    anchors.fill: parent
                     implicitWidth: Theme.scaled(140)
-                    color: parent.down ? Qt.darker("#555555", 1.2) : "#555555"
+                    color: sleepMouseArea.isPressed ? Qt.darker("#555555", 1.2) : "#555555"
                     radius: Theme.cardRadius
-                    opacity: parent.enabled ? 1.0 : 0.5
+                    opacity: sleepButton.enabled ? 1.0 : 0.5
+
+                    // Focus indicator
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: -Theme.focusMargin
+                        visible: sleepButton.activeFocus
+                        color: "transparent"
+                        border.width: Theme.focusBorderWidth
+                        border.color: Theme.focusColor
+                        radius: parent.radius + Theme.focusMargin
+                    }
                 }
-                contentItem: RowLayout {
+
+                RowLayout {
+                    anchors.centerIn: parent
                     spacing: Theme.spacingSmall
                     Image {
                         source: "qrc:/icons/sleep.svg"
@@ -316,14 +439,37 @@ Page {
                         verticalAlignment: Text.AlignVCenter
                     }
                 }
+
+                AccessibleMouseArea {
+                    id: sleepMouseArea
+                    anchors.fill: parent
+                    enabled: sleepButton.enabled
+                    accessibleName: "Sleep. Put machine to sleep"
+                    accessibleItem: sleepButton
+                    onAccessibleClicked: sleepButton.doSleep()
+                }
             }
 
             Item { Layout.fillWidth: true }
 
             // Settings button - square, fills bar height
             Item {
+                id: settingsButton
                 Layout.preferredWidth: Theme.bottomBarHeight
                 Layout.preferredHeight: Theme.bottomBarHeight
+                activeFocusOnTab: true
+
+                Accessible.role: Accessible.Button
+                Accessible.name: "Settings"
+                Accessible.description: "Open application settings"
+                Accessible.focusable: true
+
+                KeyNavigation.up: flushButton
+                KeyNavigation.left: sleepButton
+
+                Keys.onReturnPressed: root.goToSettings()
+                Keys.onEnterPressed: root.goToSettings()
+                Keys.onSpacePressed: root.goToSettings()
 
                 Image {
                     anchors.centerIn: parent
@@ -332,9 +478,22 @@ Page {
                     sourceSize.height: Theme.scaled(32)
                 }
 
-                MouseArea {
+                // Focus indicator
+                Rectangle {
                     anchors.fill: parent
-                    onClicked: root.goToSettings()
+                    anchors.margins: -Theme.focusMargin
+                    visible: settingsButton.activeFocus
+                    color: "transparent"
+                    border.width: Theme.focusBorderWidth
+                    border.color: Theme.focusColor
+                    radius: 4
+                }
+
+                AccessibleMouseArea {
+                    anchors.fill: parent
+                    accessibleName: "Settings. Open application settings"
+                    accessibleItem: settingsButton
+                    onAccessibleClicked: root.goToSettings()
                 }
             }
         }

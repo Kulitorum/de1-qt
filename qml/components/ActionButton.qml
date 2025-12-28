@@ -14,6 +14,16 @@ Button {
     property bool _longPressTriggered: false
     property bool _isPressed: false
 
+    // Enable keyboard focus
+    focusPolicy: Qt.StrongFocus
+    activeFocusOnTab: true
+
+    // Accessibility
+    Accessible.role: Accessible.Button
+    Accessible.name: control.text
+    Accessible.description: "Double-tap to select profile. Long-press for settings."
+    Accessible.focusable: true
+
     implicitWidth: Theme.scaled(150)
     implicitHeight: Theme.scaled(120)
 
@@ -43,8 +53,19 @@ Button {
         color: {
             if (!control.enabled) return Theme.buttonDisabled
             if (control._isPressed) return Qt.darker(control.backgroundColor, 1.2)
-            if (control.hovered) return Qt.lighter(control.backgroundColor, 1.1)
+            if (control.hovered || control.activeFocus) return Qt.lighter(control.backgroundColor, 1.1)
             return control.backgroundColor
+        }
+
+        // Focus indicator
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: -Theme.focusMargin
+            visible: control.activeFocus
+            color: "transparent"
+            border.width: Theme.focusBorderWidth
+            border.color: Theme.focusColor
+            radius: parent.radius + Theme.focusMargin
         }
 
         Behavior on color {
@@ -52,58 +73,56 @@ Button {
         }
     }
 
-    // Custom interaction handling for long-press and double-click
-    MouseArea {
+    // Custom interaction handling using AccessibleMouseArea
+    AccessibleMouseArea {
         anchors.fill: parent
         enabled: control.enabled
 
-        property int clickCount: 0
+        accessibleName: control.text
+        accessibleItem: control
+        supportLongPress: true
+        supportDoubleClick: true
 
-        Timer {
-            id: longPressTimer
-            interval: 500
-            onTriggered: {
-                control._longPressTriggered = true
-                control.pressAndHold()
-            }
+        // Track pressed state for visual feedback
+        onIsPressedChanged: control._isPressed = isPressed
+
+        onAccessibleClicked: control.clicked()
+        onAccessibleDoubleClicked: control.doubleClicked()
+        onAccessibleLongPressed: {
+            control._longPressTriggered = true
+            control.pressAndHold()
         }
+    }
 
-        Timer {
-            id: doubleClickTimer
-            interval: 300
-            onTriggered: {
-                if (parent.clickCount === 1) {
-                    control.clicked()
-                }
-                parent.clickCount = 0
-            }
+    // Keyboard handling
+    Keys.onReturnPressed: {
+        control._longPressTriggered = false
+        control.clicked()
+    }
+
+    Keys.onEnterPressed: {
+        control._longPressTriggered = false
+        control.clicked()
+    }
+
+    Keys.onSpacePressed: {
+        control._longPressTriggered = false
+        control.clicked()
+    }
+
+    // Shift+Enter for long-press action
+    Keys.onPressed: function(event) {
+        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) &&
+            (event.modifiers & Qt.ShiftModifier)) {
+            control.pressAndHold()
+            event.accepted = true
         }
+    }
 
-        onPressed: {
-            control._longPressTriggered = false
-            control._isPressed = true
-            longPressTimer.start()
-        }
-
-        onReleased: {
-            longPressTimer.stop()
-            control._isPressed = false
-
-            if (!control._longPressTriggered) {
-                clickCount++
-                if (clickCount === 2) {
-                    doubleClickTimer.stop()
-                    clickCount = 0
-                    control.doubleClicked()
-                } else {
-                    doubleClickTimer.restart()
-                }
-            }
-        }
-
-        onCanceled: {
-            longPressTimer.stop()
-            control._isPressed = false
+    // Announce button name when focused (for accessibility)
+    onActiveFocusChanged: {
+        if (activeFocus && typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+            AccessibilityManager.announce(control.text)
         }
     }
 }

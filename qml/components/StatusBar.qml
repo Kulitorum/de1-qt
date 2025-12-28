@@ -36,6 +36,9 @@ Rectangle {
             text: DE1Device.temperature.toFixed(1) + "°C"
             color: Theme.temperatureColor
             font: Theme.bodyFont
+
+            Accessible.role: Accessible.StaticText
+            Accessible.name: "Temperature: " + DE1Device.temperature.toFixed(1) + " degrees Celsius"
         }
 
         // Separator
@@ -51,6 +54,9 @@ Rectangle {
             text: DE1Device.waterLevel.toFixed(0) + "%"
             color: DE1Device.waterLevel > 20 ? Theme.primaryColor : Theme.warningColor
             font: Theme.bodyFont
+
+            Accessible.role: Accessible.StaticText
+            Accessible.name: "Water level: " + DE1Device.waterLevel.toFixed(0) + " percent"
         }
 
         // Separator
@@ -68,6 +74,10 @@ Rectangle {
             radius: 4
             Layout.preferredHeight: Theme.touchTargetMin
             Layout.preferredWidth: scaleWarningRow.implicitWidth + Theme.spacingMedium
+
+            Accessible.role: Accessible.Button
+            Accessible.name: BLEManager.scaleConnectionFailed ? "Scale not found. Tap to scan." : "Scale connecting"
+            Accessible.focusable: true
 
             Row {
                 id: scaleWarningRow
@@ -104,6 +114,9 @@ Rectangle {
             spacing: Theme.spacingSmall
             visible: ScaleDevice && ScaleDevice.connected
 
+            Accessible.role: Accessible.StaticText
+            Accessible.name: "Scale weight: " + MachineState.scaleWeight.toFixed(1) + " grams"
+
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 width: Theme.scaled(8)
@@ -130,6 +143,9 @@ Rectangle {
         // Connection indicator
         Row {
             spacing: Theme.spacingSmall
+
+            Accessible.role: Accessible.Indicator
+            Accessible.name: DE1Device.connected ? "Machine connected" : "Machine disconnected"
 
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter

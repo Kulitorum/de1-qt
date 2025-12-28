@@ -15,6 +15,73 @@ Page {
     property string originalProfileName: ""
     property int stepVersion: 0  // Increment to force step editor refresh
 
+    // For accessibility: track previously announced frame to only speak differences
+    property var lastAnnouncedFrame: null
+
+    // Announce frame when selected
+    onSelectedStepIndexChanged: announceFrame()
+
+    function announceFrame() {
+        if (typeof AccessibilityManager === "undefined" || !AccessibilityManager.enabled) return
+        if (!profile || selectedStepIndex < 0 || selectedStepIndex >= profile.steps.length) return
+
+        var step = profile.steps[selectedStepIndex]
+        var prev = lastAnnouncedFrame
+        var parts = []
+
+        // Frame number and name
+        parts.push("Frame " + (selectedStepIndex + 1) + ", " + (step.name || "unnamed"))
+
+        // Only announce differences from previous frame (or all if no previous)
+        if (!prev) {
+            // First frame - announce everything
+            parts.push(step.pump === "flow" ? "flow mode" : "pressure mode")
+            if (step.pump === "flow") {
+                parts.push(step.flow.toFixed(1) + " mL per second")
+            } else {
+                parts.push(step.pressure.toFixed(1) + " bar")
+            }
+            parts.push(step.temperature.toFixed(0) + " degrees")
+            parts.push(step.seconds.toFixed(0) + " seconds")
+            parts.push(step.transition === "smooth" ? "smooth transition" : "fast transition")
+        } else {
+            // Announce only differences
+            if (step.pump !== prev.pump) {
+                parts.push(step.pump === "flow" ? "flow mode" : "pressure mode")
+            }
+            if (step.pump === "flow") {
+                if (step.flow !== prev.flow || step.pump !== prev.pump) {
+                    parts.push(step.flow.toFixed(1) + " mL per second")
+                }
+            } else {
+                if (step.pressure !== prev.pressure || step.pump !== prev.pump) {
+                    parts.push(step.pressure.toFixed(1) + " bar")
+                }
+            }
+            if (step.temperature !== prev.temperature) {
+                parts.push(step.temperature.toFixed(0) + " degrees")
+            }
+            if (step.seconds !== prev.seconds) {
+                parts.push(step.seconds.toFixed(0) + " seconds")
+            }
+            if (step.transition !== prev.transition) {
+                parts.push(step.transition === "smooth" ? "smooth transition" : "fast transition")
+            }
+        }
+
+        // Remember this frame for next comparison
+        lastAnnouncedFrame = {
+            pump: step.pump,
+            flow: step.flow,
+            pressure: step.pressure,
+            temperature: step.temperature,
+            seconds: step.seconds,
+            transition: step.transition
+        }
+
+        AccessibilityManager.announce(parts.join(". "))
+    }
+
     function updatePageTitle() {
         root.currentPageTitle = profile ? profile.title : "Profile Editor"
     }
@@ -88,8 +155,9 @@ Page {
 
                         Item { Layout.fillWidth: true }
 
-                        Button {
+                        AccessibleButton {
                             text: "+ Add"
+                            accessibleName: "Add frame"
                             onClicked: addStep()
                             background: Rectangle {
                                 implicitWidth: Theme.scaled(80)
@@ -106,8 +174,9 @@ Page {
                             }
                         }
 
-                        Button {
+                        AccessibleButton {
                             text: "Delete"
+                            accessibleName: "Delete selected frame"
                             enabled: selectedStepIndex >= 0
                             onClicked: deleteStep(selectedStepIndex)
                             background: Rectangle {
@@ -127,8 +196,9 @@ Page {
                             }
                         }
 
-                        Button {
+                        AccessibleButton {
                             text: "\u2190"
+                            accessibleName: "Move frame left"
                             enabled: selectedStepIndex > 0
                             onClicked: moveStep(selectedStepIndex, selectedStepIndex - 1)
                             background: Rectangle {
@@ -148,8 +218,9 @@ Page {
                             }
                         }
 
-                        Button {
+                        AccessibleButton {
                             text: "\u2192"
+                            accessibleName: "Move frame right"
                             enabled: selectedStepIndex >= 0 && selectedStepIndex < (profile ? profile.steps.length - 1 : 0)
                             onClicked: moveStep(selectedStepIndex, selectedStepIndex + 1)
                             background: Rectangle {
@@ -233,8 +304,9 @@ Page {
             color: "white"
             font: Theme.bodyFont
         }
-        Button {
+        AccessibleButton {
             text: "Done"
+            accessibleName: profileModified ? "Done. Unsaved changes" : "Done"
             onClicked: {
                 if (profileModified) {
                     exitDialog.open()
@@ -359,8 +431,9 @@ Page {
                 Layout.fillWidth: true
                 spacing: Theme.scaled(10)
 
-                Button {
+                AccessibleButton {
                     text: "Discard"
+                    accessibleName: "Discard changes"
                     onClicked: {
                         // Reload original profile to discard changes
                         if (originalProfileName) {
@@ -386,8 +459,9 @@ Page {
 
                 Item { Layout.fillWidth: true }
 
-                Button {
+                AccessibleButton {
                     text: "Save As..."
+                    accessibleName: "Save as new profile"
                     onClicked: {
                         exitDialog.close()
                         saveAsDialog.open()
@@ -407,8 +481,9 @@ Page {
                     }
                 }
 
-                Button {
+                AccessibleButton {
                     text: "Save"
+                    accessibleName: "Save profile"
                     enabled: originalProfileName !== ""
                     onClicked: {
                         saveProfile()
@@ -1030,5 +1105,20 @@ Page {
     Component.onCompleted: {
         loadCurrentProfile()
     }
-    StackView.onActivated: updatePageTitle()
+
+    StackView.onActivated: {
+        updatePageTitle()
+        lastAnnouncedFrame = null  // Reset for fresh announcements
+        announceProfileInfo()
+    }
+
+    function announceProfileInfo() {
+        if (typeof AccessibilityManager === "undefined" || !AccessibilityManager.enabled) return
+        if (!profile) return
+
+        var frameCount = profile.steps ? profile.steps.length : 0
+        var title = root.cleanForSpeech(profile.title || "Untitled")
+        var announcement = title + " profile. " + frameCount + " frame" + (frameCount !== 1 ? "s" : "")
+        AccessibilityManager.announce(announcement)
+    }
 }

@@ -156,31 +156,41 @@ void BatteryDrainer::setMaxBrightness() {
 #ifdef Q_OS_ANDROID
     qDebug() << "BatteryDrainer: Setting max brightness";
 
+    // First, read current brightness (can do from any thread)
     QJniObject activity = QNativeInterface::QAndroidApplication::context();
     if (!activity.isValid()) return;
 
-    // Get window
     QJniObject window = activity.callObjectMethod(
         "getWindow", "()Landroid/view/Window;");
     if (!window.isValid()) return;
 
-    // Get layout params
     QJniObject params = window.callObjectMethod(
         "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
     if (!params.isValid()) return;
 
-    // Save current brightness
     m_savedBrightness = params.getField<jfloat>("screenBrightness") * 255;
+    qDebug() << "BatteryDrainer: Saved brightness:" << m_savedBrightness;
 
-    // Set to max (1.0f)
-    params.setField<jfloat>("screenBrightness", 1.0f);
+    // Set brightness on UI thread
+    QNativeInterface::QAndroidApplication::runOnAndroidMainThread([]() {
+        QJniObject activity = QNativeInterface::QAndroidApplication::context();
+        if (!activity.isValid()) return;
 
-    // Apply
-    window.callMethod<void>("setAttributes",
-        "(Landroid/view/WindowManager$LayoutParams;)V",
-        params.object());
+        QJniObject window = activity.callObjectMethod(
+            "getWindow", "()Landroid/view/Window;");
+        if (!window.isValid()) return;
 
-    qDebug() << "BatteryDrainer: Brightness set to max (saved:" << m_savedBrightness << ")";
+        QJniObject params = window.callObjectMethod(
+            "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
+        if (!params.isValid()) return;
+
+        params.setField<jfloat>("screenBrightness", 1.0f);
+        window.callMethod<void>("setAttributes",
+            "(Landroid/view/WindowManager$LayoutParams;)V",
+            params.object());
+    });
+
+    qDebug() << "BatteryDrainer: Brightness set to max";
 #else
     qDebug() << "BatteryDrainer: Brightness control not available on this platform";
 #endif
@@ -192,26 +202,26 @@ void BatteryDrainer::restoreBrightness() {
 
     qDebug() << "BatteryDrainer: Restoring brightness to" << m_savedBrightness;
 
-    QJniObject activity = QNativeInterface::QAndroidApplication::context();
-    if (!activity.isValid()) return;
-
-    QJniObject window = activity.callObjectMethod(
-        "getWindow", "()Landroid/view/Window;");
-    if (!window.isValid()) return;
-
-    QJniObject params = window.callObjectMethod(
-        "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
-    if (!params.isValid()) return;
-
-    // Restore (-1 means system default)
     float brightness = (m_savedBrightness > 0) ? (m_savedBrightness / 255.0f) : -1.0f;
-    params.setField<jfloat>("screenBrightness", brightness);
-
-    window.callMethod<void>("setAttributes",
-        "(Landroid/view/WindowManager$LayoutParams;)V",
-        params.object());
-
     m_savedBrightness = -1;
+
+    QNativeInterface::QAndroidApplication::runOnAndroidMainThread([brightness]() {
+        QJniObject activity = QNativeInterface::QAndroidApplication::context();
+        if (!activity.isValid()) return;
+
+        QJniObject window = activity.callObjectMethod(
+            "getWindow", "()Landroid/view/Window;");
+        if (!window.isValid()) return;
+
+        QJniObject params = window.callObjectMethod(
+            "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
+        if (!params.isValid()) return;
+
+        params.setField<jfloat>("screenBrightness", brightness);
+        window.callMethod<void>("setAttributes",
+            "(Landroid/view/WindowManager$LayoutParams;)V",
+            params.object());
+    });
 #endif
 }
 

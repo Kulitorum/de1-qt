@@ -2,17 +2,46 @@ import QtQuick
 import QtQuick.Layouts
 import DecenzaDE1
 
-Item {
+FocusScope {
     id: root
 
     property var presets: []
     property int selectedIndex: -1
+    property int focusedIndex: 0  // Currently focused pill for keyboard nav
     property real maxWidth: Theme.scaled(900)  // Max width before wrapping
 
     signal presetSelected(int index)
 
     implicitHeight: contentColumn.implicitHeight
     implicitWidth: maxWidth
+
+    // Keyboard navigation
+    activeFocusOnTab: true
+
+    Keys.onLeftPressed: {
+        if (focusedIndex > 0) focusedIndex--
+        announceCurrentPill()
+    }
+    Keys.onRightPressed: {
+        if (focusedIndex < presets.length - 1) focusedIndex++
+        announceCurrentPill()
+    }
+    Keys.onReturnPressed: presetSelected(focusedIndex)
+    Keys.onEnterPressed: presetSelected(focusedIndex)
+    Keys.onSpacePressed: presetSelected(focusedIndex)
+
+    // Announce pill when focused
+    onActiveFocusChanged: {
+        if (activeFocus) announceCurrentPill()
+    }
+
+    function announceCurrentPill() {
+        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled && presets.length > 0) {
+            var name = presets[focusedIndex].name || ""
+            var status = focusedIndex === selectedIndex ? ", selected" : ""
+            AccessibilityManager.announce(name + status)
+        }
+    }
 
     // Calculate how many pills fit per row
     readonly property real pillSpacing: Theme.scaled(12)
@@ -116,6 +145,7 @@ Item {
                         id: pill
 
                         property bool isSelected: modelData.index === root.selectedIndex
+                        property bool isFocused: root.activeFocus && modelData.index === root.focusedIndex
 
                         width: pillText.implicitWidth + root.pillPadding
                         height: Theme.scaled(50)
@@ -125,7 +155,23 @@ Item {
                         border.color: isSelected ? Theme.primaryColor : Theme.textSecondaryColor
                         border.width: 1
 
+                        Accessible.role: Accessible.Button
+                        Accessible.name: (modelData.preset.name || "") + (isSelected ? ", selected" : "")
+                        Accessible.description: "Double-tap to select."
+                        Accessible.focusable: true
+
                         Behavior on color { ColorAnimation { duration: 150 } }
+
+                        // Focus indicator
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: -Theme.focusMargin
+                            visible: pill.isFocused
+                            color: "transparent"
+                            border.width: Theme.focusBorderWidth
+                            border.color: Theme.focusColor
+                            radius: parent.radius + Theme.focusMargin
+                        }
 
                         Text {
                             id: pillText
@@ -136,10 +182,25 @@ Item {
                             font.bold: true
                         }
 
-                        MouseArea {
+                        AccessibleMouseArea {
                             anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.presetSelected(modelData.index)
+
+                            accessibleName: {
+                                if (!modelData || !modelData.preset) return ""
+                                var name = modelData.preset.name || ""
+                                var status = modelData.index === root.selectedIndex ? ", selected" : ""
+                                return name + status
+                            }
+                            accessibleItem: pill
+
+                            onAccessibleClicked: {
+                                if (!modelData || !modelData.preset) return
+                                // Announce selection
+                                if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                                    AccessibilityManager.announce(modelData.preset.name + " selected")
+                                }
+                                root.presetSelected(modelData.index)
+                            }
                         }
                     }
                 }

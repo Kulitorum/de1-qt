@@ -52,8 +52,8 @@ ApplicationWindow {
 
     // Auto-sleep inactivity timer
     property int autoSleepMinutes: {
-        var val = Settings.value("autoSleepMinutes", 0)
-        return (val === undefined || val === null) ? 0 : parseInt(val)
+        var val = Settings.value("autoSleepMinutes", 60)
+        return (val === undefined || val === null) ? 60 : parseInt(val)
     }
 
     Timer {
@@ -72,8 +72,8 @@ ApplicationWindow {
         target: Settings
         function onValueChanged(key) {
             if (key === "autoSleepMinutes") {
-                var val = Settings.value("autoSleepMinutes", 0)
-                root.autoSleepMinutes = (val === undefined || val === null) ? 0 : parseInt(val)
+                var val = Settings.value("autoSleepMinutes", 60)
+                root.autoSleepMinutes = (val === undefined || val === null) ? 60 : parseInt(val)
                 resetInactivityTimer()
             }
         }
@@ -196,6 +196,12 @@ ApplicationWindow {
         property string errorMessage: ""
         property bool isLocationError: false
 
+        onOpened: {
+            if (AccessibilityManager.enabled) {
+                AccessibilityManager.announce("Error: " + errorMessage, true)
+            }
+        }
+
         Column {
             spacing: Theme.spacingMedium
             width: Theme.dialogWidth
@@ -206,8 +212,9 @@ ApplicationWindow {
                 width: parent.width
             }
 
-            Button {
+            AccessibleButton {
                 text: "Open Location Settings"
+                accessibleName: "Open location settings"
                 visible: bleErrorDialog.isLocationError
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: {
@@ -216,8 +223,9 @@ ApplicationWindow {
                 }
             }
 
-            Button {
+            AccessibleButton {
                 text: "OK"
+                accessibleName: "Dismiss dialog"
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: bleErrorDialog.close()
             }
@@ -257,6 +265,12 @@ ApplicationWindow {
         modal: true
         anchors.centerIn: parent
 
+        onOpened: {
+            if (AccessibilityManager.enabled) {
+                AccessibilityManager.announce("No Bluetooth scale detected. Using estimated weight from flow measurement.", true)
+            }
+        }
+
         Column {
             spacing: Theme.spacingMedium
             width: Theme.dialogWidth
@@ -268,8 +282,9 @@ ApplicationWindow {
                 font: Theme.labelFont
             }
 
-            Button {
+            AccessibleButton {
                 text: "OK"
+                accessibleName: "Dismiss dialog"
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: flowScaleDialog.close()
             }
@@ -283,6 +298,12 @@ ApplicationWindow {
         modal: true
         anchors.centerIn: parent
 
+        onOpened: {
+            if (AccessibilityManager.enabled) {
+                AccessibilityManager.announce("Warning: Scale disconnected", true)
+            }
+        }
+
         Column {
             spacing: Theme.spacingMedium
             width: Theme.dialogWidth
@@ -294,8 +315,9 @@ ApplicationWindow {
                 font: Theme.labelFont
             }
 
-            Button {
+            AccessibleButton {
                 text: "OK"
+                accessibleName: "Dismiss dialog"
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: scaleDisconnectedDialog.close()
             }
@@ -310,6 +332,12 @@ ApplicationWindow {
         anchors.centerIn: parent
         closePolicy: Popup.NoAutoClose
 
+        onOpened: {
+            if (AccessibilityManager.enabled) {
+                AccessibilityManager.announce("Warning: Water tank needs refill", true)
+            }
+        }
+
         Column {
             spacing: Theme.spacingMedium
             width: Theme.dialogWidth
@@ -321,8 +349,9 @@ ApplicationWindow {
                 font: Theme.bodyFont
             }
 
-            Button {
+            AccessibleButton {
                 text: "OK"
+                accessibleName: "Dismiss refill warning"
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: refillDialog.close()
             }
@@ -437,8 +466,9 @@ ApplicationWindow {
                 font: Theme.bodyFont
             }
 
-            Button {
+            AccessibleButton {
                 text: "Continue"
+                accessibleName: "Continue to app"
                 anchors.horizontalCenter: parent.horizontalCenter
                 onClicked: {
                     Settings.setValue("firstRunComplete", true)
@@ -550,14 +580,17 @@ ApplicationWindow {
     }
 
     function goToSteam() {
+        announceNavigation("Steam settings")
         pageStack.replace(steamPage)
     }
 
     function goToHotWater() {
+        announceNavigation("Hot water settings")
         pageStack.replace(hotWaterPage)
     }
 
     function goToSettings() {
+        announceNavigation("Settings")
         pageStack.push(settingsPage)
     }
 
@@ -568,15 +601,38 @@ ApplicationWindow {
     }
 
     function goToProfileEditor() {
+        announceNavigation("Profile editor")
         pageStack.push(profileEditorPage)
     }
 
     function goToProfileSelector() {
+        announceNavigation("Select profile")
         pageStack.push(profileSelectorPage)
     }
 
     function goToFlush() {
+        announceNavigation("Flush settings")
         pageStack.push(flushPage)
+    }
+
+    // Helper to announce page navigation for accessibility
+    function announceNavigation(pageName) {
+        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+            AccessibilityManager.announce(pageName)
+        }
+    }
+
+    // Clean up text for TTS (replace underscores, remove extensions, etc.)
+    function cleanForSpeech(text) {
+        if (!text) return ""
+        var cleaned = text
+        // Remove common file extensions
+        cleaned = cleaned.replace(/\.(json|tcl|txt)$/i, "")
+        // Replace underscores and hyphens with spaces
+        cleaned = cleaned.replace(/[_-]/g, " ")
+        // Remove multiple spaces
+        cleaned = cleaned.replace(/\s+/g, " ")
+        return cleaned.trim()
     }
 
     property bool screensaverActive: false
@@ -686,10 +742,187 @@ ApplicationWindow {
         Text {
             id: simLabel
             anchors.centerIn: parent
-            text: "⚠ SIMULATION MODE (Shift+D toggle, double-tap cycle pages)"
+            text: "SIMULATION MODE (Shift+D toggle, double-tap cycle pages)"
             color: "white"
             font.pixelSize: 14
             font.bold: true
+        }
+    }
+
+    // ============ ACCESSIBILITY BACKDOOR ============
+    // 4-finger tap anywhere to toggle accessibility mode
+    // This allows blind users to enable accessibility without navigating settings
+    // Note: 3-finger is used by Android for screenshots
+
+    // Accessibility activation toast
+    Rectangle {
+        id: accessibilityToast
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: Theme.scaled(100)
+        width: accessibilityToastText.implicitWidth + 40
+        height: accessibilityToastText.implicitHeight + 20
+        radius: height / 2
+        color: AccessibilityManager.enabled ? Theme.successColor : "#333333"
+        opacity: 0
+        visible: opacity > 0
+        z: 9999
+
+        Text {
+            id: accessibilityToastText
+            anchors.centerIn: parent
+            text: AccessibilityManager.enabled ? "Accessibility ON" : "Accessibility OFF"
+            color: "white"
+            font.pixelSize: 18
+            font.bold: true
+        }
+
+        Behavior on opacity { NumberAnimation { duration: 150 } }
+
+        Timer {
+            id: accessibilityToastHideTimer
+            interval: 2000
+            onTriggered: accessibilityToast.opacity = 0
+        }
+    }
+
+    // 4-finger touch detection for accessibility toggle
+    MultiPointTouchArea {
+        anchors.fill: parent
+        z: -1  // Behind all controls but still captures multi-finger gestures
+        minimumTouchPoints: 2
+        maximumTouchPoints: 10
+
+        property var startPoints: []
+
+        onPressed: function(touchPoints) {
+            if (touchPoints.length >= 4) {
+                // 4-finger tap detected - toggle accessibility
+                AccessibilityManager.toggleEnabled()
+                accessibilityToast.opacity = 1
+                accessibilityToastHideTimer.restart()
+            } else if (touchPoints.length === 2) {
+                // Store start positions for 2-finger swipe detection
+                startPoints = [{x: touchPoints[0].x, y: touchPoints[0].y},
+                               {x: touchPoints[1].x, y: touchPoints[1].y}]
+            }
+        }
+
+        onReleased: function(touchPoints) {
+            // Check for 2-finger swipe left (back gesture) when accessibility is on
+            if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled &&
+                startPoints.length === 2 && touchPoints.length === 2) {
+                var deltaX1 = touchPoints[0].x - startPoints[0].x
+                var deltaX2 = touchPoints[1].x - startPoints[1].x
+                var avgDeltaX = (deltaX1 + deltaX2) / 2
+
+                // Swipe left threshold: -100 pixels
+                if (avgDeltaX < -100) {
+                    // Two-finger swipe left = go back
+                    AccessibilityManager.announce("Going back")
+                    if (stackView.depth > 1) {
+                        stackView.pop()
+                    } else {
+                        goToIdle()
+                    }
+                }
+            }
+            startPoints = []
+        }
+    }
+
+    // ============ ACCESSIBILITY: Frame Change Ticks ============
+    Connections {
+        target: MainController
+        enabled: AccessibilityManager.enabled
+
+        function onFrameChanged(frameIndex, frameName) {
+            AccessibilityManager.playTick()
+
+            // Announce frame name in verbose mode
+            if (AccessibilityManager.verbosity >= 2) {
+                AccessibilityManager.announce(frameName)
+            }
+        }
+    }
+
+    // ============ ACCESSIBILITY: Machine State Announcements ============
+    Connections {
+        target: MachineState
+        enabled: AccessibilityManager.enabled
+
+        function onPhaseChanged() {
+            var phase = MachineState.phase
+            var announcement = ""
+
+            switch (phase) {
+                case MachineStateType.Phase.Disconnected:
+                    announcement = "Machine disconnected"
+                    break
+                case MachineStateType.Phase.Sleep:
+                    announcement = "Machine sleeping"
+                    break
+                case MachineStateType.Phase.Idle:
+                    announcement = "Machine idle"
+                    break
+                case MachineStateType.Phase.Heating:
+                    announcement = "Heating"
+                    break
+                case MachineStateType.Phase.Ready:
+                    announcement = "Ready"
+                    break
+                case MachineStateType.Phase.EspressoPreheating:
+                    announcement = "Preheating for espresso"
+                    break
+                case MachineStateType.Phase.Preinfusion:
+                    announcement = "Preinfusion started"
+                    break
+                case MachineStateType.Phase.Pouring:
+                    announcement = "Pouring"
+                    break
+                case MachineStateType.Phase.Ending:
+                    announcement = "Shot complete"
+                    break
+                case MachineStateType.Phase.Steaming:
+                    announcement = "Steaming"
+                    break
+                case MachineStateType.Phase.HotWater:
+                    announcement = "Dispensing hot water"
+                    break
+                case MachineStateType.Phase.Flushing:
+                    announcement = "Flushing"
+                    break
+            }
+
+            if (announcement.length > 0) {
+                AccessibilityManager.announce(announcement, true)
+            }
+        }
+    }
+
+    // ============ ACCESSIBILITY: Connection Status Announcements ============
+    Connections {
+        target: DE1Device
+        enabled: AccessibilityManager.enabled
+
+        function onConnectedChanged() {
+            if (DE1Device.connected) {
+                AccessibilityManager.announce("Machine connected")
+            } else {
+                AccessibilityManager.announce("Machine disconnected", true)
+            }
+        }
+    }
+
+    Connections {
+        target: ScaleDevice
+        enabled: AccessibilityManager.enabled && ScaleDevice !== null
+
+        function onConnectedChanged() {
+            if (ScaleDevice && ScaleDevice.connected) {
+                AccessibilityManager.announce("Scale connected: " + ScaleDevice.name)
+            }
+            // Disconnection is handled by scaleDisconnectedDialog
         }
     }
 }
