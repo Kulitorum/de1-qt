@@ -203,7 +203,7 @@ ApplicationWindow {
         onPressed: function(mouse) {
             var textItem = findTextAt(parent, mouse.x, mouse.y)
             if (textItem && textItem.text) {
-                AccessibilityManager.announceLabel(textItem.text)
+                AccessibilityManager.announceLabel(cleanForSpeech(textItem.text))
             }
             mouse.accepted = false
         }
@@ -703,7 +703,7 @@ ApplicationWindow {
         }
     }
 
-    // Clean up text for TTS (replace underscores, remove extensions, etc.)
+    // Clean up text for TTS (replace underscores, expand units, etc.)
     function cleanForSpeech(text) {
         if (!text) return ""
         var cleaned = text
@@ -711,6 +711,14 @@ ApplicationWindow {
         cleaned = cleaned.replace(/\.(json|tcl|txt)$/i, "")
         // Replace underscores and hyphens with spaces
         cleaned = cleaned.replace(/[_-]/g, " ")
+        // Expand units for natural speech
+        cleaned = cleaned.replace(/°C/g, " degrees Celsius")
+        cleaned = cleaned.replace(/(\d)\s*C\b/g, "$1 degrees Celsius")  // "72C" -> "72 degrees Celsius"
+        cleaned = cleaned.replace(/(\d)\s*ml\b/gi, "$1 milliliters")
+        cleaned = cleaned.replace(/(\d)\s*g\b/g, "$1 grams")
+        cleaned = cleaned.replace(/(\d)\s*bar\b/gi, "$1 bar")
+        cleaned = cleaned.replace(/(\d)\s*s\b/g, "$1 seconds")
+        cleaned = cleaned.replace(/(\d)\s*%/g, "$1 percent")
         // Remove multiple spaces
         cleaned = cleaned.replace(/\s+/g, " ")
         return cleaned.trim()
