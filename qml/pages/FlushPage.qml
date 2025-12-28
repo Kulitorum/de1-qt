@@ -10,6 +10,9 @@ Page {
 
     Component.onCompleted: {
         root.currentPageTitle = "Flush"
+        // Sync Settings with selected preset
+        Settings.flushFlow = getCurrentPresetFlow()
+        Settings.flushSeconds = getCurrentPresetSeconds()
         MainController.applyFlushSettings()
     }
     StackView.onActivated: root.currentPageTitle = "Flush"

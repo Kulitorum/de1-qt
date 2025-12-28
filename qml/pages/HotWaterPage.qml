@@ -10,6 +10,8 @@ Page {
 
     Component.onCompleted: {
         root.currentPageTitle = "Hot Water"
+        // Sync Settings.waterVolume with selected preset
+        Settings.waterVolume = getCurrentVesselVolume()
         MainController.applyHotWaterSettings()
     }
     StackView.onActivated: root.currentPageTitle = "Hot Water"

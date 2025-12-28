@@ -8,7 +8,13 @@ Page {
     objectName: "steamPage"
     background: Rectangle { color: Theme.backgroundColor }
 
-    Component.onCompleted: root.currentPageTitle = "Steam"
+    Component.onCompleted: {
+        root.currentPageTitle = "Steam"
+        // Sync Settings with selected preset
+        Settings.steamTimeout = getCurrentPitcherDuration()
+        Settings.steamFlow = getCurrentPitcherFlow()
+        MainController.applySteamSettings()
+    }
     StackView.onActivated: root.currentPageTitle = "Steam"
 
     property bool isSteaming: MachineState.phase === MachineStateType.Phase.Steaming || root.debugLiveView

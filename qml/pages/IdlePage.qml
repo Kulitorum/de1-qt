@@ -244,7 +244,7 @@ Page {
                     Settings.selectedWaterVessel = index
                     var preset = Settings.getWaterVesselPreset(index)
                     if (preset) {
-                        Settings.hotWaterVolume = preset.volume
+                        Settings.waterVolume = preset.volume
                     }
                     MainController.applyHotWaterSettings()
                     // Start hot water immediately after selecting preset
