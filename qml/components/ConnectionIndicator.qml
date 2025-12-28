@@ -7,24 +7,13 @@ ColumnLayout {
     property bool scaleConnected: false
     property bool isFlowScale: false
 
-    spacing: 5
+    spacing: Theme.spacingSmall
 
-    Row {
+    Text {
         Layout.alignment: Qt.AlignHCenter
-        spacing: 8
-
-        Rectangle {
-            width: 12
-            height: 12
-            radius: 6
-            color: machineConnected ? Theme.successColor : Theme.errorColor
-        }
-
-        Text {
-            text: machineConnected ? "Connected" : "Disconnected"
-            color: machineConnected ? Theme.successColor : Theme.errorColor
-            font: Theme.bodyFont
-        }
+        text: machineConnected ? "Online" : "Offline"
+        color: machineConnected ? Theme.successColor : Theme.errorColor
+        font: Theme.valueFont
     }
 
     Text {
