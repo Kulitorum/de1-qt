@@ -599,60 +599,42 @@ ApplicationWindow {
     Connections {
         target: MachineState
 
-        property int previousPhase: -1
-
         function onPhaseChanged() {
-            // Don't navigate while a transition is in progress
-            if (pageStack.busy) return
-
             let phase = MachineState.phase
             let currentPage = pageStack.currentItem ? pageStack.currentItem.objectName : ""
 
-            // Check if we just finished an operation (was active, now idle/ready)
-            let wasActive = (previousPhase === MachineStateType.Phase.Steaming ||
-                            previousPhase === MachineStateType.Phase.HotWater ||
-                            previousPhase === MachineStateType.Phase.Flushing)
-            let isNowIdle = (phase === MachineStateType.Phase.Idle ||
-                            phase === MachineStateType.Phase.Ready ||
-                            phase === MachineStateType.Phase.Sleep ||
-                            phase === MachineStateType.Phase.Heating)
-
-            // Navigate to active operation pages (skip during calibration mode)
+            // Navigate to active operation pages (skip during calibration mode or page transition)
             if (phase === MachineStateType.Phase.EspressoPreheating ||
                 phase === MachineStateType.Phase.Preinfusion ||
                 phase === MachineStateType.Phase.Pouring ||
                 phase === MachineStateType.Phase.Ending) {
-                if (currentPage !== "espressoPage" && !root.calibrationInProgress) {
+                if (currentPage !== "espressoPage" && !root.calibrationInProgress && !pageStack.busy) {
                     pageStack.replace(espressoPage)
                 }
             } else if (phase === MachineStateType.Phase.Steaming) {
-                if (currentPage !== "steamPage") {
+                if (currentPage !== "steamPage" && !pageStack.busy) {
                     pageStack.replace(steamPage)
                 }
             } else if (phase === MachineStateType.Phase.HotWater) {
-                if (currentPage !== "hotWaterPage") {
+                if (currentPage !== "hotWaterPage" && !pageStack.busy) {
                     pageStack.replace(hotWaterPage)
                 }
             } else if (phase === MachineStateType.Phase.Flushing) {
-                if (currentPage !== "flushPage") {
+                if (currentPage !== "flushPage" && !pageStack.busy) {
                     pageStack.replace(flushPage)
                 }
-            } else if (wasActive && isNowIdle) {
-                // Operation finished - show completion then return to idle
-                debugLiveView = false  // Reset debug mode
+            } else if (phase === MachineStateType.Phase.Idle || phase === MachineStateType.Phase.Ready) {
+                // DE1 went to idle - if we're on an operation page, show completion
+                // Note: Don't check pageStack.busy here - completion must always be handled
 
-                if (previousPhase === MachineStateType.Phase.Steaming) {
+                if (currentPage === "steamPage") {
                     showCompletion("Steam Complete", "steam")
-                } else if (previousPhase === MachineStateType.Phase.HotWater) {
+                } else if (currentPage === "hotWaterPage") {
                     showCompletion("Hot Water Complete", "hotwater")
-                } else if (previousPhase === MachineStateType.Phase.Flushing) {
+                } else if (currentPage === "flushPage") {
                     showCompletion("Flush Complete", "flush")
-                } else {
-                    pageStack.replace(idlePage)
                 }
             }
-
-            previousPhase = phase
         }
     }
 

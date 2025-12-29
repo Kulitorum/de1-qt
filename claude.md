@@ -33,6 +33,9 @@ src/
 │   ├── settings.*          # QSettings persistence
 │   ├── batterymanager.*    # Smart charging control
 │   └── batterydrainer.*    # Battery drain test utility
+├── network/
+│   ├── visualizeruploader.*  # Upload shots to visualizer.coffee
+│   └── visualizerimporter.*  # Import profiles from visualizer.coffee
 └── main.cpp                # Entry point, object wiring
 
 qml/
@@ -82,6 +85,33 @@ Also: Steaming, HotWater, Flushing
 - **DirectControl mode**: App sends setpoints frame-by-frame
 - Formats: JSON (native), TCL (de1app import)
 - Tare happens when frame 0 starts (after machine preheat)
+
+## Visualizer Integration
+
+### Profile Import (VisualizerImporter)
+- **Location**: `src/network/visualizerimporter.cpp/.h`
+- **QML Page**: `qml/pages/VisualizerBrowserPage.qml`
+- **Browser**: Uses QtWebEngineQuick (full Chromium) - NOT QtWebView (native WebView looks bad on old Android)
+- **API**: `GET https://visualizer.coffee/api/shots/{id}/profile.json`
+
+### Import Flow
+1. User browses visualizer.coffee in embedded WebEngineView
+2. User navigates to a shot page and clicks "Import Profile"
+3. JavaScript searches DOM for `profile.json` link
+4. VisualizerImporter fetches profile JSON and converts to native format
+5. If duplicate exists, shows overwrite/save-as-new dialog
+
+### Key Implementation Notes
+- `QtWebEngineQuick::initialize()` must be called before QApplication in main.cpp
+- WebEngineView respects `visible` property (unlike native WebView which needs size=0 hack)
+- WebEngineView properly tracks SPA navigation URL changes
+- Duplicate handling: `saveOverwrite()`, `saveAsNew()`, `saveWithNewName(newTitle)`
+- Keyboard handling for Android: FocusScope + keyboardOffset pattern for text input
+
+### Visualizer Profile Format Conversion
+- Visualizer stores values as strings (we convert to doubles)
+- Exit conditions: `{type, value, condition}` → `exitType`, `exitPressureOver`, etc.
+- Limiter: `{value, range}` → `maxFlowOrPressure`, `maxFlowOrPressureRange`
 
 ## BLE Protocol Notes
 
@@ -177,6 +207,34 @@ Install on your Android device (allow unknown sources)." \
 - APK files are for direct distribution (sideloading)
 - AAB files are only for Google Play Store uploads
 - Users cannot install AAB files directly
+
+## QML Navigation System
+
+### Page Navigation (main.qml)
+- **StackView**: `pageStack` manages page navigation
+- **Auto-navigation**: `MachineState.phaseChanged` signal triggers automatic page transitions
+- **Operation pages**: SteamPage, HotWaterPage, FlushPage, EspressoPage
+- **Completion flow**: When operations end, show 3-second completion overlay, then navigate to IdlePage
+
+### Phase Change Handler Pattern
+```qml
+// In main.qml onPhaseChanged handler:
+// 1. Check pageStack.busy ONLY for navigation calls, not completion handling
+// 2. Navigation TO operation pages: check !pageStack.busy before replace()
+// 3. Completion handling (Idle/Ready): NEVER skip - always show completion overlay
+```
+
+### Operation Page Structure
+Each operation page (Steam, HotWater, Flush) has:
+- `objectName`: Must be set for navigation detection (e.g., `objectName: "steamPage"`)
+- `isOperating` property: Binds to `MachineState.phase === <phase>`
+- **Live view**: Shown during operation (timer, progress, stop button)
+- **Settings view**: Shown when idle (presets, configuration)
+- **Stop button**: Only visible on headless machines (`DE1Device.isHeadless`)
+
+### Common Bug Pattern
+**Problem**: Early `return` in `onPhaseChanged` can skip completion handling
+**Solution**: Only check `pageStack.busy` before `replace()` calls, not at handler start
 
 ## Git Workflow
 
