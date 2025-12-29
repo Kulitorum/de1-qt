@@ -4,6 +4,7 @@
 #include "../machine/machinestate.h"
 #include "../models/shotdatamodel.h"
 #include "../network/visualizeruploader.h"
+#include "../network/visualizerimporter.h"
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
@@ -44,8 +45,9 @@ MainController::MainController(Settings* settings, DE1Device* device,
                 this, &MainController::onShotEnded);
     }
 
-    // Create visualizer uploader
+    // Create visualizer uploader and importer
     m_visualizer = new VisualizerUploader(m_settings, this);
+    m_visualizerImporter = new VisualizerImporter(this, this);
 
     // Load initial profile
     refreshProfiles();

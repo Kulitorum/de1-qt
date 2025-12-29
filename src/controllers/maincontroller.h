@@ -6,6 +6,7 @@
 #include <QTimer>
 #include "../profile/profile.h"
 #include "../network/visualizeruploader.h"
+#include "../network/visualizerimporter.h"
 
 class Settings;
 class DE1Device;
@@ -22,6 +23,7 @@ class MainController : public QObject {
     Q_PROPERTY(double targetWeight READ targetWeight WRITE setTargetWeight NOTIFY targetWeightChanged)
     Q_PROPERTY(QVariantList availableProfiles READ availableProfiles NOTIFY profilesChanged)
     Q_PROPERTY(VisualizerUploader* visualizer READ visualizer CONSTANT)
+    Q_PROPERTY(VisualizerImporter* visualizerImporter READ visualizerImporter CONSTANT)
     Q_PROPERTY(bool calibrationMode READ isCalibrationMode NOTIFY calibrationModeChanged)
     Q_PROPERTY(QString currentFrameName READ currentFrameName NOTIFY frameChanged)
 
@@ -37,6 +39,7 @@ public:
     void setTargetWeight(double weight);
     QVariantList availableProfiles() const;
     VisualizerUploader* visualizer() const { return m_visualizer; }
+    VisualizerImporter* visualizerImporter() const { return m_visualizerImporter; }
     bool isCalibrationMode() const { return m_calibrationMode; }
     QString currentFrameName() const { return m_currentFrameName; }
 
@@ -96,6 +99,7 @@ private:
     MachineState* m_machineState = nullptr;
     ShotDataModel* m_shotDataModel = nullptr;
     VisualizerUploader* m_visualizer = nullptr;
+    VisualizerImporter* m_visualizerImporter = nullptr;
 
     Profile m_currentProfile;
     QStringList m_availableProfiles;

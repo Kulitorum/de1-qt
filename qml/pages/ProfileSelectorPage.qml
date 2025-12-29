@@ -31,10 +31,37 @@ Page {
                 anchors.margins: Theme.scaled(15)
                 spacing: Theme.scaled(10)
 
-                Text {
-                    text: "All Profiles"
-                    font: Theme.subtitleFont
-                    color: Theme.textColor
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(10)
+
+                    Text {
+                        text: "All Profiles"
+                        font: Theme.subtitleFont
+                        color: Theme.textColor
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    Button {
+                        text: "Import from Visualizer"
+                        Layout.preferredHeight: Theme.scaled(36)
+                        onClicked: root.goToVisualizerBrowser()
+
+                        background: Rectangle {
+                            radius: Theme.scaled(4)
+                            color: Theme.primaryColor
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: "white"
+                            font: Theme.captionFont
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            leftPadding: Theme.scaled(12)
+                            rightPadding: Theme.scaled(12)
+                        }
+                    }
                 }
 
                 ListView {
@@ -68,9 +95,10 @@ Page {
                             }
 
                             // Add to favorites button (show when not already a favorite)
+                            // Note: Reference favoriteProfiles.length to create binding dependency for refresh
                             RoundButton {
                                 id: addFavoriteButton
-                                visible: !Settings.isFavoriteProfile(modelData.name)
+                                visible: Settings.favoriteProfiles.length >= 0 && !Settings.isFavoriteProfile(modelData.name)
                                 enabled: Settings.favoriteProfiles.length < 5
                                 Layout.preferredWidth: Theme.scaled(40)
                                 Layout.preferredHeight: Theme.scaled(40)
@@ -126,9 +154,10 @@ Page {
                                 }
                             }
 
-                            // Already favorite indicator
+                            // Already favorite indicator (star)
+                            // Note: Reference favoriteProfiles.length to create binding dependency for refresh
                             Item {
-                                visible: Settings.isFavoriteProfile(modelData.name)
+                                visible: Settings.favoriteProfiles.length >= 0 && Settings.isFavoriteProfile(modelData.name)
                                 Layout.preferredWidth: Theme.scaled(40)
                                 Layout.preferredHeight: Theme.scaled(40)
                                 Layout.alignment: Qt.AlignVCenter

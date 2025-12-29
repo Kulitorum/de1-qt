@@ -265,6 +265,11 @@ ApplicationWindow {
             id: flushPage
             FlushPage {}
         }
+
+        Component {
+            id: visualizerBrowserPage
+            VisualizerBrowserPage {}
+        }
     }
 
     // Global error dialog for BLE issues
@@ -696,6 +701,11 @@ ApplicationWindow {
         pageStack.push(flushPage)
     }
 
+    function goToVisualizerBrowser() {
+        announceNavigation("Visualizer browser")
+        pageStack.push(visualizerBrowserPage)
+    }
+
     // Helper to announce page navigation for accessibility
     function announceNavigation(pageName) {
         if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
@@ -754,64 +764,15 @@ ApplicationWindow {
         onClicked: function(mouse) { mouse.accepted = false }
     }
 
-    // Debug page cycling (only in simulation mode)
-    property var debugPages: ["idle", "steam", "hotWater", "flush"]
-    property int debugPageIndex: 0
-    property bool debugLiveView: false  // Forces live view on debug pages
-
-    function cycleDebugPage() {
-        debugPageIndex = (debugPageIndex + 1) % debugPages.length
-        var page = debugPages[debugPageIndex]
-        console.log("Debug: switching to", page, "page (live view)")
-        debugLiveView = (page !== "idle")  // Show live view for non-idle pages
-        switch (page) {
-            case "idle": pageStack.replace(idlePage); break
-            case "steam": pageStack.replace(steamPage); break
-            case "hotWater": pageStack.replace(hotWaterPage); break
-            case "flush": pageStack.replace(flushPage); break
-        }
-    }
-
-    // Double-tap detector for debug mode
-    MouseArea {
-        visible: DE1Device.simulationMode
-        anchors.fill: parent
-        z: 999  // Below inactivity timer but above most content
-        propagateComposedEvents: true
-
-        property real lastClickTime: 0
-
-        onPressed: function(mouse) {
-            var now = Date.now()
-            if (now - lastClickTime < 300) {
-                // Double-tap detected
-                cycleDebugPage()
-            }
-            lastClickTime = now
-            mouse.accepted = false  // Let the touch through
-        }
-        onReleased: function(mouse) { mouse.accepted = false }
-        onClicked: function(mouse) { mouse.accepted = false }
-    }
-
-    // Keyboard shortcut handler (Shift+D for simulation mode)
-    Item {
-        focus: true
-        Keys.onPressed: function(event) {
-            // Shift+D toggles simulation mode for GUI development
-            if (event.key === Qt.Key_D && (event.modifiers & Qt.ShiftModifier)) {
-                var newState = !DE1Device.simulationMode
-                console.log("Toggling simulation mode:", newState ? "ON" : "OFF")
-                DE1Device.simulationMode = newState
-                if (ScaleDevice) {
-                    ScaleDevice.simulationMode = newState
-                }
-                // Reset debug state when turning off simulation mode
-                if (!newState) {
-                    debugLiveView = false
-                    debugPageIndex = 0
-                }
-                event.accepted = true
+    // Keyboard shortcut for simulation mode (Ctrl+D)
+    Shortcut {
+        sequence: "Ctrl+D"
+        onActivated: {
+            var newState = !DE1Device.simulationMode
+            console.log("Toggling simulation mode:", newState ? "ON" : "OFF")
+            DE1Device.simulationMode = newState
+            if (ScaleDevice) {
+                ScaleDevice.simulationMode = newState
             }
         }
     }
@@ -831,7 +792,7 @@ ApplicationWindow {
         Text {
             id: simLabel
             anchors.centerIn: parent
-            text: "SIMULATION MODE (Shift+D toggle, double-tap cycle pages)"
+            text: "SIMULATION MODE (Ctrl+D to toggle)"
             color: "white"
             font.pixelSize: 14
             font.bold: true

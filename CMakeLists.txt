@@ -103,6 +103,7 @@ set(SOURCES
     src/controllers/directcontroller.cpp
     src/screensaver/screensavervideomanager.cpp
     src/network/visualizeruploader.cpp
+    src/network/visualizerimporter.cpp
 )
 
 set(HEADERS
@@ -138,6 +139,7 @@ set(HEADERS
     src/controllers/directcontroller.h
     src/screensaver/screensavervideomanager.h
     src/network/visualizeruploader.h
+    src/network/visualizerimporter.h
 )
 
 # Resources
@@ -187,6 +189,7 @@ set(QML_FILES
     qml/pages/ProfileSelectorPage.qml
     qml/pages/ScreensaverPage.qml
     qml/pages/FlushPage.qml
+    qml/pages/VisualizerBrowserPage.qml
     qml/components/ActionButton.qml
     qml/components/CircularGauge.qml
     qml/components/ConnectionIndicator.qml
