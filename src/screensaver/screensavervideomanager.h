@@ -14,6 +14,7 @@
 #include <QJsonObject>
 
 class Settings;
+class ProfileStorage;
 
 // Media type for catalog items
 enum class MediaType {
@@ -92,7 +93,7 @@ class ScreensaverVideoManager : public QObject {
     Q_PROPERTY(QVariantList creditsList READ creditsList NOTIFY catalogUpdated)
 
 public:
-    explicit ScreensaverVideoManager(Settings* settings, QObject* parent = nullptr);
+    explicit ScreensaverVideoManager(Settings* settings, ProfileStorage* profileStorage, QObject* parent = nullptr);
     ~ScreensaverVideoManager();
 
     // Property getters
@@ -210,8 +211,15 @@ private:
     // Video selection
     int selectNextVideoIndex();
 
+    // Storage management
+    QString getExternalCachePath() const;
+    QString getFallbackCachePath() const;
+    void updateCacheDirectory();
+    void migrateCacheToExternal();
+
 private:
     Settings* m_settings;
+    ProfileStorage* m_profileStorage;
     QNetworkAccessManager* m_networkManager;
 
     // Category state

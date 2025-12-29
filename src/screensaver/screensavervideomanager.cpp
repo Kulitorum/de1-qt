@@ -1,5 +1,6 @@
 #include "screensavervideomanager.h"
 #include "core/settings.h"
+#include "core/profilestorage.h"
 
 #include <QStandardPaths>
 #include <QDir>
@@ -22,40 +23,24 @@ const QString ScreensaverVideoManager::DEFAULT_CATALOG_URL =
 
 const QString ScreensaverVideoManager::DEFAULT_CATEGORY_ID = "espresso";
 
-ScreensaverVideoManager::ScreensaverVideoManager(Settings* settings, QObject* parent)
+ScreensaverVideoManager::ScreensaverVideoManager(Settings* settings, ProfileStorage* profileStorage, QObject* parent)
     : QObject(parent)
     , m_settings(settings)
+    , m_profileStorage(profileStorage)
     , m_networkManager(new QNetworkAccessManager(this))
 {
-    // Initialize cache directory - use external app storage which persists across app updates
-#if defined(Q_OS_ANDROID)
-    // Use app-specific external storage: /storage/emulated/0/Android/data/<package>/files/
-    // This persists across app UPDATES but is cleared on UNINSTALL
-    // Note: This is different from internal storage (/data/data/<package>/) which may be cleared
-    QStringList appDataPaths = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
-    QString externalPath;
-    for (const QString& path : appDataPaths) {
-        qDebug() << "[Screensaver] Available AppDataLocation:" << path;
-        // Prefer external storage path (contains "/Android/data/")
-        if (path.contains("/Android/data/")) {
-            externalPath = path;
-            break;
-        }
+    // Initialize cache directory - prefer external storage (Documents/Decenza) if configured
+    updateCacheDirectory();
+
+    // Listen for storage permission changes to migrate cache
+    if (m_profileStorage) {
+        connect(m_profileStorage, &ProfileStorage::configuredChanged, this, [this]() {
+            if (m_profileStorage->isConfigured()) {
+                qDebug() << "[Screensaver] Storage configured, migrating cache to external";
+                migrateCacheToExternal();
+            }
+        });
     }
-    if (externalPath.isEmpty() && !appDataPaths.isEmpty()) {
-        externalPath = appDataPaths.first();
-        qDebug() << "[Screensaver] No external path found, using:" << externalPath;
-    }
-    m_cacheDir = externalPath + "/screensaver_videos";
-#elif defined(Q_OS_IOS)
-    // On iOS, use Documents folder which is backed up and persists
-    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-    m_cacheDir = dataPath + "/screensaver_videos";
-#else
-    // On desktop, use app-specific location
-    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-    m_cacheDir = dataPath + "/screensaver_videos";
-#endif
 
     QDir().mkpath(m_cacheDir);
 
@@ -1038,4 +1023,130 @@ QVariantList ScreensaverVideoManager::creditsList() const
     }
 
     return credits;
+}
+
+QString ScreensaverVideoManager::getExternalCachePath() const
+{
+#if defined(Q_OS_ANDROID)
+    if (m_profileStorage && m_profileStorage->isConfigured()) {
+        QString extPath = m_profileStorage->externalProfilesPath();
+        if (!extPath.isEmpty()) {
+            // Use Documents/Decenza/screensaver instead of Documents/Decenza/screensaver_videos
+            // to keep path shorter and cleaner
+            return extPath + "/screensaver";
+        }
+    }
+#endif
+    return QString();
+}
+
+QString ScreensaverVideoManager::getFallbackCachePath() const
+{
+#if defined(Q_OS_ANDROID)
+    QStringList appDataPaths = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+    QString externalPath;
+    for (const QString& path : appDataPaths) {
+        if (path.contains("/Android/data/")) {
+            externalPath = path;
+            break;
+        }
+    }
+    if (externalPath.isEmpty() && !appDataPaths.isEmpty()) {
+        externalPath = appDataPaths.first();
+    }
+    return externalPath + "/screensaver_videos";
+#elif defined(Q_OS_IOS)
+    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    return dataPath + "/screensaver_videos";
+#else
+    QString dataPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    return dataPath + "/screensaver_videos";
+#endif
+}
+
+void ScreensaverVideoManager::updateCacheDirectory()
+{
+    QString externalPath = getExternalCachePath();
+    if (!externalPath.isEmpty()) {
+        m_cacheDir = externalPath;
+        qDebug() << "[Screensaver] Using external cache dir:" << m_cacheDir;
+    } else {
+        m_cacheDir = getFallbackCachePath();
+        qDebug() << "[Screensaver] Using fallback cache dir:" << m_cacheDir;
+    }
+}
+
+void ScreensaverVideoManager::migrateCacheToExternal()
+{
+    QString externalPath = getExternalCachePath();
+    if (externalPath.isEmpty()) {
+        qDebug() << "[Screensaver] Cannot migrate - no external path available";
+        return;
+    }
+
+    QString fallbackPath = getFallbackCachePath();
+    if (fallbackPath == externalPath) {
+        qDebug() << "[Screensaver] No migration needed - already using external path";
+        return;
+    }
+
+    QDir fallbackDir(fallbackPath);
+    if (!fallbackDir.exists()) {
+        qDebug() << "[Screensaver] No fallback cache to migrate";
+        updateCacheDirectory();
+        return;
+    }
+
+    // Create external directory
+    QDir externalDir(externalPath);
+    if (!externalDir.exists()) {
+        externalDir.mkpath(".");
+    }
+
+    // Migrate cache index and files
+    QStringList files = fallbackDir.entryList(QDir::Files);
+    int migrated = 0;
+
+    for (const QString& file : files) {
+        QString srcPath = fallbackDir.filePath(file);
+        QString destPath = externalDir.filePath(file);
+
+        // Skip if already exists in destination
+        if (QFile::exists(destPath)) {
+            qDebug() << "[Screensaver] File already in external, removing from fallback:" << file;
+            QFile::remove(srcPath);
+            continue;
+        }
+
+        // Move file to external storage
+        if (QFile::rename(srcPath, destPath)) {
+            migrated++;
+        } else {
+            // If rename fails (cross-filesystem), try copy+delete
+            if (QFile::copy(srcPath, destPath)) {
+                QFile::remove(srcPath);
+                migrated++;
+            } else {
+                qWarning() << "[Screensaver] Failed to migrate:" << file;
+            }
+        }
+    }
+
+    qDebug() << "[Screensaver] Migration complete. Migrated" << migrated << "files";
+
+    // Update cache index paths
+    for (auto it = m_cacheIndex.begin(); it != m_cacheIndex.end(); ++it) {
+        QString oldPath = it.value().localPath;
+        if (oldPath.startsWith(fallbackPath)) {
+            QString filename = QFileInfo(oldPath).fileName();
+            it.value().localPath = externalDir.filePath(filename);
+        }
+    }
+
+    // Update cache directory and save index
+    m_cacheDir = externalPath;
+    saveCacheIndex();
+
+    // Try to remove old fallback directory if empty
+    fallbackDir.rmdir(".");
 }

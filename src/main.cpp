@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     QObject::connect(&flowScale, &ScaleDevice::weightChanged,
                      &mainController, &MainController::onScaleWeightChanged);
 
-    ScreensaverVideoManager screensaverManager(&settings);
+    ScreensaverVideoManager screensaverManager(&settings, &profileStorage);
     BatteryManager batteryManager;
     batteryManager.setDE1Device(&de1Device);
     batteryManager.setSettings(&settings);
