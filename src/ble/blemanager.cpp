@@ -255,9 +255,10 @@ void BLEManager::onScanError(QBluetoothDeviceDiscoveryAgent::Error error) {
 }
 
 bool BLEManager::isDE1Device(const QBluetoothDeviceInfo& device) const {
-    // Check by name
+    // Check by name - "DE1" is the standard prefix, "BENGLE" is used for developer/debug units
     QString name = device.name();
-    if (name.startsWith("DE1", Qt::CaseInsensitive)) {
+    if (name.startsWith("DE1", Qt::CaseInsensitive) ||
+        name.startsWith("BENGLE", Qt::CaseInsensitive)) {
         return true;
     }
 
