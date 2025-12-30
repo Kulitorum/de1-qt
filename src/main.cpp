@@ -43,11 +43,8 @@ int main(int argc, char *argv[])
     app.setApplicationName("Decenza DE1");
     app.setApplicationVersion("1.0.0");
 
-    // Read Qt style from settings (must be set before QML engine is created)
-    QSettings styleSettings("DecentEspresso", "DE1Qt");
-    QString qtStyle = styleSettings.value("theme/qtStyle", "Material").toString();
-    QQuickStyle::setStyle(qtStyle);
-    qDebug() << "Using Qt style:" << qtStyle;
+    // Set Qt Quick Controls style (must be before QML engine creation)
+    QQuickStyle::setStyle("Material");
 
     qDebug() << "App started - build" << BUILD_NUMBER_STRING;
 

@@ -908,17 +908,6 @@ void Settings::setScreenBrightness(double brightness) {
     }
 }
 
-QString Settings::qtStyle() const {
-    return m_settings.value("theme/qtStyle", "Material").toString();
-}
-
-void Settings::setQtStyle(const QString& style) {
-    if (qtStyle() != style) {
-        m_settings.setValue("theme/qtStyle", style);
-        emit qtStyleChanged();
-    }
-}
-
 void Settings::setThemeColor(const QString& colorName, const QString& colorValue) {
     QVariantMap colors = customThemeColors();
     colors[colorName] = colorValue;
