@@ -463,6 +463,135 @@ Page {
             font: Theme.labelFont
         }
 
+        // AI Advice button - visible whenever we have shot data (not just pending)
+        Rectangle {
+            id: aiAdviceButton
+            visible: MainController.aiManager && MainController.shotDataModel && MainController.shotDataModel.maxTime > 0
+            Layout.preferredWidth: aiAdviceContent.width + 32
+            Layout.preferredHeight: 44
+            radius: 8
+            color: MainController.aiManager && MainController.aiManager.isConfigured
+                   ? Theme.primaryColor : Theme.surfaceColor
+            opacity: MainController.aiManager && MainController.aiManager.isAnalyzing ? 0.6 : 1.0
+
+            Accessible.role: Accessible.Button
+            Accessible.name: "Get AI Advice"
+            Accessible.onPressAction: aiAdviceArea.clicked(null)
+
+            Row {
+                id: aiAdviceContent
+                anchors.centerIn: parent
+                spacing: 6
+
+                Image {
+                    source: "qrc:/icons/sparkle.svg"
+                    width: 18
+                    height: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: status === Image.Ready
+                }
+
+                Text {
+                    text: MainController.aiManager && MainController.aiManager.isAnalyzing
+                          ? "Analyzing..." : "AI Advice"
+                    color: MainController.aiManager && MainController.aiManager.isConfigured
+                           ? "white" : Theme.textColor
+                    font: Theme.bodyFont
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            MouseArea {
+                id: aiAdviceArea
+                anchors.fill: parent
+                enabled: MainController.aiManager && MainController.aiManager.isConfigured && !MainController.aiManager.isAnalyzing
+                onClicked: {
+                    // Navigate to results page first, then trigger analysis
+                    pageStack.push(Qt.resolvedUrl("DialingAssistantPage.qml"))
+
+                    // Trigger analysis with current metadata
+                    MainController.aiManager.analyzeShot(
+                        MainController.shotDataModel,
+                        MainController.currentProfilePtr,
+                        Settings.dyeBeanWeight,
+                        Settings.dyeDrinkWeight,
+                        {
+                            "beanBrand": Settings.dyeBeanBrand,
+                            "beanType": Settings.dyeBeanType,
+                            "roastDate": Settings.dyeRoastDate,
+                            "roastLevel": Settings.dyeRoastLevel,
+                            "grinderModel": Settings.dyeGrinderModel,
+                            "grinderSetting": Settings.dyeGrinderSetting,
+                            "enjoymentScore": Settings.dyeEspressoEnjoyment,
+                            "tastingNotes": Settings.dyeEspressoNotes
+                        }
+                    )
+                }
+            }
+        }
+
+        // Email Prompt button - fallback for users without API keys
+        Rectangle {
+            id: emailPromptButton
+            visible: MainController.aiManager && !MainController.aiManager.isConfigured && MainController.shotDataModel && MainController.shotDataModel.maxTime > 0
+            Layout.preferredWidth: emailPromptContent.width + 32
+            Layout.preferredHeight: 44
+            radius: 8
+            color: Theme.surfaceColor
+
+            Accessible.role: Accessible.Button
+            Accessible.name: "Email AI prompt to yourself"
+            Accessible.onPressAction: emailPromptArea.clicked(null)
+
+            Row {
+                id: emailPromptContent
+                anchors.centerIn: parent
+                spacing: 6
+
+                Image {
+                    source: "qrc:/icons/sparkle.svg"
+                    width: 18
+                    height: 18
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: status === Image.Ready
+                    opacity: 0.6
+                }
+
+                Text {
+                    text: "Email Prompt"
+                    color: Theme.textColor
+                    font: Theme.bodyFont
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+            MouseArea {
+                id: emailPromptArea
+                anchors.fill: parent
+                onClicked: {
+                    var prompt = MainController.aiManager.generateEmailPrompt(
+                        MainController.shotDataModel,
+                        MainController.currentProfilePtr,
+                        Settings.dyeBeanWeight,
+                        Settings.dyeDrinkWeight,
+                        {
+                            "beanBrand": Settings.dyeBeanBrand,
+                            "beanType": Settings.dyeBeanType,
+                            "roastDate": Settings.dyeRoastDate,
+                            "roastLevel": Settings.dyeRoastLevel,
+                            "grinderModel": Settings.dyeGrinderModel,
+                            "grinderSetting": Settings.dyeGrinderSetting,
+                            "enjoymentScore": Settings.dyeEspressoEnjoyment,
+                            "tastingNotes": Settings.dyeEspressoNotes
+                        }
+                    )
+                    // Open mailto: with prompt in body
+                    Qt.openUrlExternally("mailto:?subject=" + encodeURIComponent("Espresso Shot Analysis") +
+                                        "&body=" + encodeURIComponent(prompt))
+                }
+            }
+        }
+
         Rectangle {
             id: uploadButton
             visible: hasPendingShot && !MainController.visualizer.uploading

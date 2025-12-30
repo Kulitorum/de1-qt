@@ -1275,6 +1275,79 @@ void Settings::setVisualizerShowAfterShot(bool enabled) {
     }
 }
 
+// AI Dialing Assistant settings
+QString Settings::aiProvider() const {
+    return m_settings.value("ai/provider", "openai").toString();
+}
+
+void Settings::setAiProvider(const QString& provider) {
+    if (aiProvider() != provider) {
+        m_settings.setValue("ai/provider", provider);
+        emit aiProviderChanged();
+        emit valueChanged("ai/provider");
+    }
+}
+
+QString Settings::openaiApiKey() const {
+    return m_settings.value("ai/openaiKey", "").toString();
+}
+
+void Settings::setOpenaiApiKey(const QString& key) {
+    if (openaiApiKey() != key) {
+        m_settings.setValue("ai/openaiKey", key);
+        emit openaiApiKeyChanged();
+        emit valueChanged("ai/openaiKey");
+    }
+}
+
+QString Settings::anthropicApiKey() const {
+    return m_settings.value("ai/anthropicKey", "").toString();
+}
+
+void Settings::setAnthropicApiKey(const QString& key) {
+    if (anthropicApiKey() != key) {
+        m_settings.setValue("ai/anthropicKey", key);
+        emit anthropicApiKeyChanged();
+        emit valueChanged("ai/anthropicKey");
+    }
+}
+
+QString Settings::geminiApiKey() const {
+    return m_settings.value("ai/geminiKey", "").toString();
+}
+
+void Settings::setGeminiApiKey(const QString& key) {
+    if (geminiApiKey() != key) {
+        m_settings.setValue("ai/geminiKey", key);
+        emit geminiApiKeyChanged();
+        emit valueChanged("ai/geminiKey");
+    }
+}
+
+QString Settings::ollamaEndpoint() const {
+    return m_settings.value("ai/ollamaEndpoint", "http://localhost:11434").toString();
+}
+
+void Settings::setOllamaEndpoint(const QString& endpoint) {
+    if (ollamaEndpoint() != endpoint) {
+        m_settings.setValue("ai/ollamaEndpoint", endpoint);
+        emit ollamaEndpointChanged();
+        emit valueChanged("ai/ollamaEndpoint");
+    }
+}
+
+QString Settings::ollamaModel() const {
+    return m_settings.value("ai/ollamaModel", "").toString();
+}
+
+void Settings::setOllamaModel(const QString& model) {
+    if (ollamaModel() != model) {
+        m_settings.setValue("ai/ollamaModel", model);
+        emit ollamaModelChanged();
+        emit valueChanged("ai/ollamaModel");
+    }
+}
+
 // DYE metadata
 QString Settings::dyeBeanBrand() const {
     return m_settings.value("dye/beanBrand", "").toString();

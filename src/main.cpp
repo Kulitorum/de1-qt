@@ -29,6 +29,7 @@
 #include "machine/machinestate.h"
 #include "models/shotdatamodel.h"
 #include "controllers/maincontroller.h"
+#include "ai/aimanager.h"
 #include "screensaver/screensavervideomanager.h"
 
 using namespace Qt::StringLiterals;
@@ -61,6 +62,10 @@ int main(int argc, char *argv[])
     flowScale.setSettings(&settings);
     ProfileStorage profileStorage;
     MainController mainController(&settings, &de1Device, &machineState, &shotDataModel, &profileStorage);
+
+    // Create and wire AI Manager
+    AIManager aiManager(&settings);
+    mainController.setAiManager(&aiManager);
 
     // Connect FlowScale to graph initially (will be disconnected if physical scale found)
     QObject::connect(&flowScale, &ScaleDevice::weightChanged,

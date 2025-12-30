@@ -6,12 +6,14 @@
 #include "../models/shotdatamodel.h"
 #include "../network/visualizeruploader.h"
 #include "../network/visualizerimporter.h"
+#include "../ai/aimanager.h"
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QStandardPaths>
 #include <QVariantMap>
+#include <QRandomGenerator>
 #include <algorithm>
 
 MainController::MainController(Settings* settings, DE1Device* device,
@@ -1018,8 +1020,25 @@ void MainController::uploadPendingShot() {
     metadata.drinkTds = m_settings->dyeDrinkTds();
     metadata.drinkEy = m_settings->dyeDrinkEy();
     metadata.espressoEnjoyment = m_settings->dyeEspressoEnjoyment();
-    metadata.espressoNotes = m_settings->dyeEspressoNotes();
     metadata.barista = m_settings->dyeBarista();
+
+    // Build notes: user notes + AI recommendation (if any)
+    QString notes = m_settings->dyeEspressoNotes();
+    if (m_aiManager && !m_aiManager->lastRecommendation().isEmpty()) {
+        QString aiRec = m_aiManager->lastRecommendation();
+        QString provider = m_aiManager->selectedProvider();
+        QString providerName = provider;
+        if (provider == "openai") providerName = "OpenAI GPT-4o";
+        else if (provider == "anthropic") providerName = "Anthropic Claude";
+        else if (provider == "gemini") providerName = "Google Gemini";
+        else if (provider == "ollama") providerName = "Ollama";
+
+        if (!notes.isEmpty()) {
+            notes += "\n\n---\n\n";
+        }
+        notes += aiRec + "\n\n---\nAdvice by " + providerName;
+    }
+    metadata.espressoNotes = notes;
 
     qDebug() << "MainController: Uploading pending shot with metadata -"
              << "Profile:" << m_currentProfile.title()
@@ -1031,6 +1050,94 @@ void MainController::uploadPendingShot() {
                              m_pendingShotDoseWeight, metadata);
 
     m_hasPendingShot = false;
+}
+
+void MainController::generateFakeShotData() {
+    if (!m_shotDataModel) return;
+
+    qDebug() << "DEV: Generating fake shot data for testing";
+
+    // Clear existing data
+    m_shotDataModel->clear();
+
+    // Generate ~30 seconds of realistic espresso data at 5Hz (150 samples)
+    const double sampleRate = 0.2;  // 5Hz = 0.2s between samples
+    const double totalDuration = 30.0;
+    const int numSamples = static_cast<int>(totalDuration / sampleRate);
+
+    // Phase timings
+    const double preinfusionEnd = 8.0;
+    const double rampEnd = 12.0;
+    const double steadyEnd = 25.0;
+
+    // Helper for small random noise
+    auto noise = [](double range) {
+        return (QRandomGenerator::global()->bounded(100) / 100.0) * range;
+    };
+
+    for (int i = 0; i < numSamples; i++) {
+        double t = i * sampleRate;
+        double temperature = 92.0 + noise(1.0);  // 92-93°C
+
+        double pressure, flow, pressureGoal, flowGoal, weight;
+        int frameNumber;
+
+        if (t < preinfusionEnd) {
+            // Preinfusion: low pressure, minimal flow
+            double progress = t / preinfusionEnd;
+            pressure = 2.0 + progress * 2.0 + noise(0.5);
+            flow = 0.5 + progress * 1.0 + noise(0.5);
+            pressureGoal = 4.0;
+            flowGoal = 0.0;
+            frameNumber = 0;
+            weight = progress * 3.0;  // ~3g by end of preinfusion
+        } else if (t < rampEnd) {
+            // Ramp up: pressure rising to 9 bar
+            double progress = (t - preinfusionEnd) / (rampEnd - preinfusionEnd);
+            pressure = 4.0 + progress * 5.0 + noise(0.5);
+            flow = 1.5 + progress * 1.5 + noise(0.5);
+            pressureGoal = 9.0;
+            flowGoal = 0.0;
+            frameNumber = 1;
+            weight = 3.0 + progress * 8.0;  // 3-11g
+        } else if (t < steadyEnd) {
+            // Steady extraction: ~9 bar, 2-2.5 ml/s flow
+            double progress = (t - rampEnd) / (steadyEnd - rampEnd);
+            pressure = 8.5 + noise(1.0);  // 8.5-9.5 bar
+            flow = 2.0 + noise(0.5);  // 2.0-2.5 ml/s
+            pressureGoal = 9.0;
+            flowGoal = 0.0;
+            frameNumber = 2;
+            weight = 11.0 + progress * 25.0;  // 11-36g
+        } else {
+            // Taper/ending: pressure drops
+            double progress = (t - steadyEnd) / (totalDuration - steadyEnd);
+            pressure = 8.5 - progress * 6.0 + noise(0.5);
+            flow = 2.0 - progress * 1.5 + noise(0.5);
+            pressureGoal = 3.0;
+            flowGoal = 0.0;
+            frameNumber = 3;
+            weight = 36.0 + progress * 4.0;  // 36-40g
+        }
+
+        // addSample(time, pressure, flow, temperature, pressureGoal, flowGoal, temperatureGoal, frameNumber)
+        m_shotDataModel->addSample(t, pressure, flow, temperature, pressureGoal, flowGoal, 92.0, frameNumber);
+        // addWeightSample(time, weight, flowRate)
+        m_shotDataModel->addWeightSample(t, weight, flow);
+    }
+
+    // Add phase markers
+    m_shotDataModel->addPhaseMarker(0.0, "Preinfusion", 0);
+    m_shotDataModel->addPhaseMarker(preinfusionEnd, "Extraction", 1);
+    m_shotDataModel->addPhaseMarker(steadyEnd, "Ending", 3);
+
+    // Set up pending shot state
+    m_hasPendingShot = true;
+    m_pendingShotDuration = totalDuration;
+    m_pendingShotFinalWeight = 40.0;
+    m_pendingShotDoseWeight = 18.0;
+
+    qDebug() << "DEV: Generated" << numSamples << "fake samples";
 }
 
 void MainController::onShotSampleReceived(const ShotSample& sample) {

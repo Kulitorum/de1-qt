@@ -104,6 +104,9 @@ set(SOURCES
     src/screensaver/screensavervideomanager.cpp
     src/network/visualizeruploader.cpp
     src/network/visualizerimporter.cpp
+    src/ai/aimanager.cpp
+    src/ai/aiprovider.cpp
+    src/ai/shotsummarizer.cpp
 )
 
 set(HEADERS
@@ -140,6 +143,9 @@ set(HEADERS
     src/screensaver/screensavervideomanager.h
     src/network/visualizeruploader.h
     src/network/visualizerimporter.h
+    src/ai/aimanager.h
+    src/ai/aiprovider.h
+    src/ai/shotsummarizer.h
 )
 
 # Resources
@@ -192,6 +198,8 @@ set(QML_FILES
     qml/pages/FlushPage.qml
     qml/pages/VisualizerBrowserPage.qml
     qml/pages/ShotMetadataPage.qml
+    qml/pages/AISettingsPage.qml
+    qml/pages/DialingAssistantPage.qml
     qml/components/ActionButton.qml
     qml/components/CircularGauge.qml
     qml/components/ConnectionIndicator.qml

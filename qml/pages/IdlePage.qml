@@ -18,6 +18,57 @@ Page {
         espressoButton.forceActiveFocus()
     }
 
+    // Secret developer mode: hold top-right corner for 5 seconds to simulate a completed shot
+    Item {
+        anchors.top: parent.top
+        anchors.right: parent.right
+        width: 80
+        height: 80
+        z: 100
+
+        Timer {
+            id: fakeShortHoldTimer
+            interval: 5000
+            onTriggered: {
+                console.log("DEV: Simulating completed shot")
+                // Generate fake shot data
+                MainController.generateFakeShotData()
+                // Navigate: push EspressoPage, then ShotMetadataPage on top
+                pageStack.push(Qt.resolvedUrl("EspressoPage.qml"))
+                // Small delay to let espresso page load, then push metadata
+                fakeShowMetadataTimer.start()
+            }
+        }
+
+        Timer {
+            id: fakeShowMetadataTimer
+            interval: 300
+            onTriggered: {
+                pageStack.push(Qt.resolvedUrl("ShotMetadataPage.qml"))
+                // Wait for page to actually load before setting property
+                fakeSetPendingTimer.start()
+            }
+        }
+
+        Timer {
+            id: fakeSetPendingTimer
+            interval: 100
+            onTriggered: {
+                if (pageStack.currentItem && pageStack.currentItem.objectName === "shotMetadataPage") {
+                    pageStack.currentItem.hasPendingShot = true
+                    console.log("DEV: Set hasPendingShot=true")
+                }
+            }
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onPressed: fakeShortHoldTimer.start()
+            onReleased: fakeShortHoldTimer.stop()
+            onCanceled: fakeShortHoldTimer.stop()
+        }
+    }
+
     // Track which function's presets are showing
     property string activePresetFunction: ""  // "", "steam", "espresso", "hotwater", "flush"
 

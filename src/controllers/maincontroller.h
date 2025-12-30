@@ -7,11 +7,12 @@
 #include "../profile/profile.h"
 #include "../network/visualizeruploader.h"
 #include "../network/visualizerimporter.h"
+#include "../ai/aimanager.h"
+#include "../models/shotdatamodel.h"
 
 class Settings;
 class DE1Device;
 class MachineState;
-class ShotDataModel;
 class ProfileStorage;
 struct ShotSample;
 
@@ -43,6 +44,9 @@ class MainController : public QObject {
     Q_PROPERTY(QVariantList cleaningProfiles READ cleaningProfiles NOTIFY profilesChanged)
     Q_PROPERTY(VisualizerUploader* visualizer READ visualizer CONSTANT)
     Q_PROPERTY(VisualizerImporter* visualizerImporter READ visualizerImporter CONSTANT)
+    Q_PROPERTY(AIManager* aiManager READ aiManager CONSTANT)
+    Q_PROPERTY(ShotDataModel* shotDataModel READ shotDataModel CONSTANT)
+    Q_PROPERTY(Profile* currentProfilePtr READ currentProfilePtr CONSTANT)
     Q_PROPERTY(bool calibrationMode READ isCalibrationMode NOTIFY calibrationModeChanged)
     Q_PROPERTY(QString currentFrameName READ currentFrameName NOTIFY frameChanged)
 
@@ -64,6 +68,10 @@ public:
     VisualizerUploader* visualizer() const { return m_visualizer; }
     VisualizerImporter* visualizerImporter() const { return m_visualizerImporter; }
     ProfileStorage* profileStorage() const { return m_profileStorage; }
+    AIManager* aiManager() const { return m_aiManager; }
+    void setAiManager(AIManager* aiManager) { m_aiManager = aiManager; }
+    ShotDataModel* shotDataModel() const { return m_shotDataModel; }
+    Profile* currentProfilePtr() { return &m_currentProfile; }
     bool isCalibrationMode() const { return m_calibrationMode; }
     QString currentFrameName() const { return m_currentFrameName; }
 
@@ -104,6 +112,9 @@ public slots:
     // DYE: upload pending shot with current metadata from Settings
     Q_INVOKABLE void uploadPendingShot();
 
+    // Developer mode: generate fake shot data for testing UI
+    Q_INVOKABLE void generateFakeShotData();
+
 signals:
     void currentProfileChanged();
     void profileModifiedChanged();
@@ -135,6 +146,7 @@ private:
     ProfileStorage* m_profileStorage = nullptr;
     VisualizerUploader* m_visualizer = nullptr;
     VisualizerImporter* m_visualizerImporter = nullptr;
+    AIManager* m_aiManager = nullptr;
 
     Profile m_currentProfile;
     QStringList m_availableProfiles;

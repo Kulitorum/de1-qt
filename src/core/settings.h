@@ -71,6 +71,14 @@ class Settings : public QObject {
     Q_PROPERTY(bool visualizerExtendedMetadata READ visualizerExtendedMetadata WRITE setVisualizerExtendedMetadata NOTIFY visualizerExtendedMetadataChanged)
     Q_PROPERTY(bool visualizerShowAfterShot READ visualizerShowAfterShot WRITE setVisualizerShowAfterShot NOTIFY visualizerShowAfterShotChanged)
 
+    // AI Dialing Assistant settings
+    Q_PROPERTY(QString aiProvider READ aiProvider WRITE setAiProvider NOTIFY aiProviderChanged)
+    Q_PROPERTY(QString openaiApiKey READ openaiApiKey WRITE setOpenaiApiKey NOTIFY openaiApiKeyChanged)
+    Q_PROPERTY(QString anthropicApiKey READ anthropicApiKey WRITE setAnthropicApiKey NOTIFY anthropicApiKeyChanged)
+    Q_PROPERTY(QString geminiApiKey READ geminiApiKey WRITE setGeminiApiKey NOTIFY geminiApiKeyChanged)
+    Q_PROPERTY(QString ollamaEndpoint READ ollamaEndpoint WRITE setOllamaEndpoint NOTIFY ollamaEndpointChanged)
+    Q_PROPERTY(QString ollamaModel READ ollamaModel WRITE setOllamaModel NOTIFY ollamaModelChanged)
+
     // DYE (Describe Your Espresso) metadata - sticky fields
     Q_PROPERTY(QString dyeBeanBrand READ dyeBeanBrand WRITE setDyeBeanBrand NOTIFY dyeBeanBrandChanged)
     Q_PROPERTY(QString dyeBeanType READ dyeBeanType WRITE setDyeBeanType NOTIFY dyeBeanTypeChanged)
@@ -236,6 +244,25 @@ public:
     bool visualizerShowAfterShot() const;
     void setVisualizerShowAfterShot(bool enabled);
 
+    // AI Dialing Assistant settings
+    QString aiProvider() const;
+    void setAiProvider(const QString& provider);
+
+    QString openaiApiKey() const;
+    void setOpenaiApiKey(const QString& key);
+
+    QString anthropicApiKey() const;
+    void setAnthropicApiKey(const QString& key);
+
+    QString geminiApiKey() const;
+    void setGeminiApiKey(const QString& key);
+
+    QString ollamaEndpoint() const;
+    void setOllamaEndpoint(const QString& endpoint);
+
+    QString ollamaModel() const;
+    void setOllamaModel(const QString& model);
+
     // DYE metadata
     QString dyeBeanBrand() const;
     void setDyeBeanBrand(const QString& value);
@@ -315,6 +342,12 @@ signals:
     void visualizerMinDurationChanged();
     void visualizerExtendedMetadataChanged();
     void visualizerShowAfterShotChanged();
+    void aiProviderChanged();
+    void openaiApiKeyChanged();
+    void anthropicApiKeyChanged();
+    void geminiApiKeyChanged();
+    void ollamaEndpointChanged();
+    void ollamaModelChanged();
     void dyeBeanBrandChanged();
     void dyeBeanTypeChanged();
     void dyeRoastDateChanged();
