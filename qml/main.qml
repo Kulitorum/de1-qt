@@ -1425,33 +1425,20 @@ ApplicationWindow {
         anchors.top: parent.top
         anchors.rightMargin: Theme.standardMargin
         anchors.topMargin: Theme.pageTopMargin + 4
-        width: hideKeyboardText.contentWidth + 24
-        height: 32
-        radius: 16
+        width: hideKeyboardText.width + 24
+        height: 28
+        radius: 14
         color: Theme.primaryColor
         z: 9999  // Above everything
 
-        Row {
+        Tr {
+            id: hideKeyboardText
             anchors.centerIn: parent
-            spacing: 6
-
-            Image {
-                source: "qrc:/icons/keyboard_hide.svg"
-                sourceSize.width: 18
-                sourceSize.height: 18
-                anchors.verticalCenter: parent.verticalCenter
-                visible: status === Image.Ready
-            }
-
-            Tr {
-                id: hideKeyboardText
-                key: "main.button.hideKeyboard"
-                fallback: "Hide keyboard"
-                color: "white"
-                font.pixelSize: 13
-                font.bold: true
-                verticalAlignment: Text.AlignVCenter
-            }
+            key: "main.button.hideKeyboard"
+            fallback: "Hide keyboard"
+            color: "white"
+            font.pixelSize: 13
+            font.bold: true
         }
 
         MouseArea {
