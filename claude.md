@@ -81,12 +81,6 @@ Also: Steaming, HotWater, Flushing
 - Use `StyledTextField` instead of `TextField` to avoid Material floating label
 - `ActionButton` dims icon (50% opacity) and text (secondary color) when disabled
 
-### Qt Quick Styles
-- **Selector**: Settings → Themes → Qt Style
-- **Options**: Material (default), Basic, Fusion, Universal
-- **Requires restart**: Style is set in main.cpp before QML engine creation
-- **Storage**: `theme/qtStyle` in QSettings
-
 ## Profile System
 
 - **FrameBased mode**: Upload to machine, executes autonomously

@@ -1,7 +1,6 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include <QQuickStyle>
 #include <QSettings>
 #include <QIcon>
 #include <QTimer>
@@ -42,12 +41,6 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain("decentespresso.com");
     app.setApplicationName("Decenza DE1");
     app.setApplicationVersion("1.0.0");
-
-    // Read Qt style from settings (must be set before QML engine is created)
-    QSettings styleSettings("DecentEspresso", "DE1Qt");
-    QString qtStyle = styleSettings.value("theme/qtStyle", "Material").toString();
-    QQuickStyle::setStyle(qtStyle);
-    qDebug() << "Using Qt style:" << qtStyle;
 
     qDebug() << "App started - build" << BUILD_NUMBER_STRING;
 
