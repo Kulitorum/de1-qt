@@ -357,7 +357,18 @@ Page {
                 Layout.fillWidth: true
                 text: profile ? profile.title : ""
                 font: Theme.bodyFont
-                placeholderText: "Enter title"
+                color: Theme.textColor
+                placeholderTextColor: Theme.textSecondaryColor
+                leftPadding: 12
+                rightPadding: 12
+                topPadding: 12
+                bottomPadding: 12
+                background: Rectangle {
+                    color: Theme.backgroundColor
+                    radius: 4
+                    border.color: saveAsTitleField.activeFocus ? Theme.primaryColor : Theme.textSecondaryColor
+                    border.width: 1
+                }
                 onAccepted: saveAsDialog.accept()
             }
         }
@@ -574,6 +585,10 @@ Page {
                         font: Theme.titleFont
                         color: Theme.textColor
                         placeholderTextColor: Theme.textSecondaryColor
+                        leftPadding: 12
+                        rightPadding: 12
+                        topPadding: 12
+                        bottomPadding: 12
                         background: Rectangle {
                             color: Qt.rgba(255, 255, 255, 0.1)
                             radius: Theme.scaled(4)
@@ -990,6 +1005,18 @@ Page {
             width: parent.width
             text: profile ? profile.title : ""
             font: Theme.bodyFont
+            color: Theme.textColor
+            placeholderTextColor: Theme.textSecondaryColor
+            leftPadding: 12
+            rightPadding: 12
+            topPadding: 12
+            bottomPadding: 12
+            background: Rectangle {
+                color: Theme.backgroundColor
+                radius: 4
+                border.color: nameField.activeFocus ? Theme.primaryColor : Theme.textSecondaryColor
+                border.width: 1
+            }
         }
 
         onAccepted: {

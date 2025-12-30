@@ -7,6 +7,7 @@ Button {
 
     property string iconSource: ""
     property color backgroundColor: Theme.primaryColor
+    property int iconSize: Theme.scaled(48)
 
     // Note: pressAndHold() and doubleClicked() are inherited from Button/AbstractButton
 
@@ -31,19 +32,26 @@ Button {
         spacing: Theme.scaled(10)
         anchors.centerIn: parent
 
-        Image {
+        Item {
             anchors.horizontalCenter: parent.horizontalCenter
-            source: control.iconSource
             width: Theme.scaled(48)
             height: Theme.scaled(48)
-            fillMode: Image.PreserveAspectFit
             visible: control.iconSource !== ""
+
+            Image {
+                anchors.centerIn: parent
+                source: control.iconSource
+                width: control.iconSize
+                height: control.iconSize
+                fillMode: Image.PreserveAspectFit
+                opacity: control.enabled ? 1.0 : 0.5
+            }
         }
 
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: control.text
-            color: Theme.textColor
+            color: control.enabled ? Theme.textColor : Theme.textSecondaryColor
             font: Theme.bodyFont
         }
     }

@@ -10,6 +10,21 @@ class ShotDataModel;
 class Settings;
 class Profile;
 
+// DYE (Describe Your Espresso) metadata for shot uploads
+struct ShotMetadata {
+    QString beanBrand;
+    QString beanType;
+    QString roastDate;      // ISO format: YYYY-MM-DD
+    QString roastLevel;     // Light, Medium, Dark
+    QString grinderModel;
+    QString grinderSetting;
+    double drinkTds = 0;
+    double drinkEy = 0;
+    int espressoEnjoyment = 0;  // 0-100
+    QString espressoNotes;
+    QString barista;
+};
+
 class VisualizerUploader : public QObject {
     Q_OBJECT
 
@@ -29,7 +44,8 @@ public:
                                  const Profile* profile,
                                  double duration,
                                  double finalWeight = 0,
-                                 double doseWeight = 0);
+                                 double doseWeight = 0,
+                                 const ShotMetadata& metadata = ShotMetadata());
 
     // Test connection with current credentials
     Q_INVOKABLE void testConnection();
@@ -50,7 +66,8 @@ private:
     QByteArray buildShotJson(ShotDataModel* shotData,
                              const Profile* profile,
                              double finalWeight,
-                             double doseWeight);
+                             double doseWeight,
+                             const ShotMetadata& metadata);
 
     QJsonObject buildVisualizerProfileJson(const Profile* profile);
     QByteArray buildMultipartData(const QByteArray& jsonData, const QString& boundary);

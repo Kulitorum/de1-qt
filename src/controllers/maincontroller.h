@@ -101,6 +101,9 @@ public slots:
     void onShotEnded();
     void onScaleWeightChanged(double weight);  // Called by scale weight updates
 
+    // DYE: upload pending shot with current metadata from Settings
+    Q_INVOKABLE void uploadPendingShot();
+
 signals:
     void currentProfileChanged();
     void profileModifiedChanged();
@@ -110,6 +113,9 @@ signals:
 
     // Accessibility: emitted when extraction frame changes
     void frameChanged(int frameIndex, const QString& frameName);
+
+    // DYE: emitted when shot ends and should show metadata page
+    void shotEndedShowMetadata();
 
 private slots:
     void onShotSampleReceived(const ShotSample& sample);
@@ -146,4 +152,10 @@ private:
     QString m_currentFrameName;  // For accessibility announcements
 
     QTimer m_settingsTimer;  // Delayed settings application after connection
+
+    // DYE: pending shot data for delayed upload
+    bool m_hasPendingShot = false;
+    double m_pendingShotDuration = 0;
+    double m_pendingShotFinalWeight = 0;
+    double m_pendingShotDoseWeight = 0;
 };

@@ -98,10 +98,27 @@ Page {
                 onPressAndHold: root.goToProfileSelector()
                 onDoubleClicked: root.goToProfileSelector()
 
-                KeyNavigation.right: steamButton
+                KeyNavigation.right: shotInfoButton.visible ? shotInfoButton : steamButton
                 KeyNavigation.down: activePresetFunction === "espresso" ? espressoPresetRow : sleepButton
 
                 Accessible.description: "Start espresso. Double-tap to select profile. Long-press for settings."
+            }
+
+            ActionButton {
+                id: shotInfoButton
+                text: "Shot Info"
+                iconSource: "qrc:/icons/edit.svg"
+                iconSize: Theme.scaled(43)
+                backgroundColor: Theme.primaryColor
+                visible: Settings.visualizerExtendedMetadata
+                enabled: DE1Device.connected
+                onClicked: root.goToShotMetadata(false)
+
+                KeyNavigation.left: espressoButton
+                KeyNavigation.right: steamButton
+                KeyNavigation.down: sleepButton
+
+                Accessible.description: "Edit shot metadata for Visualizer uploads. Bean, grinder, and tasting notes."
             }
 
             ActionButton {
@@ -115,7 +132,7 @@ Page {
                 onPressAndHold: root.goToSteam()
                 onDoubleClicked: root.goToSteam()
 
-                KeyNavigation.left: espressoButton
+                KeyNavigation.left: shotInfoButton.visible ? shotInfoButton : espressoButton
                 KeyNavigation.right: hotWaterButton
                 KeyNavigation.down: activePresetFunction === "steam" ? steamPresetRow : sleepButton
 

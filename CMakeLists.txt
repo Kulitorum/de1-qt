@@ -191,6 +191,7 @@ set(QML_FILES
     qml/pages/ScreensaverPage.qml
     qml/pages/FlushPage.qml
     qml/pages/VisualizerBrowserPage.qml
+    qml/pages/ShotMetadataPage.qml
     qml/components/ActionButton.qml
     qml/components/CircularGauge.qml
     qml/components/ConnectionIndicator.qml
@@ -207,6 +208,7 @@ set(QML_FILES
     qml/components/ColorWheel.qml
     qml/components/ColorEditor.qml
     qml/components/ColorSwatch.qml
+    qml/components/StyledTextField.qml
 )
 
 qt_add_qml_module(Decenza_DE1

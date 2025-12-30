@@ -277,6 +277,11 @@ ApplicationWindow {
             id: visualizerBrowserPage
             VisualizerBrowserPage {}
         }
+
+        Component {
+            id: shotMetadataPage
+            ShotMetadataPage {}
+        }
     }
 
     // Global error dialog for BLE issues
@@ -784,6 +789,15 @@ ApplicationWindow {
         pageStack.push(visualizerBrowserPage)
     }
 
+    function goToShotMetadata(hasPending) {
+        announceNavigation("Shot info")
+        pageStack.push(shotMetadataPage)
+        // Set hasPendingShot on the page if we came from a shot
+        if (hasPending && pageStack.currentItem) {
+            pageStack.currentItem.hasPendingShot = true
+        }
+    }
+
     // Helper to announce page navigation for accessibility
     function announceNavigation(pageName) {
         if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
@@ -924,6 +938,16 @@ ApplicationWindow {
 
         function onFrameChanged(frameIndex, frameName) {
             AccessibilityManager.playTick()
+        }
+    }
+
+    // DYE: Navigate to shot metadata page after shot ends
+    Connections {
+        target: MainController
+
+        function onShotEndedShowMetadata() {
+            console.log("Shot ended, showing metadata page")
+            goToShotMetadata(true)
         }
     }
 

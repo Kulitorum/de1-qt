@@ -22,7 +22,8 @@ void VisualizerUploader::uploadShot(ShotDataModel* shotData,
                                      const Profile* profile,
                                      double duration,
                                      double finalWeight,
-                                     double doseWeight)
+                                     double doseWeight,
+                                     const ShotMetadata& metadata)
 {
     if (!shotData) {
         emit uploadFailed("No shot data available");
@@ -55,7 +56,7 @@ void VisualizerUploader::uploadShot(ShotDataModel* shotData,
     emit lastUploadStatusChanged();
 
     // Build JSON payload
-    QByteArray jsonData = buildShotJson(shotData, profile, finalWeight, doseWeight);
+    QByteArray jsonData = buildShotJson(shotData, profile, finalWeight, doseWeight, metadata);
 
     // Build multipart form data
     QString boundary = QUuid::createUuid().toString(QUuid::WithoutBraces);
@@ -169,7 +170,8 @@ void VisualizerUploader::onTestFinished(QNetworkReply* reply)
 QByteArray VisualizerUploader::buildShotJson(ShotDataModel* shotData,
                                               const Profile* profile,
                                               double finalWeight,
-                                              double doseWeight)
+                                              double doseWeight,
+                                              const ShotMetadata& metadata)
 {
     QJsonObject root;
 
@@ -278,6 +280,30 @@ QByteArray VisualizerUploader::buildShotJson(ShotDataModel* shotData,
     app["name"] = "Decenza DE1";
     app["version"] = "1.0.0";
     root["app"] = app;
+
+    // DYE metadata (only include non-empty fields)
+    if (!metadata.beanBrand.isEmpty())
+        root["bean_brand"] = metadata.beanBrand;
+    if (!metadata.beanType.isEmpty())
+        root["bean_type"] = metadata.beanType;
+    if (!metadata.roastDate.isEmpty())
+        root["roast_date"] = metadata.roastDate;
+    if (!metadata.roastLevel.isEmpty())
+        root["roast_level"] = metadata.roastLevel;
+    if (!metadata.grinderModel.isEmpty())
+        root["grinder_model"] = metadata.grinderModel;
+    if (!metadata.grinderSetting.isEmpty())
+        root["grinder_setting"] = metadata.grinderSetting;
+    if (metadata.drinkTds > 0)
+        root["drink_tds"] = metadata.drinkTds;
+    if (metadata.drinkEy > 0)
+        root["drink_ey"] = metadata.drinkEy;
+    if (metadata.espressoEnjoyment > 0)
+        root["espresso_enjoyment"] = metadata.espressoEnjoyment;
+    if (!metadata.espressoNotes.isEmpty())
+        root["espresso_notes"] = metadata.espressoNotes;
+    if (!metadata.barista.isEmpty())
+        root["barista"] = metadata.barista;
 
     return QJsonDocument(root).toJson(QJsonDocument::Compact);
 }

@@ -62,12 +62,28 @@ class Settings : public QObject {
     Q_PROPERTY(QVariantList colorGroups READ colorGroups WRITE setColorGroups NOTIFY colorGroupsChanged)
     Q_PROPERTY(QString activeThemeName READ activeThemeName WRITE setActiveThemeName NOTIFY activeThemeNameChanged)
     Q_PROPERTY(double screenBrightness READ screenBrightness WRITE setScreenBrightness NOTIFY screenBrightnessChanged)
+    Q_PROPERTY(QString qtStyle READ qtStyle WRITE setQtStyle NOTIFY qtStyleChanged)
 
     // Visualizer settings
     Q_PROPERTY(QString visualizerUsername READ visualizerUsername WRITE setVisualizerUsername NOTIFY visualizerUsernameChanged)
     Q_PROPERTY(QString visualizerPassword READ visualizerPassword WRITE setVisualizerPassword NOTIFY visualizerPasswordChanged)
     Q_PROPERTY(bool visualizerAutoUpload READ visualizerAutoUpload WRITE setVisualizerAutoUpload NOTIFY visualizerAutoUploadChanged)
     Q_PROPERTY(double visualizerMinDuration READ visualizerMinDuration WRITE setVisualizerMinDuration NOTIFY visualizerMinDurationChanged)
+    Q_PROPERTY(bool visualizerExtendedMetadata READ visualizerExtendedMetadata WRITE setVisualizerExtendedMetadata NOTIFY visualizerExtendedMetadataChanged)
+    Q_PROPERTY(bool visualizerShowAfterShot READ visualizerShowAfterShot WRITE setVisualizerShowAfterShot NOTIFY visualizerShowAfterShotChanged)
+
+    // DYE (Describe Your Espresso) metadata - sticky fields
+    Q_PROPERTY(QString dyeBeanBrand READ dyeBeanBrand WRITE setDyeBeanBrand NOTIFY dyeBeanBrandChanged)
+    Q_PROPERTY(QString dyeBeanType READ dyeBeanType WRITE setDyeBeanType NOTIFY dyeBeanTypeChanged)
+    Q_PROPERTY(QString dyeRoastDate READ dyeRoastDate WRITE setDyeRoastDate NOTIFY dyeRoastDateChanged)
+    Q_PROPERTY(QString dyeRoastLevel READ dyeRoastLevel WRITE setDyeRoastLevel NOTIFY dyeRoastLevelChanged)
+    Q_PROPERTY(QString dyeGrinderModel READ dyeGrinderModel WRITE setDyeGrinderModel NOTIFY dyeGrinderModelChanged)
+    Q_PROPERTY(QString dyeGrinderSetting READ dyeGrinderSetting WRITE setDyeGrinderSetting NOTIFY dyeGrinderSettingChanged)
+    Q_PROPERTY(double dyeDrinkTds READ dyeDrinkTds WRITE setDyeDrinkTds NOTIFY dyeDrinkTdsChanged)
+    Q_PROPERTY(double dyeDrinkEy READ dyeDrinkEy WRITE setDyeDrinkEy NOTIFY dyeDrinkEyChanged)
+    Q_PROPERTY(int dyeEspressoEnjoyment READ dyeEspressoEnjoyment WRITE setDyeEspressoEnjoyment NOTIFY dyeEspressoEnjoymentChanged)
+    Q_PROPERTY(QString dyeEspressoNotes READ dyeEspressoNotes WRITE setDyeEspressoNotes NOTIFY dyeEspressoNotesChanged)
+    Q_PROPERTY(QString dyeBarista READ dyeBarista WRITE setDyeBarista NOTIFY dyeBaristaChanged)
 
 public:
     explicit Settings(QObject* parent = nullptr);
@@ -200,6 +216,9 @@ public:
     double screenBrightness() const;
     void setScreenBrightness(double brightness);
 
+    QString qtStyle() const;
+    void setQtStyle(const QString& style);
+
     // Visualizer settings
     QString visualizerUsername() const;
     void setVisualizerUsername(const QString& username);
@@ -212,6 +231,46 @@ public:
 
     double visualizerMinDuration() const;
     void setVisualizerMinDuration(double seconds);
+
+    bool visualizerExtendedMetadata() const;
+    void setVisualizerExtendedMetadata(bool enabled);
+
+    bool visualizerShowAfterShot() const;
+    void setVisualizerShowAfterShot(bool enabled);
+
+    // DYE metadata
+    QString dyeBeanBrand() const;
+    void setDyeBeanBrand(const QString& value);
+
+    QString dyeBeanType() const;
+    void setDyeBeanType(const QString& value);
+
+    QString dyeRoastDate() const;
+    void setDyeRoastDate(const QString& value);
+
+    QString dyeRoastLevel() const;
+    void setDyeRoastLevel(const QString& value);
+
+    QString dyeGrinderModel() const;
+    void setDyeGrinderModel(const QString& value);
+
+    QString dyeGrinderSetting() const;
+    void setDyeGrinderSetting(const QString& value);
+
+    double dyeDrinkTds() const;
+    void setDyeDrinkTds(double value);
+
+    double dyeDrinkEy() const;
+    void setDyeDrinkEy(double value);
+
+    int dyeEspressoEnjoyment() const;
+    void setDyeEspressoEnjoyment(int value);
+
+    QString dyeEspressoNotes() const;
+    void setDyeEspressoNotes(const QString& value);
+
+    QString dyeBarista() const;
+    void setDyeBarista(const QString& value);
 
     // Generic settings access (for extensibility)
     Q_INVOKABLE QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
@@ -246,10 +305,24 @@ signals:
     void colorGroupsChanged();
     void activeThemeNameChanged();
     void screenBrightnessChanged();
+    void qtStyleChanged();
     void visualizerUsernameChanged();
     void visualizerPasswordChanged();
     void visualizerAutoUploadChanged();
     void visualizerMinDurationChanged();
+    void visualizerExtendedMetadataChanged();
+    void visualizerShowAfterShotChanged();
+    void dyeBeanBrandChanged();
+    void dyeBeanTypeChanged();
+    void dyeRoastDateChanged();
+    void dyeRoastLevelChanged();
+    void dyeGrinderModelChanged();
+    void dyeGrinderSettingChanged();
+    void dyeDrinkTdsChanged();
+    void dyeDrinkEyChanged();
+    void dyeEspressoEnjoymentChanged();
+    void dyeEspressoNotesChanged();
+    void dyeBaristaChanged();
     void valueChanged(const QString& key);
 
 private:

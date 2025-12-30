@@ -129,9 +129,12 @@ Page {
                         font.family: Theme.bodyFont.family
                         horizontalAlignment: Text.AlignHCenter
                         maximumLength: 4
-                        placeholderText: "XXXX"
                         placeholderTextColor: Theme.textSecondaryColor
                         inputMethodHints: Qt.ImhNoAutoUppercase | Qt.ImhNoPredictiveText
+                        leftPadding: 12
+                        rightPadding: 12
+                        topPadding: 12
+                        bottomPadding: 12
 
                         background: Rectangle {
                             color: Theme.surfaceColor
@@ -402,6 +405,10 @@ Page {
                         selectByMouse: true
                         focus: true
                         inputMethodHints: Qt.ImhNoAutoUppercase
+                        leftPadding: 12
+                        rightPadding: 12
+                        topPadding: 12
+                        bottomPadding: 12
                         background: Rectangle {
                             color: Theme.surfaceColor
                             border.color: newNameInput.activeFocus ? Theme.primaryColor : Theme.textSecondaryColor

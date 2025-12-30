@@ -152,10 +152,8 @@ Item {
                     text: root.displayText || (root.value.toFixed(root.decimals) + root.suffix)
                     font.pixelSize: Theme.scaled(24)
                     font.bold: true
-                    color: valueDragArea.isDragging ? root.accentColor : root.valueColor
-                    opacity: valueDragArea.isDragging ? 0.3 : 1.0
+                    color: root.valueColor
                     elide: Text.ElideRight
-                    Behavior on opacity { NumberAnimation { duration: 100 } }
                 }
 
                 MouseArea {
@@ -221,11 +219,11 @@ Item {
                 // Floating speech bubble - rendered in overlay to be always on top
                 Loader {
                     id: bubbleLoader
-                    active: valueDragArea.isDragging
+                    active: valueDragArea.pressed
                     sourceComponent: Item {
                         id: speechBubble
                         parent: Overlay.overlay
-                        visible: valueDragArea.isDragging
+                        visible: valueDragArea.pressed
 
                         // Calculate luminance to determine text color
                         function getContrastColor(c) {
@@ -240,8 +238,8 @@ Item {
                         height: bubbleRect.height + bubbleTail.height - Theme.scaled(3)
 
                         // Pop-in animation
-                        scale: valueDragArea.isDragging ? 1.0 : 0.5
-                        opacity: valueDragArea.isDragging ? 1.0 : 0
+                        scale: valueDragArea.pressed ? 1.0 : 0.5
+                        opacity: valueDragArea.pressed ? 1.0 : 0
                         transformOrigin: Item.Bottom
                         Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 2 } }
                         Behavior on opacity { NumberAnimation { duration: 100 } }
@@ -454,8 +452,6 @@ Item {
                             font.pixelSize: Theme.scaled(40)
                             font.bold: true
                             color: root.valueColor
-                            opacity: popupDragArea.isDragging ? 0.3 : 1.0
-                            Behavior on opacity { NumberAnimation { duration: 100 } }
                         }
 
                         MouseArea {
@@ -511,10 +507,10 @@ Item {
 
                         // Speech bubble for popup
                         Loader {
-                            active: popupDragArea.isDragging
+                            active: popupDragArea.pressed
                             sourceComponent: Item {
                                 parent: Overlay.overlay
-                                visible: popupDragArea.isDragging
+                                visible: popupDragArea.pressed
 
                                 function getContrastColor(c) {
                                     var luminance = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b
@@ -527,8 +523,8 @@ Item {
                                 width: popupBubbleRect.width
                                 height: popupBubbleRect.height + popupBubbleTail.height - Theme.scaled(3)
 
-                                scale: popupDragArea.isDragging ? 1.0 : 0.5
-                                opacity: popupDragArea.isDragging ? 1.0 : 0
+                                scale: popupDragArea.pressed ? 1.0 : 0.5
+                                opacity: popupDragArea.pressed ? 1.0 : 0
                                 transformOrigin: Item.Bottom
                                 Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack; easing.overshoot: 2 } }
                                 Behavior on opacity { NumberAnimation { duration: 100 } }

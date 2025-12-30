@@ -908,6 +908,17 @@ void Settings::setScreenBrightness(double brightness) {
     }
 }
 
+QString Settings::qtStyle() const {
+    return m_settings.value("theme/qtStyle", "Material").toString();
+}
+
+void Settings::setQtStyle(const QString& style) {
+    if (qtStyle() != style) {
+        m_settings.setValue("theme/qtStyle", style);
+        emit qtStyleChanged();
+    }
+}
+
 void Settings::setThemeColor(const QString& colorName, const QString& colorValue) {
     QVariantMap colors = customThemeColors();
     colors[colorName] = colorValue;
@@ -1250,6 +1261,150 @@ void Settings::setVisualizerMinDuration(double seconds) {
     if (visualizerMinDuration() != seconds) {
         m_settings.setValue("visualizer/minDuration", seconds);
         emit visualizerMinDurationChanged();
+    }
+}
+
+bool Settings::visualizerExtendedMetadata() const {
+    return m_settings.value("visualizer/extendedMetadata", false).toBool();
+}
+
+void Settings::setVisualizerExtendedMetadata(bool enabled) {
+    if (visualizerExtendedMetadata() != enabled) {
+        m_settings.setValue("visualizer/extendedMetadata", enabled);
+        emit visualizerExtendedMetadataChanged();
+    }
+}
+
+bool Settings::visualizerShowAfterShot() const {
+    return m_settings.value("visualizer/showAfterShot", true).toBool();
+}
+
+void Settings::setVisualizerShowAfterShot(bool enabled) {
+    if (visualizerShowAfterShot() != enabled) {
+        m_settings.setValue("visualizer/showAfterShot", enabled);
+        emit visualizerShowAfterShotChanged();
+    }
+}
+
+// DYE metadata
+QString Settings::dyeBeanBrand() const {
+    return m_settings.value("dye/beanBrand", "").toString();
+}
+
+void Settings::setDyeBeanBrand(const QString& value) {
+    if (dyeBeanBrand() != value) {
+        m_settings.setValue("dye/beanBrand", value);
+        emit dyeBeanBrandChanged();
+    }
+}
+
+QString Settings::dyeBeanType() const {
+    return m_settings.value("dye/beanType", "").toString();
+}
+
+void Settings::setDyeBeanType(const QString& value) {
+    if (dyeBeanType() != value) {
+        m_settings.setValue("dye/beanType", value);
+        emit dyeBeanTypeChanged();
+    }
+}
+
+QString Settings::dyeRoastDate() const {
+    return m_settings.value("dye/roastDate", "").toString();
+}
+
+void Settings::setDyeRoastDate(const QString& value) {
+    if (dyeRoastDate() != value) {
+        m_settings.setValue("dye/roastDate", value);
+        emit dyeRoastDateChanged();
+    }
+}
+
+QString Settings::dyeRoastLevel() const {
+    return m_settings.value("dye/roastLevel", "").toString();
+}
+
+void Settings::setDyeRoastLevel(const QString& value) {
+    if (dyeRoastLevel() != value) {
+        m_settings.setValue("dye/roastLevel", value);
+        emit dyeRoastLevelChanged();
+    }
+}
+
+QString Settings::dyeGrinderModel() const {
+    return m_settings.value("dye/grinderModel", "").toString();
+}
+
+void Settings::setDyeGrinderModel(const QString& value) {
+    if (dyeGrinderModel() != value) {
+        m_settings.setValue("dye/grinderModel", value);
+        emit dyeGrinderModelChanged();
+    }
+}
+
+QString Settings::dyeGrinderSetting() const {
+    return m_settings.value("dye/grinderSetting", "").toString();
+}
+
+void Settings::setDyeGrinderSetting(const QString& value) {
+    if (dyeGrinderSetting() != value) {
+        m_settings.setValue("dye/grinderSetting", value);
+        emit dyeGrinderSettingChanged();
+    }
+}
+
+double Settings::dyeDrinkTds() const {
+    return m_settings.value("dye/drinkTds", 0.0).toDouble();
+}
+
+void Settings::setDyeDrinkTds(double value) {
+    if (!qFuzzyCompare(dyeDrinkTds(), value)) {
+        m_settings.setValue("dye/drinkTds", value);
+        emit dyeDrinkTdsChanged();
+    }
+}
+
+double Settings::dyeDrinkEy() const {
+    return m_settings.value("dye/drinkEy", 0.0).toDouble();
+}
+
+void Settings::setDyeDrinkEy(double value) {
+    if (!qFuzzyCompare(dyeDrinkEy(), value)) {
+        m_settings.setValue("dye/drinkEy", value);
+        emit dyeDrinkEyChanged();
+    }
+}
+
+int Settings::dyeEspressoEnjoyment() const {
+    return m_settings.value("dye/espressoEnjoyment", 0).toInt();
+}
+
+void Settings::setDyeEspressoEnjoyment(int value) {
+    if (dyeEspressoEnjoyment() != value) {
+        m_settings.setValue("dye/espressoEnjoyment", value);
+        emit dyeEspressoEnjoymentChanged();
+    }
+}
+
+QString Settings::dyeEspressoNotes() const {
+    return m_settings.value("dye/espressoNotes", "").toString();
+}
+
+void Settings::setDyeEspressoNotes(const QString& value) {
+    if (dyeEspressoNotes() != value) {
+        m_settings.setValue("dye/espressoNotes", value);
+        emit dyeEspressoNotesChanged();
+    }
+}
+
+QString Settings::dyeBarista() const {
+    return m_settings.value("dye/barista", "").toString();
+}
+
+void Settings::setDyeBarista(const QString& value) {
+    if (dyeBarista() != value) {
+        m_settings.setValue("dye/barista", value);
+        emit dyeBaristaChanged();
     }
 }
 

@@ -951,16 +951,80 @@ void MainController::onShotEnded() {
 
         double doseWeight = m_settings->targetWeight();  // Use target weight as dose
 
-        qDebug() << "MainController: Shot ended, uploading to visualizer -"
-                 << "Profile:" << m_currentProfile.title()
-                 << "Duration:" << duration << "s"
-                 << "Weight:" << finalWeight << "g";
+        // Check if extended metadata is enabled and should show page after shot
+        if (m_settings->visualizerExtendedMetadata() && m_settings->visualizerShowAfterShot()) {
+            // Store pending shot data for later upload
+            m_hasPendingShot = true;
+            m_pendingShotDuration = duration;
+            m_pendingShotFinalWeight = finalWeight;
+            m_pendingShotDoseWeight = doseWeight;
 
-        m_visualizer->uploadShot(m_shotDataModel, &m_currentProfile, duration, finalWeight, doseWeight);
+            qDebug() << "MainController: Shot ended, showing metadata page -"
+                     << "Profile:" << m_currentProfile.title()
+                     << "Duration:" << duration << "s"
+                     << "Weight:" << finalWeight << "g";
+
+            emit shotEndedShowMetadata();
+        } else {
+            // Build metadata from settings and upload immediately
+            ShotMetadata metadata;
+            if (m_settings->visualizerExtendedMetadata()) {
+                metadata.beanBrand = m_settings->dyeBeanBrand();
+                metadata.beanType = m_settings->dyeBeanType();
+                metadata.roastDate = m_settings->dyeRoastDate();
+                metadata.roastLevel = m_settings->dyeRoastLevel();
+                metadata.grinderModel = m_settings->dyeGrinderModel();
+                metadata.grinderSetting = m_settings->dyeGrinderSetting();
+                metadata.drinkTds = m_settings->dyeDrinkTds();
+                metadata.drinkEy = m_settings->dyeDrinkEy();
+                metadata.espressoEnjoyment = m_settings->dyeEspressoEnjoyment();
+                metadata.espressoNotes = m_settings->dyeEspressoNotes();
+                metadata.barista = m_settings->dyeBarista();
+            }
+
+            qDebug() << "MainController: Shot ended, uploading to visualizer -"
+                     << "Profile:" << m_currentProfile.title()
+                     << "Duration:" << duration << "s"
+                     << "Weight:" << finalWeight << "g";
+
+            m_visualizer->uploadShot(m_shotDataModel, &m_currentProfile, duration, finalWeight, doseWeight, metadata);
+        }
     }
 
     // Note: Don't reset m_extractionStarted here - it's reset in onEspressoCycleStarted
     // Resetting here causes duplicate "extraction started" markers when entering Ending phase
+}
+
+void MainController::uploadPendingShot() {
+    if (!m_hasPendingShot || !m_settings || !m_shotDataModel || !m_visualizer) {
+        qDebug() << "MainController: No pending shot to upload";
+        return;
+    }
+
+    // Build metadata from current settings
+    ShotMetadata metadata;
+    metadata.beanBrand = m_settings->dyeBeanBrand();
+    metadata.beanType = m_settings->dyeBeanType();
+    metadata.roastDate = m_settings->dyeRoastDate();
+    metadata.roastLevel = m_settings->dyeRoastLevel();
+    metadata.grinderModel = m_settings->dyeGrinderModel();
+    metadata.grinderSetting = m_settings->dyeGrinderSetting();
+    metadata.drinkTds = m_settings->dyeDrinkTds();
+    metadata.drinkEy = m_settings->dyeDrinkEy();
+    metadata.espressoEnjoyment = m_settings->dyeEspressoEnjoyment();
+    metadata.espressoNotes = m_settings->dyeEspressoNotes();
+    metadata.barista = m_settings->dyeBarista();
+
+    qDebug() << "MainController: Uploading pending shot with metadata -"
+             << "Profile:" << m_currentProfile.title()
+             << "Duration:" << m_pendingShotDuration << "s"
+             << "Bean:" << metadata.beanBrand << metadata.beanType;
+
+    m_visualizer->uploadShot(m_shotDataModel, &m_currentProfile,
+                             m_pendingShotDuration, m_pendingShotFinalWeight,
+                             m_pendingShotDoseWeight, metadata);
+
+    m_hasPendingShot = false;
 }
 
 void MainController::onShotSampleReceived(const ShotSample& sample) {

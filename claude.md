@@ -78,6 +78,14 @@ Also: Steaming, HotWater, Flushing
 - Files: `PascalCase.qml`
 - IDs/properties: `camelCase`
 - Use `Theme.qml` singleton for all styling
+- Use `StyledTextField` instead of `TextField` to avoid Material floating label
+- `ActionButton` dims icon (50% opacity) and text (secondary color) when disabled
+
+### Qt Quick Styles
+- **Selector**: Settings → Themes → Qt Style
+- **Options**: Material (default), Basic, Fusion, Universal
+- **Requires restart**: Style is set in main.cpp before QML engine creation
+- **Storage**: `theme/qtStyle` in QSettings
 
 ## Profile System
 
@@ -87,6 +95,19 @@ Also: Steaming, HotWater, Flushing
 - Tare happens when frame 0 starts (after machine preheat)
 
 ## Visualizer Integration
+
+### DYE (Describe Your Espresso) Metadata
+- **Location**: `qml/pages/ShotMetadataPage.qml`
+- **Settings**: `src/core/settings.h` - dye* properties (sticky between shots)
+- **Feature toggle**: Settings → Visualizer → "Extended metadata"
+- **Auto-show**: Settings → Visualizer → "Edit after shot"
+- **Access**: Shot Info button on IdlePage (between Espresso and Steam)
+
+Supported metadata fields:
+- `bean_brand`, `bean_type`, `roast_date`, `roast_level`
+- `grinder_model`, `grinder_setting`
+- `drink_tds`, `drink_ey`, `espresso_enjoyment`
+- `espresso_notes`, `barista`
 
 ### Profile Import (VisualizerImporter)
 - **Location**: `src/network/visualizerimporter.cpp/.h`
@@ -241,3 +262,5 @@ Each operation page (Steam, HotWater, Flush) has:
 - **IMPORTANT**: Always push with tags: `git push && git push --tags`
 - Build numbers auto-increment and create `build-N` tags
 - Tags allow users to reference exact versions by build number
+- **Build numbers are global** across all platforms (Android, iOS, Desktop) - a build on any platform increments the shared counter in `buildnumber.txt`
+- Always commit build number changes (`buildnumber.txt`, `installer/version.iss`, `android/AndroidManifest.xml`) - don't leave them unstaged

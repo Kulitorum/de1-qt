@@ -1499,11 +1499,14 @@ Page {
                                 id: usernameField
                                 Layout.fillWidth: true
                                 text: Settings.visualizerUsername
-                                placeholderText: "your@email.com"
                                 font: Theme.bodyFont
                                 color: Theme.textColor
                                 placeholderTextColor: Theme.textSecondaryColor
                                 inputMethodHints: Qt.ImhEmailCharactersOnly | Qt.ImhNoAutoUppercase
+                                leftPadding: 12
+                                rightPadding: 12
+                                topPadding: 12
+                                bottomPadding: 12
                                 background: Rectangle {
                                     color: Theme.backgroundColor
                                     radius: 4
@@ -1533,12 +1536,15 @@ Page {
                                 id: passwordField
                                 Layout.fillWidth: true
                                 text: Settings.visualizerPassword
-                                placeholderText: "••••••••"
                                 echoMode: TextInput.Password
                                 font: Theme.bodyFont
                                 color: Theme.textColor
                                 placeholderTextColor: Theme.textSecondaryColor
                                 inputMethodHints: Qt.ImhNoAutoUppercase
+                                leftPadding: 12
+                                rightPadding: 12
+                                topPadding: 12
+                                bottomPadding: 12
                                 background: Rectangle {
                                     color: Theme.backgroundColor
                                     radius: 4
@@ -1707,6 +1713,67 @@ Page {
                                 onValueModified: function(newValue) {
                                     Settings.visualizerMinDuration = newValue
                                 }
+                            }
+                        }
+
+                        Item { height: 10 }
+
+                        // Extended metadata toggle
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 15
+
+                            ColumnLayout {
+                                spacing: 2
+
+                                Text {
+                                    text: "Extended Metadata"
+                                    color: Theme.textColor
+                                    font.pixelSize: 14
+                                }
+
+                                Text {
+                                    text: "Include bean, grinder, and tasting notes with uploads"
+                                    color: Theme.textSecondaryColor
+                                    font.pixelSize: 12
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Switch {
+                                checked: Settings.visualizerExtendedMetadata
+                                onCheckedChanged: Settings.visualizerExtendedMetadata = checked
+                            }
+                        }
+
+                        // Show after shot toggle (only when extended metadata enabled)
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 15
+                            visible: Settings.visualizerExtendedMetadata
+
+                            ColumnLayout {
+                                spacing: 2
+
+                                Text {
+                                    text: "Edit After Shot"
+                                    color: Theme.textColor
+                                    font.pixelSize: 14
+                                }
+
+                                Text {
+                                    text: "Open Shot Info page after each espresso extraction"
+                                    color: Theme.textSecondaryColor
+                                    font.pixelSize: 12
+                                }
+                            }
+
+                            Item { Layout.fillWidth: true }
+
+                            Switch {
+                                checked: Settings.visualizerShowAfterShot
+                                onCheckedChanged: Settings.visualizerShowAfterShot = checked
                             }
                         }
 
@@ -2031,6 +2098,89 @@ Page {
                             text: "Theme: " + Settings.activeThemeName
                             color: Theme.textColor
                             font: Theme.subtitleFont
+                        }
+
+                        // Qt Style selector
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.spacingSmall
+
+                            Text {
+                                text: "Qt Style:"
+                                color: Theme.textSecondaryColor
+                                font: Theme.labelFont
+                            }
+
+                            ComboBox {
+                                id: styleCombo
+                                Layout.fillWidth: true
+                                model: ["Material", "Basic", "Fusion", "Universal"]
+                                currentIndex: model.indexOf(Settings.qtStyle)
+                                font: Theme.bodyFont
+
+                                background: Rectangle {
+                                    color: Theme.backgroundColor
+                                    radius: 4
+                                    border.color: styleCombo.activeFocus ? Theme.primaryColor : Theme.borderColor
+                                    border.width: 1
+                                }
+
+                                contentItem: Text {
+                                    text: styleCombo.displayText
+                                    color: Theme.textColor
+                                    font: Theme.bodyFont
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 8
+                                }
+
+                                delegate: ItemDelegate {
+                                    width: styleCombo.width
+                                    contentItem: Text {
+                                        text: modelData
+                                        color: Theme.textColor
+                                        font: Theme.bodyFont
+                                    }
+                                    background: Rectangle {
+                                        color: highlighted ? Theme.primaryColor : Theme.surfaceColor
+                                    }
+                                    highlighted: styleCombo.highlightedIndex === index
+                                }
+
+                                popup: Popup {
+                                    y: styleCombo.height
+                                    width: styleCombo.width
+                                    implicitHeight: contentItem.implicitHeight
+                                    padding: 1
+
+                                    contentItem: ListView {
+                                        clip: true
+                                        implicitHeight: contentHeight
+                                        model: styleCombo.popup.visible ? styleCombo.delegateModel : null
+                                        currentIndex: styleCombo.highlightedIndex
+                                    }
+
+                                    background: Rectangle {
+                                        color: Theme.surfaceColor
+                                        border.color: Theme.borderColor
+                                        radius: 4
+                                    }
+                                }
+
+                                onCurrentTextChanged: {
+                                    if (currentText !== Settings.qtStyle) {
+                                        Settings.qtStyle = currentText
+                                        styleRestartNote.visible = true
+                                    }
+                                }
+                            }
+                        }
+
+                        Text {
+                            id: styleRestartNote
+                            visible: false
+                            text: "Restart app to apply style change"
+                            color: Theme.warningColor
+                            font: Theme.captionFont
                         }
 
                         ScrollView {
@@ -3152,9 +3302,12 @@ Page {
             TextField {
                 id: themeNameInput
                 Layout.fillWidth: true
-                placeholderText: "Enter theme name"
                 color: Theme.textColor
                 placeholderTextColor: Theme.textSecondaryColor
+                leftPadding: 12
+                rightPadding: 12
+                topPadding: 12
+                bottomPadding: 12
                 background: Rectangle {
                     color: Theme.backgroundColor
                     radius: Theme.buttonRadius
