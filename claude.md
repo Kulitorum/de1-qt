@@ -81,12 +81,6 @@ Also: Steaming, HotWater, Flushing
 - Use `StyledTextField` instead of `TextField` to avoid Material floating label
 - `ActionButton` dims icon (50% opacity) and text (secondary color) when disabled
 
-### Qt Quick Styles
-- **Selector**: Settings → Themes → Qt Style
-- **Options**: Material (default), Basic, Fusion, Universal
-- **Requires restart**: Style is set in main.cpp before QML engine creation
-- **Storage**: `theme/qtStyle` in QSettings
-
 ## Profile System
 
 - **FrameBased mode**: Upload to machine, executes autonomously
@@ -263,4 +257,4 @@ Each operation page (Steam, HotWater, Flush) has:
 - Build numbers auto-increment and create `build-N` tags
 - Tags allow users to reference exact versions by build number
 - **Build numbers are global** across all platforms (Android, iOS, Desktop) - a build on any platform increments the shared counter in `buildnumber.txt`
-- Always commit build number changes (`buildnumber.txt`, `installer/version.iss`, `android/AndroidManifest.xml`) - don't leave them unstaged
+- **IMPORTANT**: Always include build number files in every commit if they've changed: `buildnumber.txt`, `android/AndroidManifest.xml`, `installer/version.iss`. Never leave these unstaged.

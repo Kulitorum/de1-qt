@@ -62,7 +62,6 @@ class Settings : public QObject {
     Q_PROPERTY(QVariantList colorGroups READ colorGroups WRITE setColorGroups NOTIFY colorGroupsChanged)
     Q_PROPERTY(QString activeThemeName READ activeThemeName WRITE setActiveThemeName NOTIFY activeThemeNameChanged)
     Q_PROPERTY(double screenBrightness READ screenBrightness WRITE setScreenBrightness NOTIFY screenBrightnessChanged)
-    Q_PROPERTY(QString qtStyle READ qtStyle WRITE setQtStyle NOTIFY qtStyleChanged)
 
     // Visualizer settings
     Q_PROPERTY(QString visualizerUsername READ visualizerUsername WRITE setVisualizerUsername NOTIFY visualizerUsernameChanged)
@@ -216,9 +215,6 @@ public:
     double screenBrightness() const;
     void setScreenBrightness(double brightness);
 
-    QString qtStyle() const;
-    void setQtStyle(const QString& style);
-
     // Visualizer settings
     QString visualizerUsername() const;
     void setVisualizerUsername(const QString& username);
@@ -305,7 +301,6 @@ signals:
     void colorGroupsChanged();
     void activeThemeNameChanged();
     void screenBrightnessChanged();
-    void qtStyleChanged();
     void visualizerUsernameChanged();
     void visualizerPasswordChanged();
     void visualizerAutoUploadChanged();
