@@ -115,16 +115,14 @@ Button {
             control.clicked()
         }
         onAccessibleDoubleClicked: {
-            if (control._inEditMode) {
-                // Double-click opens translation editor in edit mode
-                translationEditorPopup.open()
-            } else {
-                control.doubleClicked()
-            }
+            control.doubleClicked()
         }
         onAccessibleLongPressed: {
-            control._longPressTriggered = true
-            control.pressAndHold()
+            if (control._inEditMode) {
+                // Long-press opens translation editor in edit mode
+                translationEditorPopup.open()
+            }
+            // No other long-press action - removed as unused
         }
     }
 

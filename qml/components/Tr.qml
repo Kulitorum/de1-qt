@@ -77,12 +77,12 @@ Item {
         color: Theme.textColor
     }
 
-    // Double-click handler for edit mode (allows normal navigation with single clicks)
+    // Long-press handler for edit mode (allows normal navigation with single clicks)
     MouseArea {
         anchors.fill: parent
         enabled: TranslationManager.editModeEnabled
         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-        onDoubleClicked: {
+        onPressAndHold: {
             translationEditor.open()
         }
     }
