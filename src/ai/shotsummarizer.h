@@ -56,6 +56,12 @@ struct ShotSummary {
     // Phase breakdown
     QList<PhaseSummary> phases;
 
+    // Raw curve data for detailed analysis
+    QVector<QPointF> pressureCurve;
+    QVector<QPointF> flowCurve;
+    QVector<QPointF> tempCurve;
+    QVector<QPointF> weightCurve;
+
     // Extraction indicators
     double timeToFirstDrip = 0;  // When flow > 0.5 mL/s
     double preinfusionDuration = 0;

@@ -180,11 +180,11 @@ Item {
                         }
                     }
 
-                    // Delete button - hidden for now (dangerous operation)
+                    // Delete button - temporarily visible
                     Button {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 48
-                        visible: false
+                        visible: true
                         text: "Delete"
                         enabled: TranslationManager.currentLanguage !== "en"
 

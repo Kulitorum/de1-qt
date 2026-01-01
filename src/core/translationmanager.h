@@ -232,6 +232,7 @@ private:
     bool m_autoTranslateCancelled = false;
     int m_autoTranslateProgress = 0;
     int m_autoTranslateTotal = 0;
+    int m_pendingBatchCount = 0;  // Track parallel batch requests
     QVariantList m_stringsToTranslate;
     QString m_lastTranslatedText;
     static constexpr int AUTO_TRANSLATE_BATCH_SIZE = 25;

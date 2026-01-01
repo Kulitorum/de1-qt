@@ -80,6 +80,9 @@ class Settings : public QObject {
     Q_PROPERTY(QString ollamaEndpoint READ ollamaEndpoint WRITE setOllamaEndpoint NOTIFY ollamaEndpointChanged)
     Q_PROPERTY(QString ollamaModel READ ollamaModel WRITE setOllamaModel NOTIFY ollamaModelChanged)
 
+    // Build info
+    Q_PROPERTY(bool isDebugBuild READ isDebugBuild CONSTANT)
+
     // DYE (Describe Your Espresso) metadata - sticky fields
     Q_PROPERTY(QString dyeBeanBrand READ dyeBeanBrand WRITE setDyeBeanBrand NOTIFY dyeBeanBrandChanged)
     Q_PROPERTY(QString dyeBeanType READ dyeBeanType WRITE setDyeBeanType NOTIFY dyeBeanTypeChanged)
@@ -266,6 +269,9 @@ public:
 
     QString ollamaModel() const;
     void setOllamaModel(const QString& model);
+
+    // Build info
+    bool isDebugBuild() const;
 
     // DYE metadata
     QString dyeBeanBrand() const;

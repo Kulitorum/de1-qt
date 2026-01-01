@@ -1359,6 +1359,15 @@ void Settings::setOllamaModel(const QString& model) {
     }
 }
 
+// Build info
+bool Settings::isDebugBuild() const {
+#ifdef QT_DEBUG
+    return true;
+#else
+    return false;
+#endif
+}
+
 // DYE metadata
 QString Settings::dyeBeanBrand() const {
     return m_settings.value("dye/beanBrand", "").toString();

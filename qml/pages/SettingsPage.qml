@@ -209,7 +209,9 @@ Page {
 
         onCurrentIndexChanged: {
             if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
-                var tabNames = ["Bluetooth", "Preferences", "Screensaver", "Visualizer", "AI", "Accessibility", "Themes", "Language", "Debug"]
+                var tabNames = Settings.isDebugBuild ?
+                    ["Bluetooth", "Preferences", "Screensaver", "Visualizer", "AI", "Accessibility", "Themes", "Language", "Debug"] :
+                    ["Bluetooth", "Preferences", "Screensaver", "Visualizer", "AI", "Accessibility", "Themes", "Language"]
                 if (currentIndex >= 0 && currentIndex < tabNames.length) {
                     AccessibilityManager.announce(tabNames[currentIndex] + " tab")
                 }
@@ -443,8 +445,9 @@ Page {
 
         TabButton {
             id: debugTabButton
+            visible: Settings.isDebugBuild
             text: "Debug"
-            width: implicitWidth
+            width: visible ? implicitWidth : 0
             font.pixelSize: 14
             font.bold: tabBar.currentIndex === 8
             contentItem: Text {
@@ -555,10 +558,10 @@ Page {
             source: "settings/SettingsLanguageTab.qml"
         }
 
-        // Tab 8: Debug - preloads async in background
+        // Tab 8: Debug - only in debug builds
         Loader {
             id: debugLoader
-            active: true
+            active: Settings.isDebugBuild
             asynchronous: true
             source: "settings/SettingsDebugTab.qml"
         }

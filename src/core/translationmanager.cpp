@@ -1365,12 +1365,18 @@ void TranslationManager::autoTranslate()
     m_autoTranslateCancelled = false;
     m_autoTranslateProgress = 0;
     m_autoTranslateTotal = m_stringsToTranslate.size();
+    m_pendingBatchCount = 0;
     emit autoTranslatingChanged();
     emit autoTranslateProgressChanged();
 
     qDebug() << "Starting auto-translate of" << m_autoTranslateTotal << "unique strings to" << m_currentLanguage;
 
-    sendNextAutoTranslateBatch();
+    // Fire all batches in parallel for faster translation
+    while (!m_stringsToTranslate.isEmpty() && !m_autoTranslateCancelled) {
+        sendNextAutoTranslateBatch();
+    }
+
+    qDebug() << "Fired" << m_pendingBatchCount << "parallel batch requests";
 }
 
 void TranslationManager::cancelAutoTranslate()
@@ -1386,16 +1392,6 @@ void TranslationManager::cancelAutoTranslate()
 void TranslationManager::sendNextAutoTranslateBatch()
 {
     if (m_autoTranslateCancelled || m_stringsToTranslate.isEmpty()) {
-        m_autoTranslating = false;
-        emit autoTranslatingChanged();
-        if (!m_autoTranslateCancelled) {
-            saveTranslations();
-            saveAiTranslations();
-            recalculateUntranslatedCount();
-            m_translationVersion++;
-            emit translationsChanged();
-            emit autoTranslateFinished(true, QString("Translated %1 strings").arg(m_autoTranslateProgress));
-        }
         return;
     }
 
@@ -1475,6 +1471,7 @@ void TranslationManager::sendNextAutoTranslateBatch()
         postData = QJsonDocument(json).toJson();
     }
 
+    m_pendingBatchCount++;
     QNetworkReply* reply = m_networkManager->post(request, postData);
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         onAutoTranslateBatchReply(reply);
@@ -1508,12 +1505,14 @@ QString TranslationManager::buildTranslationPrompt(const QVariantList& strings) 
 void TranslationManager::onAutoTranslateBatchReply(QNetworkReply* reply)
 {
     reply->deleteLater();
+    m_pendingBatchCount--;
 
     if (m_autoTranslateCancelled) {
         return;
     }
 
     if (reply->error() != QNetworkReply::NoError) {
+        m_autoTranslateCancelled = true;  // Cancel remaining batches
         m_autoTranslating = false;
         m_lastError = "AI request failed: " + reply->errorString();
         emit autoTranslatingChanged();
@@ -1525,8 +1524,17 @@ void TranslationManager::onAutoTranslateBatchReply(QNetworkReply* reply)
     QByteArray data = reply->readAll();
     parseAutoTranslateResponse(data);
 
-    // Continue with next batch
-    sendNextAutoTranslateBatch();
+    // Check if all batches are complete
+    if (m_pendingBatchCount == 0) {
+        m_autoTranslating = false;
+        emit autoTranslatingChanged();
+        saveTranslations();
+        saveAiTranslations();
+        recalculateUntranslatedCount();
+        m_translationVersion++;
+        emit translationsChanged();
+        emit autoTranslateFinished(true, QString("Translated %1 strings").arg(m_autoTranslateProgress));
+    }
 }
 
 void TranslationManager::parseAutoTranslateResponse(const QByteArray& data)
