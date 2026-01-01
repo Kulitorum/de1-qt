@@ -138,7 +138,7 @@ Page {
         visible: MachineState.phase === MachineStateType.Phase.EspressoPreheating
 
         Accessible.role: Accessible.Alert
-        Accessible.name: "Preheating"
+        Accessible.name: TranslationManager.translate("espresso.accessible.preheating", "Preheating")
 
         Tr {
             id: statusText
@@ -171,7 +171,7 @@ Page {
                 Layout.preferredWidth: height
 
                 Accessible.role: Accessible.Button
-                Accessible.name: "Stop and go back"
+                Accessible.name: TranslationManager.translate("espresso.accessible.stop", "Stop and go back")
                 Accessible.focusable: true
 
                 Image {
@@ -198,7 +198,7 @@ Page {
                 spacing: Theme.scaled(2)
 
                 Accessible.role: Accessible.StaticText
-                Accessible.name: "Time: " + MachineState.shotTime.toFixed(1) + " seconds"
+                Accessible.name: TranslationManager.translate("espresso.accessible.time", "Time:") + " " + MachineState.shotTime.toFixed(1) + " " + TranslationManager.translate("espresso.accessible.seconds", "seconds")
 
                 Text {
                     text: MachineState.shotTime.toFixed(1) + "s"
@@ -230,7 +230,7 @@ Page {
                 spacing: Theme.scaled(2)
 
                 Accessible.role: Accessible.StaticText
-                Accessible.name: "Pressure: " + DE1Device.pressure.toFixed(1) + " bar"
+                Accessible.name: TranslationManager.translate("espresso.accessible.pressure", "Pressure:") + " " + DE1Device.pressure.toFixed(1) + " " + TranslationManager.translate("espresso.accessible.bar", "bar")
 
                 Text {
                     text: DE1Device.pressure.toFixed(1)
@@ -252,7 +252,7 @@ Page {
                 spacing: Theme.scaled(2)
 
                 Accessible.role: Accessible.StaticText
-                Accessible.name: "Flow: " + DE1Device.flow.toFixed(1) + " milliliters per second"
+                Accessible.name: TranslationManager.translate("espresso.accessible.flow", "Flow:") + " " + DE1Device.flow.toFixed(1) + " " + TranslationManager.translate("espresso.accessible.mlPerSec", "milliliters per second")
 
                 Text {
                     text: DE1Device.flow.toFixed(1)
@@ -274,7 +274,7 @@ Page {
                 spacing: Theme.scaled(2)
 
                 Accessible.role: Accessible.StaticText
-                Accessible.name: "Temperature: " + DE1Device.temperature.toFixed(1) + " degrees"
+                Accessible.name: TranslationManager.translate("espresso.accessible.temperature", "Temperature:") + " " + DE1Device.temperature.toFixed(1) + " " + TranslationManager.translate("espresso.accessible.degrees", "degrees")
 
                 Text {
                     text: DE1Device.temperature.toFixed(1)
@@ -306,7 +306,7 @@ Page {
                 spacing: Theme.scaled(4)
 
                 Accessible.role: Accessible.StaticText
-                Accessible.name: "Weight: " + espressoPage.currentWeight.toFixed(1) + " of " + MainController.targetWeight.toFixed(0) + " grams"
+                Accessible.name: TranslationManager.translate("espresso.accessible.weight", "Weight:") + " " + espressoPage.currentWeight.toFixed(1) + " " + TranslationManager.translate("espresso.accessible.of", "of") + " " + MainController.targetWeight.toFixed(0) + " " + TranslationManager.translate("espresso.accessible.grams", "grams")
 
                 RowLayout {
                     spacing: Theme.spacingSmall

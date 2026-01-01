@@ -7,6 +7,8 @@
 #include <QSoundEffect>
 #include <QSettings>
 
+class TranslationManager;
+
 class AccessibilityManager : public QObject
 {
     Q_OBJECT
@@ -48,6 +50,12 @@ public:
     // Must be called before app shutdown to avoid TTS race conditions
     void shutdown();
 
+    // Connect to TranslationManager to sync TTS language with app language
+    void setTranslationManager(TranslationManager* translationManager);
+
+public slots:
+    void updateTtsLocale();
+
 signals:
     void enabledChanged();
     void ttsEnabledChanged();
@@ -73,6 +81,8 @@ private:
     QTextToSpeech* m_tts = nullptr;
     QSoundEffect* m_tickSounds[4] = {nullptr, nullptr, nullptr, nullptr};  // Pre-loaded sounds
     QSettings m_settings;
+
+    TranslationManager* m_translationManager = nullptr;
 };
 
 #endif // ACCESSIBILITYMANAGER_H

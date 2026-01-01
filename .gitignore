@@ -25,3 +25,15 @@ cmake-build-*/
 installer/setupvars.iss
 installer/deploy/
 installer/Output/
+
+# Sensitive files
+AI API KEYS.txt
+
+# Screenshots
+screenshot_*.png
+
+# High-res logos (large files)
+Logo/High res/
+
+# Submodules/external repos
+de1-qt-translations/

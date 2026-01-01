@@ -7,6 +7,28 @@ import "../../components"
 Item {
     id: languageTab
 
+    // Scan all strings and fetch available languages when page loads
+    Component.onCompleted: {
+        TranslationManager.scanAllStrings()
+        TranslationManager.downloadLanguageList()
+    }
+
+    // Handle translation submission result and language downloads
+    Connections {
+        target: TranslationManager
+        function onTranslationSubmitted(success, message) {
+            submitResultPopup.isSuccess = success
+            submitResultPopup.message = message
+            submitResultPopup.open()
+        }
+        function onLanguageDownloaded(langCode, success, error) {
+            if (success) {
+                // Auto-select the language after successful download
+                TranslationManager.currentLanguage = langCode
+            }
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: Theme.spacingMedium
@@ -37,84 +59,116 @@ Item {
                     clip: true
                     model: TranslationManager.availableLanguages
 
-                    delegate: ItemDelegate {
+                    delegate: Item {
+                        id: langDelegate
                         width: languageList.width
                         height: 44
-                        highlighted: modelData === TranslationManager.currentLanguage
+
+                        property bool highlighted: modelData === TranslationManager.currentLanguage
+                        property string langCode: modelData
+                        property string displayName: TranslationManager.getLanguageDisplayName(modelData)
+                        property string nativeName: TranslationManager.getLanguageNativeName(modelData)
 
                         Accessible.role: Accessible.Button
                         Accessible.name: {
-                            var display = TranslationManager.getLanguageDisplayName(modelData)
-                            var nativeName = TranslationManager.getLanguageNativeName(modelData)
-                            var name = nativeName !== display ? display + ", " + nativeName : display
-                            if (highlighted) name += ", selected"
+                            var code = modelData  // Force binding to modelData
+                            var display = TranslationManager.getLanguageDisplayName(code)
+                            var native_ = TranslationManager.getLanguageNativeName(code)
+                            var name = native_ !== display ? display + ", " + native_ : display
+                            if (code === TranslationManager.currentLanguage) {
+                                name += ", " + TranslationManager.translate("language.accessible.selected", "selected")
+                            }
                             return name
                         }
-                        Accessible.description: "Select " + TranslationManager.getLanguageDisplayName(modelData) + " language"
+                        Accessible.focusable: true
 
-                        background: Rectangle {
-                            color: highlighted ? Qt.rgba(Theme.primaryColor.r, Theme.primaryColor.g, Theme.primaryColor.b, 0.2) : "transparent"
+                        Rectangle {
+                            anchors.fill: parent
+                            color: langDelegate.highlighted ? Qt.rgba(Theme.primaryColor.r, Theme.primaryColor.g, Theme.primaryColor.b, 0.2) : "transparent"
                             radius: Theme.buttonRadius
                         }
 
-                        contentItem: RowLayout {
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.leftMargin: 8
+                            anchors.rightMargin: 8
                             spacing: 8
 
                             Text {
                                 Layout.fillWidth: true
-                                text: {
-                                    var display = TranslationManager.getLanguageDisplayName(modelData)
-                                    var nativeName = TranslationManager.getLanguageNativeName(modelData)
-                                    return nativeName !== display ? display + " (" + nativeName + ")" : display
+                                text: langDelegate.nativeName !== langDelegate.displayName ? langDelegate.displayName + " (" + langDelegate.nativeName + ")" : langDelegate.displayName
+                                font.family: Theme.bodyFont.family
+                                font.pixelSize: Theme.bodyFont.pixelSize
+                                font.bold: langDelegate.highlighted
+                                color: {
+                                    var version = TranslationManager.translationVersion  // Force re-evaluation
+                                    if (TranslationManager.isRemoteLanguage(langDelegate.langCode)) return "#2196F3"
+                                    return Theme.successColor
                                 }
-                                font: Theme.bodyFont
-                                color: highlighted ? Theme.primaryColor : Theme.textColor
                                 elide: Text.ElideRight
                             }
 
-                            // Percentage for non-English languages
                             Text {
-                                visible: modelData !== "en"
+                                visible: {
+                                    var version = TranslationManager.translationVersion  // Force re-evaluation
+                                    return langDelegate.langCode !== "en" && !TranslationManager.isRemoteLanguage(langDelegate.langCode)
+                                }
                                 text: {
-                                    // This is approximate - would need per-language tracking for accuracy
-                                    if (modelData === TranslationManager.currentLanguage) {
-                                        var total = TranslationManager.totalStringCount
-                                        if (total === 0) return ""
-                                        var translated = total - TranslationManager.untranslatedCount
-                                        return Math.round((translated / total) * 100) + "%"
-                                    }
-                                    return ""
+                                    var version = TranslationManager.translationVersion
+                                    return TranslationManager.getTranslationPercent(langDelegate.langCode) + "%"
                                 }
                                 font: Theme.labelFont
                                 color: Theme.textSecondaryColor
                             }
                         }
 
-                        onClicked: TranslationManager.currentLanguage = modelData
+                        AccessibleMouseArea {
+                            anchors.fill: parent
+                            // Compute directly from modelData to avoid recycling issues
+                            accessibleName: {
+                                var code = modelData  // Force binding to modelData
+                                var display = TranslationManager.getLanguageDisplayName(code)
+                                var native_ = TranslationManager.getLanguageNativeName(code)
+                                var name = native_ !== display ? display + ", " + native_ : display
+                                if (code === TranslationManager.currentLanguage) {
+                                    name += ", " + TranslationManager.translate("language.accessible.selected", "selected")
+                                }
+                                return name
+                            }
+                            accessibleItem: langDelegate
+
+                            onAccessibleClicked: {
+                                var code = modelData
+                                var isRemote = TranslationManager.isRemoteLanguage(code)
+                                TranslationManager.currentLanguage = code  // Immediate visual feedback
+                                if (isRemote) {
+                                    TranslationManager.downloadLanguage(code)
+                                }
+                            }
+                        }
                     }
                 }
 
-                // Add / Download buttons
+                // Add / Delete / Download buttons
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.spacingSmall
 
                     Button {
                         Layout.fillWidth: true
+                        Layout.preferredHeight: 48
                         text: "Add..."
 
                         Accessible.role: Accessible.Button
-                        Accessible.name: "Add language"
-                        Accessible.description: "Add a new language for translation"
+                        Accessible.name: TranslationManager.translate("language.accessible.add", "Add language")
+                        Accessible.description: TranslationManager.translate("language.accessible.add.description", "Add a new language for translation")
 
                         onClicked: pageStack.push("AddLanguagePage.qml")
 
                         background: Rectangle {
-                            implicitHeight: 40
-                            color: parent.down ? Qt.darker(Theme.backgroundColor, 1.1) : Theme.backgroundColor
+                            implicitHeight: 48
+                            color: parent.down ? Qt.darker(Theme.surfaceColor, 1.2) : Qt.lighter(Theme.surfaceColor, 1.3)
                             radius: Theme.buttonRadius
-                            border.width: 1
-                            border.color: Theme.borderColor
                         }
 
                         contentItem: Text {
@@ -126,17 +180,48 @@ Item {
                         }
                     }
 
+                    // Delete button - hidden for now (dangerous operation)
                     Button {
                         Layout.fillWidth: true
-                        text: TranslationManager.downloading ? "..." : "Download"
-                        enabled: !TranslationManager.downloading
+                        Layout.preferredHeight: 48
+                        visible: false
+                        text: "Delete"
+                        enabled: TranslationManager.currentLanguage !== "en"
 
                         Accessible.role: Accessible.Button
-                        Accessible.name: TranslationManager.downloading ? "Downloading" : "Download community translations"
-                        Accessible.description: "Download translations from the community"
+                        Accessible.name: TranslationManager.translate("language.accessible.delete", "Delete language")
+                        Accessible.description: TranslationManager.translate("language.accessible.delete.description", "Delete the selected language and its translations")
+
+                        onClicked: deleteConfirmPopup.open()
 
                         background: Rectangle {
-                            implicitHeight: 40
+                            implicitHeight: 48
+                            color: parent.down ? Qt.darker(Theme.warningColor, 1.2) : Theme.warningColor
+                            radius: Theme.buttonRadius
+                            opacity: parent.enabled ? 1.0 : 0.3
+                        }
+
+                        contentItem: Text {
+                            text: parent.text
+                            font: Theme.bodyFont
+                            color: "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                    }
+
+                    Button {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 48
+                        text: TranslationManager.downloading ? "..." : "Update"
+                        enabled: !TranslationManager.downloading && TranslationManager.currentLanguage !== "en" && !TranslationManager.isRemoteLanguage(TranslationManager.currentLanguage)
+
+                        Accessible.role: Accessible.Button
+                        Accessible.name: TranslationManager.downloading ? TranslationManager.translate("language.accessible.downloading", "Downloading") : TranslationManager.translate("language.accessible.update", "Update community translations")
+                        Accessible.description: TranslationManager.translate("language.accessible.update.description", "Download latest translations from the community")
+
+                        background: Rectangle {
+                            implicitHeight: 48
                             color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
                             radius: Theme.buttonRadius
                             opacity: parent.enabled ? 1.0 : 0.5
@@ -150,7 +235,7 @@ Item {
                             verticalAlignment: Text.AlignVCenter
                         }
 
-                        onClicked: TranslationManager.downloadLanguageList()
+                        onClicked: TranslationManager.downloadLanguage(TranslationManager.currentLanguage)
                     }
                 }
             }
@@ -281,8 +366,8 @@ Item {
                     text: TranslationManager.currentLanguage === "en" ? "Browse & Customize Strings..." : "Browse & Translate Strings..."
 
                     Accessible.role: Accessible.Button
-                    Accessible.name: TranslationManager.currentLanguage === "en" ? "Browse and customize strings" : "Browse and translate strings"
-                    Accessible.description: TranslationManager.currentLanguage === "en" ? "Open the string browser to customize English text" : "Open the translation browser to translate individual strings"
+                    Accessible.name: TranslationManager.currentLanguage === "en" ? TranslationManager.translate("language.accessible.browse.en", "Browse and customize strings") : TranslationManager.translate("language.accessible.browse", "Browse and translate strings")
+                    Accessible.description: TranslationManager.currentLanguage === "en" ? TranslationManager.translate("language.accessible.browse.en.description", "Open the string browser to customize English text") : TranslationManager.translate("language.accessible.browse.description", "Open the translation browser to translate individual strings")
 
                     background: Rectangle {
                         implicitHeight: 48
@@ -306,16 +391,107 @@ Item {
                 // Submit to community button (not for English)
                 Button {
                     Layout.fillWidth: true
-                    text: "Submit to Community"
+                    text: TranslationManager.uploading ? "Uploading..." : "Submit to Community"
                     visible: TranslationManager.currentLanguage !== "en"
+                    enabled: !TranslationManager.uploading
 
                     Accessible.role: Accessible.Button
-                    Accessible.name: "Submit to community"
-                    Accessible.description: "Share your translations with the community on GitHub"
+                    Accessible.name: TranslationManager.uploading ? TranslationManager.translate("language.accessible.uploading", "Uploading translation") : TranslationManager.translate("language.accessible.submit", "Submit to community")
+                    Accessible.description: TranslationManager.translate("language.accessible.submit.description", "Share your translations with the community")
 
                     background: Rectangle {
                         implicitHeight: 48
                         color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
+                        radius: Theme.buttonRadius
+                        opacity: parent.enabled ? 1.0 : 0.5
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        font: Theme.bodyFont
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    onClicked: TranslationManager.submitTranslation()
+                }
+            }
+        }
+    }
+
+    // Delete confirmation popup
+    Popup {
+        id: deleteConfirmPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        dim: true
+        padding: Theme.spacingMedium
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+            border.width: 2
+            border.color: Theme.warningColor
+        }
+
+        contentItem: Column {
+            spacing: Theme.spacingMedium
+            width: 280
+
+            Text {
+                width: parent.width
+                text: "Delete Language?"
+                font: Theme.subtitleFont
+                color: Theme.warningColor
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Text {
+                width: parent.width
+                text: "Delete " + TranslationManager.getLanguageDisplayName(TranslationManager.currentLanguage) + " and all its translations?\n\nThis cannot be undone."
+                font: Theme.bodyFont
+                color: Theme.textColor
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Row {
+                width: parent.width
+                spacing: Theme.spacingSmall
+
+                Button {
+                    width: (parent.width - Theme.spacingSmall) / 2
+                    text: "Cancel"
+
+                    background: Rectangle {
+                        implicitHeight: 40
+                        color: parent.down ? Qt.darker(Theme.surfaceColor, 1.2) : Theme.surfaceColor
+                        radius: Theme.buttonRadius
+                        border.width: 1
+                        border.color: Theme.borderColor
+                    }
+
+                    contentItem: Text {
+                        text: parent.text
+                        font: Theme.bodyFont
+                        color: Theme.textColor
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+
+                    onClicked: deleteConfirmPopup.close()
+                }
+
+                Button {
+                    width: (parent.width - Theme.spacingSmall) / 2
+                    text: "Delete"
+
+                    background: Rectangle {
+                        implicitHeight: 40
+                        color: parent.down ? Qt.darker(Theme.warningColor, 1.2) : Theme.warningColor
                         radius: Theme.buttonRadius
                     }
 
@@ -327,8 +503,106 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                     }
 
-                    onClicked: TranslationManager.openGitHubSubmission()
+                    onClicked: {
+                        TranslationManager.deleteLanguage(TranslationManager.currentLanguage)
+                        deleteConfirmPopup.close()
+                    }
                 }
+            }
+        }
+    }
+
+    // Scanning overlay - simple progress bar
+    Rectangle {
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.5)
+        visible: TranslationManager.scanning
+        z: 100
+
+        ProgressBar {
+            anchors.centerIn: parent
+            width: parent.width * 0.6
+            from: 0
+            to: Math.max(1, TranslationManager.scanTotal)
+            value: TranslationManager.scanProgress
+
+            background: Rectangle {
+                implicitHeight: 8
+                color: Qt.rgba(1, 1, 1, 0.2)
+                radius: 4
+            }
+
+            contentItem: Item {
+                Rectangle {
+                    width: parent.parent.visualPosition * parent.width
+                    height: parent.height
+                    radius: 4
+                    color: Theme.primaryColor
+                }
+            }
+        }
+    }
+
+    // Submission result popup
+    Popup {
+        id: submitResultPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: true
+        dim: true
+        padding: Theme.spacingMedium
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        property bool isSuccess: false
+        property string message: ""
+
+        background: Rectangle {
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+            border.width: 2
+            border.color: submitResultPopup.isSuccess ? Theme.successColor : Theme.warningColor
+        }
+
+        contentItem: Column {
+            spacing: Theme.spacingMedium
+            width: 300
+
+            Text {
+                width: parent.width
+                text: submitResultPopup.isSuccess ? "Success!" : "Error"
+                font: Theme.subtitleFont
+                color: submitResultPopup.isSuccess ? Theme.successColor : Theme.warningColor
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Text {
+                width: parent.width
+                text: submitResultPopup.message
+                font: Theme.bodyFont
+                color: Theme.textColor
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Button {
+                width: parent.width
+                text: "OK"
+
+                background: Rectangle {
+                    implicitHeight: 40
+                    color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
+                    radius: Theme.buttonRadius
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    font: Theme.bodyFont
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+
+                onClicked: submitResultPopup.close()
             }
         }
     }

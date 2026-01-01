@@ -195,6 +195,7 @@ ApplicationWindow {
     }
 
     // Global tap handler for accessibility - announces any Text tapped
+    // Only announces text that is NOT inside an interactive element (buttons have their own announcements)
     MouseArea {
         id: accessibilityTapOverlay
         anchors.fill: parent
@@ -202,9 +203,23 @@ ApplicationWindow {
         enabled: typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled
         propagateComposedEvents: true
 
+        // Check if an item or any ancestor is interactive (Button, focusable, etc.)
+        function isInsideInteractive(item) {
+            var current = item
+            while (current) {
+                // Check for common interactive types
+                if (current.Accessible && current.Accessible.focusable) return true
+                if (current.activeFocusOnTab) return true
+                if (current.toString().indexOf("Button") !== -1) return true
+                if (current.toString().indexOf("AccessibleMouseArea") !== -1) return true
+                current = current.parent
+            }
+            return false
+        }
+
         onPressed: function(mouse) {
             var textItem = findTextAt(parent, mouse.x, mouse.y)
-            if (textItem && textItem.text) {
+            if (textItem && textItem.text && !isInsideInteractive(textItem)) {
                 AccessibilityManager.announceLabel(cleanForSpeech(textItem.text))
             }
             mouse.accepted = false
@@ -878,7 +893,7 @@ ApplicationWindow {
         anchors.left: parent.left
         anchors.right: parent.right
         height: Theme.statusBarHeight
-        z: 100
+        z: 600  // Above completionOverlay (500)
         visible: !screensaverActive
     }
 

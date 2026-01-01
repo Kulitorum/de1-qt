@@ -79,6 +79,7 @@ int main(int argc, char *argv[])
     batteryManager.setSettings(&settings);
     BatteryDrainer batteryDrainer;
     AccessibilityManager accessibilityManager;
+    accessibilityManager.setTranslationManager(&translationManager);
 
     // FlowScale fallback timer - notify after 30 seconds if no physical scale found
     QTimer flowScaleFallbackTimer;

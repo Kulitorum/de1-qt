@@ -107,7 +107,7 @@ Page {
 
                     Accessible.role: Accessible.Button
                     Accessible.name: modelData.name + ", " + modelData.native
-                    Accessible.description: "Add " + modelData.name + " language"
+                    Accessible.description: TranslationManager.translate("addlanguage.accessible.add", "Add") + " " + modelData.name + " " + TranslationManager.translate("language.accessible.language", "language")
                     Accessible.onPressAction: langMouseArea.clicked(null)
 
                     RowLayout {

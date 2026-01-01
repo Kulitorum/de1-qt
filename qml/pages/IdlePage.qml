@@ -153,7 +153,7 @@ Page {
                 KeyNavigation.right: shotInfoButton.visible ? shotInfoButton : steamButton
                 KeyNavigation.down: activePresetFunction === "espresso" ? espressoPresetRow : sleepButton
 
-                Accessible.description: "Start espresso. Double-tap to select profile. Long-press for settings."
+                Accessible.description: TranslationManager.translate("idle.accessible.espresso.description", "Start espresso. Double-tap to select profile. Long-press for settings.")
             }
 
             ActionButton {
@@ -171,7 +171,7 @@ Page {
                 KeyNavigation.right: steamButton
                 KeyNavigation.down: sleepButton
 
-                Accessible.description: "Edit shot metadata for Visualizer uploads. Bean, grinder, and tasting notes."
+                Accessible.description: TranslationManager.translate("idle.accessible.shotinfo.description", "Edit shot metadata for Visualizer uploads. Bean, grinder, and tasting notes.")
             }
 
             ActionButton {
@@ -190,7 +190,7 @@ Page {
                 KeyNavigation.right: hotWaterButton
                 KeyNavigation.down: activePresetFunction === "steam" ? steamPresetRow : sleepButton
 
-                Accessible.description: "Start steaming milk. Long-press to configure."
+                Accessible.description: TranslationManager.translate("idle.accessible.steam.description", "Start steaming milk. Long-press to configure.")
             }
 
             ActionButton {
@@ -209,7 +209,7 @@ Page {
                 KeyNavigation.right: flushButton
                 KeyNavigation.down: activePresetFunction === "hotwater" ? hotWaterPresetRow : settingsButton
 
-                Accessible.description: "Dispense hot water. Long-press to configure."
+                Accessible.description: TranslationManager.translate("idle.accessible.hotwater.description", "Dispense hot water. Long-press to configure.")
             }
 
             ActionButton {
@@ -227,7 +227,7 @@ Page {
                 KeyNavigation.left: hotWaterButton
                 KeyNavigation.down: activePresetFunction === "flush" ? flushPresetRow : settingsButton
 
-                Accessible.description: "Flush the group head. Long-press to configure."
+                Accessible.description: TranslationManager.translate("idle.accessible.flush.description", "Flush the group head. Long-press to configure.")
             }
         }
 
@@ -515,8 +515,8 @@ Page {
                 property bool enabled: DE1Device.connected
 
                 Accessible.role: Accessible.Button
-                Accessible.name: "Sleep"
-                Accessible.description: "Put the machine to sleep"
+                Accessible.name: TranslationManager.translate("idle.accessible.sleep", "Sleep")
+                Accessible.description: TranslationManager.translate("idle.accessible.sleep.description", "Put the machine to sleep")
                 Accessible.focusable: true
 
                 KeyNavigation.up: espressoButton
@@ -590,7 +590,7 @@ Page {
                     id: sleepMouseArea
                     anchors.fill: parent
                     enabled: sleepButton.enabled
-                    accessibleName: "Sleep. Put machine to sleep"
+                    accessibleName: TranslationManager.translate("idle.accessible.sleep", "Sleep") + ". " + TranslationManager.translate("idle.accessible.sleep.description", "Put the machine to sleep")
                     accessibleItem: sleepButton
                     onAccessibleClicked: sleepButton.doSleep()
                 }
@@ -606,8 +606,8 @@ Page {
                 activeFocusOnTab: true
 
                 Accessible.role: Accessible.Button
-                Accessible.name: "Settings"
-                Accessible.description: "Open application settings"
+                Accessible.name: TranslationManager.translate("idle.accessible.settings", "Settings")
+                Accessible.description: TranslationManager.translate("idle.accessible.settings.description", "Open application settings")
                 Accessible.focusable: true
 
                 KeyNavigation.up: flushButton

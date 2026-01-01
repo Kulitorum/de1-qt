@@ -14,11 +14,20 @@ Button {
     property string translationKey: ""
     property string translationFallback: ""
 
+    // Accessibility description translation (optional override)
+    property string accessibleDescriptionKey: "actionbutton.description.default"
+    property string accessibleDescriptionFallback: "Double-tap to activate. Long-press for options."
+
     // Auto-compute text from translation if translationKey is set (reactive to translation changes)
     text: translationKey !== "" ? _computedText : ""
     readonly property string _computedText: {
         var _ = TranslationManager.translationVersion  // Trigger re-evaluation
         return TranslationManager.translate(translationKey, translationFallback)
+    }
+
+    readonly property string _computedAccessibleDescription: {
+        var _ = TranslationManager.translationVersion
+        return TranslationManager.translate(accessibleDescriptionKey, accessibleDescriptionFallback)
     }
 
     // Track pressed state for visual feedback
@@ -31,7 +40,7 @@ Button {
     // Accessibility
     Accessible.role: Accessible.Button
     Accessible.name: control.text
-    Accessible.description: "Double-tap to select profile. Long-press for settings."
+    Accessible.description: control._computedAccessibleDescription
     Accessible.focusable: true
 
     implicitWidth: Theme.scaled(150)
@@ -136,10 +145,14 @@ Button {
         }
     }
 
-    // Announce button name when focused (for accessibility)
+    // Announce button name when focused via keyboard (for accessibility)
+    // Touch taps are handled by AccessibleMouseArea which has more context
     onActiveFocusChanged: {
         if (activeFocus && typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
-            AccessibilityManager.announce(control.text)
+            // Only announce if not being pressed (tap in progress = AccessibleMouseArea will handle it)
+            if (!control._isPressed) {
+                AccessibilityManager.announce(control.text)
+            }
         }
     }
 }

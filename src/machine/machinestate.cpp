@@ -233,7 +233,27 @@ void MachineState::updatePhase() {
 }
 
 void MachineState::onScaleWeightChanged(double weight) {
-    if (!isFlowing()) return;
+    // Auto-tare when cup is removed (significant weight drop while idle)
+    if (m_phase == Phase::Ready || m_phase == Phase::Idle) {
+        qint64 now = QDateTime::currentMSecsSinceEpoch();
+
+        // Detect cup removal: weight was >50g and dropped to <10g within 2 seconds
+        if (m_lastIdleWeight > 50.0 && weight < 10.0) {
+            qint64 elapsed = now - m_lastWeightTime;
+            if (elapsed < 2000) {  // Drop happened within 2 seconds
+                qDebug() << "=== AUTO-TARE: Cup removed (weight dropped from"
+                         << m_lastIdleWeight << "to" << weight << ") ===";
+                tareScale();
+            }
+        }
+
+        m_lastIdleWeight = weight;
+        m_lastWeightTime = now;
+        return;
+    }
+
+    // Reset tracking when not idle (so we detect removal after next shot)
+    m_lastIdleWeight = 0.0;
 
     DE1::State state = m_device->state();
     if (state == DE1::State::Espresso || state == DE1::State::HotWater) {
@@ -351,6 +371,10 @@ double MachineState::scaleFlowRate() const {
 
 void MachineState::tareScale() {
     if (m_scale && m_scale->isConnected()) {
+        // Immediately disable stop-at-weight until tare completes
+        // This prevents early stop if m_tareCompleted was true from a previous operation
+        m_tareCompleted = false;
+
         m_scale->tare();
         m_scale->resetFlowCalculation();  // Avoid flow rate spikes after tare
 

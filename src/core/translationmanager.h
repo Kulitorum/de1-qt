@@ -23,7 +23,13 @@ class TranslationManager : public QObject {
 
     // Network status
     Q_PROPERTY(bool downloading READ isDownloading NOTIFY downloadingChanged)
+    Q_PROPERTY(bool uploading READ isUploading NOTIFY uploadingChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
+
+    // String scanning status
+    Q_PROPERTY(bool scanning READ isScanning NOTIFY scanningChanged)
+    Q_PROPERTY(int scanProgress READ scanProgress NOTIFY scanProgressChanged)
+    Q_PROPERTY(int scanTotal READ scanTotal NOTIFY scanProgressChanged)
 
     // AI translation status
     Q_PROPERTY(bool autoTranslating READ isAutoTranslating NOTIFY autoTranslatingChanged)
@@ -46,7 +52,11 @@ public:
     int totalStringCount() const;
     QStringList availableLanguages() const;
     bool isDownloading() const;
+    bool isUploading() const;
     QString lastError() const;
+    bool isScanning() const;
+    int scanProgress() const;
+    int scanTotal() const;
     int translationVersion() const { return m_translationVersion; }
     bool isAutoTranslating() const { return m_autoTranslating; }
     int autoTranslateProgress() const { return m_autoTranslateProgress; }
@@ -67,15 +77,47 @@ public:
     Q_INVOKABLE QString getLanguageDisplayName(const QString& langCode) const;
     Q_INVOKABLE QString getLanguageNativeName(const QString& langCode) const;
 
-    // String registry - tracks all known keys in the app
+    // String Registry System
+    // ----------------------
+    // The app uses dynamic string discovery: strings are registered when translate() is called.
+    // This means strings on unvisited screens aren't in the registry until the user sees them.
+    //
+    // For complete translations (AI or community), we need ALL strings upfront.
+    // scanAllStrings() solves this by parsing QML source files at runtime to extract
+    // translatable strings, ensuring the registry is complete.
+    //
+    // Patterns detected:
+    //   1. translate("key", "fallback") - direct function calls
+    //   2. translationKey: "..." + translationFallback: "..." - ActionButton properties
+    //   3. key: "..." + fallback: "..." - Tr component properties
+    //
+    // Flow:
+    //   1. User enters Language settings → scanAllStrings() runs
+    //   2. All QML files in :/qml/ are parsed with regex
+    //   3. All translation patterns are extracted and registered
+    //   4. AI translation / upload now has access to all strings
+    //
     Q_INVOKABLE void registerString(const QString& key, const QString& fallback);
+    Q_INVOKABLE void scanAllStrings();
 
-    // Community translations
+    // Community Translation Sharing
+    // -----------------------------
+    // Translations are stored as: key → translated text (simple format)
+    // Each string key maps directly to its translation.
+    //
+    // Upload: Serializes current translations to JSON, uploads to S3
+    // Download: Fetches translation JSON, loads into local translation map
+    //
+    // Backend API (Cloudflare Worker + S3):
+    //   GET  /languages        - List available translations
+    //   GET  /languages/{code} - Download a translation file
+    //   GET  /upload-url?lang= - Get pre-signed S3 URL for upload
+    //
     Q_INVOKABLE void downloadLanguageList();
     Q_INVOKABLE void downloadLanguage(const QString& langCode);
     Q_INVOKABLE void exportTranslation(const QString& filePath);
     Q_INVOKABLE void importTranslation(const QString& filePath);
-    Q_INVOKABLE void openGitHubSubmission();
+    Q_INVOKABLE void submitTranslation();
 
     // Utility
     Q_INVOKABLE QVariantList getUntranslatedStrings() const;
@@ -86,6 +128,8 @@ public:
     Q_INVOKABLE bool isGroupSplit(const QString& fallback) const;  // True if keys have different translations
     Q_INVOKABLE void mergeGroupTranslation(const QString& key);  // Resets key to use group's common translation
     Q_INVOKABLE bool isRtlLanguage(const QString& langCode) const;
+    Q_INVOKABLE bool isRemoteLanguage(const QString& langCode) const;  // Available for download but not yet downloaded
+    Q_INVOKABLE int getTranslationPercent(const QString& langCode) const;  // Get translation % for any language
     Q_INVOKABLE int uniqueStringCount() const;  // Count of unique fallback texts
     Q_INVOKABLE int uniqueUntranslatedCount() const;  // Count of unique untranslated fallback texts
 
@@ -106,7 +150,12 @@ signals:
     void totalStringCountChanged();
     void availableLanguagesChanged();
     void downloadingChanged();
+    void uploadingChanged();
     void lastErrorChanged();
+    void translationSubmitted(bool success, const QString& message);
+    void scanningChanged();
+    void scanProgressChanged();
+    void scanFinished(int stringsFound);
 
     void translationsChanged();
     void translationChanged(const QString& key);
@@ -122,6 +171,8 @@ private slots:
     void onLanguageListFetched(QNetworkReply* reply);
     void onLanguageFileFetched(QNetworkReply* reply);
     void onAutoTranslateBatchReply(QNetworkReply* reply);
+    void onUploadUrlReceived(QNetworkReply* reply);
+    void onTranslationUploaded(QNetworkReply* reply);
 
 private:
     void loadTranslations();
@@ -147,7 +198,12 @@ private:
     QString m_currentLanguage;
     bool m_editModeEnabled = false;
     bool m_downloading = false;
+    bool m_uploading = false;
+    bool m_scanning = false;
+    int m_scanProgress = 0;
+    int m_scanTotal = 0;
     QString m_lastError;
+    QByteArray m_pendingUploadData;
 
     // translations[key] = translated_text
     QMap<QString, QString> m_translations;
@@ -187,6 +243,10 @@ private:
     // Set of keys whose current translation is unmodified AI output
     QSet<QString> m_aiGenerated;
 
-    static constexpr const char* GITHUB_RAW_BASE = "https://raw.githubusercontent.com/Kulitorum/de1-qt-translations/main";
-    static constexpr const char* GITHUB_ISSUES_URL = "https://github.com/Kulitorum/de1-qt-translations/issues/new";
+    // Backend base URL for translation downloads
+    static constexpr const char* TRANSLATION_API_BASE = "https://translation-upload-api.decenza-api.workers.dev";
+    // Endpoints used:
+    //   GET /upload-url         - returns pre-signed S3 URL for uploads
+    //   GET /languages          - returns list of available languages
+    //   GET /languages/{code}   - returns translation file for a language
 };

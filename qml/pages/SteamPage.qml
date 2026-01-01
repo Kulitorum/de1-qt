@@ -24,10 +24,14 @@ Page {
     property int editingPitcherIndex: -1  // For the edit popup
     property bool steamSoftStopped: false  // For two-stage stop on headless machines
 
-    // Reset soft-stop state when steaming starts
+    // Reset state when steaming starts
     onIsSteamingChanged: {
         if (isSteaming) {
             steamSoftStopped = false
+            // Reset to preset value (discard any +5s/-5s adjustments from previous session)
+            Settings.steamTimeout = getCurrentPitcherDuration()
+            Settings.steamFlow = getCurrentPitcherFlow()
+            MainController.applySteamSettings()
         }
     }
 
@@ -118,22 +122,85 @@ Page {
 
             Item { Layout.fillHeight: true }
 
-            // Timer with target
+            // Timer with target and adjustment buttons
             Column {
                 Layout.alignment: Qt.AlignHCenter
                 spacing: 8
 
-                Text {
-                    id: steamProgressText
+                Row {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: MachineState.shotTime.toFixed(1) + "s / " + Settings.steamTimeout + "s"
-                    color: Theme.textColor
-                    font: Theme.timerFont
+                    spacing: Theme.spacingMedium
+
+                    // Decrease time button
+                    Rectangle {
+                        id: decreaseTimeBtn
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Theme.scaled(48)
+                        height: width
+                        radius: Theme.cardRadius
+                        color: decreaseMouseArea.pressed ? Qt.darker(Theme.surfaceColor, 1.2) : Theme.surfaceColor
+                        border.color: "white"
+                        border.width: 1
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "-5s"
+                            color: Theme.textColor
+                            font: Theme.bodyFont
+                        }
+
+                        MouseArea {
+                            id: decreaseMouseArea
+                            anchors.fill: parent
+                            onClicked: {
+                                var newTime = Math.max(5, Settings.steamTimeout - 5)
+                                Settings.steamTimeout = newTime
+                                MainController.applySteamSettings()
+                            }
+                        }
+                    }
+
+                    Text {
+                        id: steamProgressText
+                        text: MachineState.shotTime.toFixed(1) + "s / " + Settings.steamTimeout + "s"
+                        color: Theme.textColor
+                        font: Theme.timerFont
+                    }
+
+                    // Increase time button
+                    Rectangle {
+                        id: increaseTimeBtn
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Theme.scaled(48)
+                        height: width
+                        radius: Theme.cardRadius
+                        color: increaseMouseArea.pressed ? Qt.darker(Theme.surfaceColor, 1.2) : Theme.surfaceColor
+                        border.color: "white"
+                        border.width: 1
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: "+5s"
+                            color: Theme.textColor
+                            font: Theme.bodyFont
+                        }
+
+                        MouseArea {
+                            id: increaseMouseArea
+                            anchors.fill: parent
+                            onClicked: {
+                                var newTime = Math.min(120, Settings.steamTimeout + 5)
+                                Settings.steamTimeout = newTime
+                                MainController.applySteamSettings()
+                            }
+                        }
+                    }
                 }
 
                 // Progress bar
                 Rectangle {
-                    width: steamProgressText.width
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: steamProgressText.width + decreaseTimeBtn.width + increaseTimeBtn.width + Theme.spacingMedium * 2
                     height: 8
                     radius: 4
                     color: Theme.surfaceColor

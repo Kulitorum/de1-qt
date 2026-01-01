@@ -1,7 +1,9 @@
 #include "accessibilitymanager.h"
+#include "translationmanager.h"
 #include <QDebug>
 #include <QCoreApplication>
 #include <QApplication>
+#include <QLocale>
 
 AccessibilityManager::AccessibilityManager(QObject *parent)
     : QObject(parent)
@@ -71,16 +73,15 @@ void AccessibilityManager::saveSettings()
 
 void AccessibilityManager::initTts()
 {
-    // Check available engines first
     auto engines = QTextToSpeech::availableEngines();
     qDebug() << "Available TTS engines:" << engines;
 
-    // On Android, explicitly use the "android" engine which delegates to system TTS
-    // This allows eSpeak or any other TTS engine set in Android settings to work
+    // On Android, use "android" engine which delegates to system TTS settings
+    // This respects the user's preferred engine and voice from Android preferences
 #ifdef Q_OS_ANDROID
     if (engines.contains("android")) {
         m_tts = new QTextToSpeech("android", this);
-        qDebug() << "Using Android TTS engine";
+        qDebug() << "Using Android system TTS";
     } else {
         m_tts = new QTextToSpeech(this);
     }
@@ -94,6 +95,10 @@ void AccessibilityManager::initTts()
             qWarning() << "TTS error:" << m_tts->errorString();
         } else if (state == QTextToSpeech::Ready) {
             qDebug() << "TTS ready";
+            // Sync locale with app language
+            if (m_translationManager) {
+                updateTtsLocale();
+            }
         }
     });
 }
@@ -236,5 +241,48 @@ void AccessibilityManager::toggleEnabled()
     if (m_tts && m_ttsEnabled) {
         m_tts->stop();
         m_tts->say(m_enabled ? "Accessibility enabled" : "Accessibility disabled");
+    }
+}
+
+void AccessibilityManager::setTranslationManager(TranslationManager* translationManager)
+{
+    if (m_translationManager) {
+        disconnect(m_translationManager, nullptr, this, nullptr);
+    }
+
+    m_translationManager = translationManager;
+
+    if (m_translationManager) {
+        connect(m_translationManager, &TranslationManager::currentLanguageChanged,
+                this, &AccessibilityManager::updateTtsLocale);
+
+        // Set initial locale
+        updateTtsLocale();
+    }
+}
+
+void AccessibilityManager::updateTtsLocale()
+{
+    if (!m_tts || !m_translationManager) return;
+
+    QString langCode = m_translationManager->currentLanguage();
+    QLocale locale(langCode);
+
+    // Check if this locale is available for TTS
+    QList<QLocale> availableLocales = m_tts->availableLocales();
+
+    // Try exact match first
+    bool found = false;
+    for (const QLocale& available : availableLocales) {
+        if (available.language() == locale.language()) {
+            m_tts->setLocale(available);
+            qDebug() << "TTS locale set to:" << available.name() << "for language:" << langCode;
+            found = true;
+            break;
+        }
+    }
+
+    if (!found) {
+        qDebug() << "TTS locale not available for:" << langCode << "- using system default";
     }
 }

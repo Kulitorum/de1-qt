@@ -100,4 +100,8 @@ private:
     bool m_stopAtWeightTriggered = false;
     bool m_stopAtTimeTriggered = false;
     bool m_tareCompleted = false;
+
+    // Auto-tare on cup removal detection
+    double m_lastIdleWeight = 0.0;
+    qint64 m_lastWeightTime = 0;
 };

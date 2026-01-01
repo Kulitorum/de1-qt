@@ -2,6 +2,7 @@
 #include "settings.h"
 #include <QStandardPaths>
 #include <QDir>
+#include <QDirIterator>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -12,6 +13,8 @@
 #include <QUrlQuery>
 #include <QTimer>
 #include <QSet>
+#include <QRegularExpression>
+#include <QCoreApplication>
 
 TranslationManager::TranslationManager(Settings* settings, QObject* parent)
     : QObject(parent)
@@ -141,6 +144,26 @@ bool TranslationManager::isDownloading() const
     return m_downloading;
 }
 
+bool TranslationManager::isUploading() const
+{
+    return m_uploading;
+}
+
+bool TranslationManager::isScanning() const
+{
+    return m_scanning;
+}
+
+int TranslationManager::scanProgress() const
+{
+    return m_scanProgress;
+}
+
+int TranslationManager::scanTotal() const
+{
+    return m_scanTotal;
+}
+
 QString TranslationManager::lastError() const
 {
     return m_lastError;
@@ -204,10 +227,14 @@ void TranslationManager::addLanguage(const QString& langCode, const QString& dis
         return;
     }
 
+    // Determine RTL based on language code
+    static const QStringList rtlLanguages = {"ar", "he", "fa", "ur"};
+    bool isRtl = rtlLanguages.contains(langCode);
+
     m_languageMetadata[langCode] = QVariantMap{
         {"displayName", displayName},
         {"nativeName", nativeName.isEmpty() ? displayName : nativeName},
-        {"isRtl", false}
+        {"isRtl", isRtl}
     };
 
     saveLanguageMetadata();
@@ -281,6 +308,191 @@ void TranslationManager::registerString(const QString& key, const QString& fallb
     }
 }
 
+// Scan all QML source files to discover every translatable string in the app.
+//
+// Why this is needed:
+// - Strings are normally registered when translate() is called at runtime
+// - This means strings on screens the user hasn't visited aren't in the registry
+// - AI translation and community sharing need the complete list of strings
+// - By scanning QML files, we find ALL translate("key", "fallback") calls
+//
+// This runs when entering the Language settings page.
+void TranslationManager::scanAllStrings()
+{
+    if (m_scanning) {
+        return;
+    }
+
+    m_scanning = true;
+    m_scanProgress = 0;
+    emit scanningChanged();
+
+    // Collect all QML files from the Qt resource system (:/qml/)
+    QStringList qmlFiles;
+    QDirIterator it(":/qml", QStringList() << "*.qml", QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        qmlFiles.append(it.next());
+    }
+
+    m_scanTotal = qmlFiles.size();
+    emit scanProgressChanged();
+
+    qDebug() << "Scanning" << m_scanTotal << "QML files for translatable strings...";
+
+    // Pattern 1: Direct translate() calls - translate("key", "fallback")
+    QRegularExpression directCallRegex("translate\\s*\\(\\s*\"([^\"]+)\"\\s*,\\s*\"([^\"]+)\"\\s*\\)");
+
+    // Pattern 2: ActionButton's translationKey/translationFallback properties
+    QRegularExpression propKeyRegex("translationKey\\s*:\\s*\"([^\"]+)\"");
+    QRegularExpression propFallbackRegex("translationFallback\\s*:\\s*\"([^\"]+)\"");
+
+    // Pattern 3: Tr component's key/fallback properties - Tr { key: "..."; fallback: "..." }
+    QRegularExpression trKeyRegex("\\bkey\\s*:\\s*\"([^\"]+)\"");
+    QRegularExpression trFallbackRegex("\\bfallback\\s*:\\s*\"([^\"]+)\"");
+
+    int stringsFound = 0;
+    int initialCount = m_stringRegistry.size();
+
+    for (const QString& filePath : qmlFiles) {
+        QFile file(filePath);
+        if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString content = QString::fromUtf8(file.readAll());
+            file.close();
+
+            // Pattern 1: Direct translate() calls
+            QRegularExpressionMatchIterator matchIt = directCallRegex.globalMatch(content);
+            while (matchIt.hasNext()) {
+                QRegularExpressionMatch match = matchIt.next();
+                QString key = match.captured(1);
+                QString fallback = match.captured(2);
+
+                // Unescape common escape sequences
+                key.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
+                fallback.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
+
+                if (!key.isEmpty() && !fallback.isEmpty()) {
+                    if (!m_stringRegistry.contains(key)) {
+                        m_stringRegistry[key] = fallback;
+                        stringsFound++;
+                    }
+                }
+            }
+
+            // Pattern 2: Property-based translations (translationKey + translationFallback pairs)
+            // Collect all keys and fallbacks, then match them by proximity in the file
+            QMap<int, QString> keyPositions;  // position -> key
+            QMap<int, QString> fallbackPositions;  // position -> fallback
+
+            QRegularExpressionMatchIterator keyIt = propKeyRegex.globalMatch(content);
+            while (keyIt.hasNext()) {
+                QRegularExpressionMatch match = keyIt.next();
+                keyPositions[match.capturedStart()] = match.captured(1);
+            }
+
+            QRegularExpressionMatchIterator fallbackIt = propFallbackRegex.globalMatch(content);
+            while (fallbackIt.hasNext()) {
+                QRegularExpressionMatch match = fallbackIt.next();
+                fallbackPositions[match.capturedStart()] = match.captured(1);
+            }
+
+            // Match keys with their nearest following fallback
+            for (auto it = keyPositions.constBegin(); it != keyPositions.constEnd(); ++it) {
+                int keyPos = it.key();
+                QString key = it.value();
+
+                // Find the nearest fallback after this key (within 200 chars)
+                for (auto fbIt = fallbackPositions.constBegin(); fbIt != fallbackPositions.constEnd(); ++fbIt) {
+                    int fbPos = fbIt.key();
+                    if (fbPos > keyPos && fbPos - keyPos < 200) {
+                        QString fallback = fbIt.value();
+
+                        // Unescape
+                        key.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
+                        fallback.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
+
+                        if (!key.isEmpty() && !fallback.isEmpty()) {
+                            if (!m_stringRegistry.contains(key)) {
+                                m_stringRegistry[key] = fallback;
+                                stringsFound++;
+                            }
+                        }
+                        break;  // Found the matching fallback
+                    }
+                }
+            }
+
+            // Pattern 3: Tr component's key/fallback properties
+            QMap<int, QString> trKeyPositions;
+            QMap<int, QString> trFallbackPositions;
+
+            QRegularExpressionMatchIterator trKeyIt = trKeyRegex.globalMatch(content);
+            while (trKeyIt.hasNext()) {
+                QRegularExpressionMatch match = trKeyIt.next();
+                trKeyPositions[match.capturedStart()] = match.captured(1);
+            }
+
+            QRegularExpressionMatchIterator trFallbackIt = trFallbackRegex.globalMatch(content);
+            while (trFallbackIt.hasNext()) {
+                QRegularExpressionMatch match = trFallbackIt.next();
+                trFallbackPositions[match.capturedStart()] = match.captured(1);
+            }
+
+            // Match keys with their nearest fallback (within 200 chars, in either direction)
+            for (auto it = trKeyPositions.constBegin(); it != trKeyPositions.constEnd(); ++it) {
+                int keyPos = it.key();
+                QString key = it.value();
+
+                // Find the nearest fallback (can be before or after the key)
+                QString fallback;
+                int minDistance = 200;
+
+                for (auto fbIt = trFallbackPositions.constBegin(); fbIt != trFallbackPositions.constEnd(); ++fbIt) {
+                    int fbPos = fbIt.key();
+                    int distance = qAbs(fbPos - keyPos);
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        fallback = fbIt.value();
+                    }
+                }
+
+                if (!fallback.isEmpty()) {
+                    // Unescape
+                    QString keyClean = key;
+                    QString fallbackClean = fallback;
+                    keyClean.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
+                    fallbackClean.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
+
+                    if (!keyClean.isEmpty() && !fallbackClean.isEmpty()) {
+                        if (!m_stringRegistry.contains(keyClean)) {
+                            m_stringRegistry[keyClean] = fallbackClean;
+                            stringsFound++;
+                        }
+                    }
+                }
+            }
+        }
+
+        m_scanProgress++;
+        emit scanProgressChanged();
+
+        // Process events to keep UI responsive
+        QCoreApplication::processEvents();
+    }
+
+    // Save the updated registry
+    if (stringsFound > 0) {
+        saveStringRegistry();
+        recalculateUntranslatedCount();
+        emit totalStringCountChanged();
+    }
+
+    m_scanning = false;
+    emit scanningChanged();
+    emit scanFinished(m_stringRegistry.size() - initialCount);
+
+    qDebug() << "Scan complete. Found" << stringsFound << "new strings. Total:" << m_stringRegistry.size();
+}
+
 // --- Community translations ---
 
 void TranslationManager::downloadLanguageList()
@@ -292,10 +504,10 @@ void TranslationManager::downloadLanguageList()
     m_downloading = true;
     emit downloadingChanged();
 
-    QString url = QString("%1/languages.json").arg(GITHUB_RAW_BASE);
+    QString url = QString("%1/languages").arg(TRANSLATION_API_BASE);
     qDebug() << "Fetching language list from:" << url;
 
-    QNetworkRequest request(url);
+    QNetworkRequest request{QUrl(url)};
     QNetworkReply* reply = m_networkManager->get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -313,10 +525,10 @@ void TranslationManager::downloadLanguage(const QString& langCode)
     m_downloadingLangCode = langCode;
     emit downloadingChanged();
 
-    QString url = QString("%1/languages/%2.json").arg(GITHUB_RAW_BASE, langCode);
+    QString url = QString("%1/languages/%2").arg(TRANSLATION_API_BASE, langCode);
     qDebug() << "Fetching language file from:" << url;
 
-    QNetworkRequest request(url);
+    QNetworkRequest request{QUrl(url)};
     QNetworkReply* reply = m_networkManager->get(request);
 
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
@@ -409,25 +621,29 @@ void TranslationManager::onLanguageFileFetched(QNetworkReply* reply)
         file.close();
     }
 
-    // Update metadata if provided
+    // Update metadata
     QJsonObject root = doc.object();
-    if (root.contains("displayName") || root.contains("nativeName")) {
-        m_languageMetadata[langCode] = QVariantMap{
-            {"displayName", root["displayName"].toString(langCode)},
-            {"nativeName", root["nativeName"].toString(langCode)},
-            {"isRtl", root["isRtl"].toBool(false)},
-            {"isRemote", false}  // Now downloaded locally
-        };
-        saveLanguageMetadata();
-    }
+    m_languageMetadata[langCode] = QVariantMap{
+        {"displayName", root["displayName"].toString(langCode)},
+        {"nativeName", root["nativeName"].toString(langCode)},
+        {"isRtl", root["isRtl"].toBool(false)},
+        {"isRemote", false}  // Now downloaded locally
+    };
+    saveLanguageMetadata();
+
+    // Update available languages list (overwrites, no duplicates)
+    m_availableLanguages = m_languageMetadata.keys();
+    emit availableLanguagesChanged();
 
     // Reload if this is the current language
     if (langCode == m_currentLanguage) {
         loadTranslations();
         recalculateUntranslatedCount();
-        m_translationVersion++;
-        emit translationsChanged();
     }
+
+    // Always increment version to refresh UI (language list colors/percentages)
+    m_translationVersion++;
+    emit translationsChanged();
 
     emit languageDownloaded(langCode, true, QString());
     qDebug() << "Downloaded language:" << langCode;
@@ -442,20 +658,12 @@ void TranslationManager::exportTranslation(const QString& filePath)
     root["nativeName"] = getLanguageNativeName(m_currentLanguage);
     root["isRtl"] = isRtlLanguage(m_currentLanguage);
 
+    // Simple key -> translation format
     QJsonObject translations;
     for (auto it = m_translations.constBegin(); it != m_translations.constEnd(); ++it) {
         translations[it.key()] = it.value();
     }
     root["translations"] = translations;
-
-    // Also include untranslated strings with empty values for reference
-    QJsonObject untranslated;
-    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
-        if (!m_translations.contains(it.key())) {
-            untranslated[it.key()] = it.value();  // English fallback as hint
-        }
-    }
-    root["untranslated"] = untranslated;
 
     QFile file(filePath);
     if (file.open(QIODevice::WriteOnly)) {
@@ -507,7 +715,8 @@ void TranslationManager::importTranslation(const QString& filePath)
     m_languageMetadata[langCode] = QVariantMap{
         {"displayName", root["displayName"].toString(langCode)},
         {"nativeName", root["nativeName"].toString(langCode)},
-        {"isRtl", root["isRtl"].toBool(false)}
+        {"isRtl", root["isRtl"].toBool(false)},
+        {"isRemote", false}
     };
     saveLanguageMetadata();
 
@@ -525,30 +734,121 @@ void TranslationManager::importTranslation(const QString& filePath)
     qDebug() << "Imported translation for:" << langCode;
 }
 
-void TranslationManager::openGitHubSubmission()
+void TranslationManager::submitTranslation()
 {
-    // Create a GitHub issue with the translation data pre-filled
-    QString title = QString("Translation submission: %1").arg(getLanguageDisplayName(m_currentLanguage));
+    if (m_uploading) {
+        return;
+    }
 
-    QString body = QString("## Language: %1 (%2)\n\n"
-                          "Translated %3 of %4 strings (%5%)\n\n"
-                          "**Please attach your exported translation JSON file to this issue.**\n\n"
-                          "You can export your translation from:\n"
-                          "Settings -> Language -> Export Translation\n")
-                       .arg(getLanguageDisplayName(m_currentLanguage))
-                       .arg(m_currentLanguage)
-                       .arg(m_translations.size())
-                       .arg(m_stringRegistry.size())
-                       .arg(m_stringRegistry.isEmpty() ? 0 : (m_translations.size() * 100 / m_stringRegistry.size()));
+    if (m_currentLanguage == "en") {
+        m_lastError = "Cannot submit English - it's the base language";
+        emit lastErrorChanged();
+        emit translationSubmitted(false, m_lastError);
+        return;
+    }
 
-    QUrl url(GITHUB_ISSUES_URL);
-    QUrlQuery query;
-    query.addQueryItem("title", title);
-    query.addQueryItem("body", body);
-    query.addQueryItem("labels", "translation");
-    url.setQuery(query);
+    // Build the translation JSON to upload
+    QJsonObject root;
+    root["language"] = m_currentLanguage;
+    root["displayName"] = getLanguageDisplayName(m_currentLanguage);
+    root["nativeName"] = getLanguageNativeName(m_currentLanguage);
+    root["isRtl"] = isRtlLanguage(m_currentLanguage);
 
-    QDesktopServices::openUrl(url);
+    // Simple key -> translation format
+    QJsonObject translations;
+    for (auto it = m_translations.constBegin(); it != m_translations.constEnd(); ++it) {
+        translations[it.key()] = it.value();
+    }
+    root["translations"] = translations;
+
+    // Store the data for upload after we get the pre-signed URL
+    m_pendingUploadData = QJsonDocument(root).toJson();
+
+    m_uploading = true;
+    emit uploadingChanged();
+
+    // Request a pre-signed URL from the backend, passing the language code
+    QString uploadUrlEndpoint = QString("%1/upload-url?lang=%2").arg(TRANSLATION_API_BASE, m_currentLanguage);
+    QNetworkRequest request{QUrl(uploadUrlEndpoint)};
+    QNetworkReply* reply = m_networkManager->get(request);
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply]() {
+        onUploadUrlReceived(reply);
+    });
+
+    qDebug() << "Requesting upload URL from:" << uploadUrlEndpoint;
+}
+
+void TranslationManager::onUploadUrlReceived(QNetworkReply* reply)
+{
+    reply->deleteLater();
+
+    if (reply->error() != QNetworkReply::NoError) {
+        m_uploading = false;
+        m_lastError = QString("Failed to get upload URL: %1").arg(reply->errorString());
+        emit uploadingChanged();
+        emit lastErrorChanged();
+        emit translationSubmitted(false, m_lastError);
+        qWarning() << m_lastError;
+        return;
+    }
+
+    QByteArray data = reply->readAll();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+
+    if (!doc.isObject()) {
+        m_uploading = false;
+        m_lastError = "Invalid response from upload server";
+        emit uploadingChanged();
+        emit lastErrorChanged();
+        emit translationSubmitted(false, m_lastError);
+        return;
+    }
+
+    QJsonObject root = doc.object();
+    QString uploadUrl = root["url"].toString();
+
+    if (uploadUrl.isEmpty()) {
+        m_uploading = false;
+        m_lastError = "No upload URL in response";
+        emit uploadingChanged();
+        emit lastErrorChanged();
+        emit translationSubmitted(false, m_lastError);
+        return;
+    }
+
+    // Now upload the translation file to S3 using the pre-signed URL
+    QNetworkRequest uploadRequest{QUrl(uploadUrl)};
+    uploadRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QNetworkReply* uploadReply = m_networkManager->put(uploadRequest, m_pendingUploadData);
+
+    connect(uploadReply, &QNetworkReply::finished, this, [this, uploadReply]() {
+        onTranslationUploaded(uploadReply);
+    });
+
+    qDebug() << "Uploading translation to S3...";
+}
+
+void TranslationManager::onTranslationUploaded(QNetworkReply* reply)
+{
+    reply->deleteLater();
+    m_uploading = false;
+    m_pendingUploadData.clear();
+    emit uploadingChanged();
+
+    if (reply->error() != QNetworkReply::NoError) {
+        m_lastError = QString("Failed to upload translation: %1").arg(reply->errorString());
+        emit lastErrorChanged();
+        emit translationSubmitted(false, m_lastError);
+        qWarning() << m_lastError;
+        return;
+    }
+
+    QString message = QString("Translation for %1 submitted successfully! Thank you for contributing.")
+                          .arg(getLanguageDisplayName(m_currentLanguage));
+    emit translationSubmitted(true, message);
+    qDebug() << message;
 }
 
 // --- Utility ---
@@ -602,6 +902,59 @@ bool TranslationManager::isRtlLanguage(const QString& langCode) const
     // Common RTL languages
     static const QStringList rtlLanguages = {"ar", "he", "fa", "ur"};
     return rtlLanguages.contains(langCode);
+}
+
+bool TranslationManager::isRemoteLanguage(const QString& langCode) const
+{
+    if (m_languageMetadata.contains(langCode)) {
+        return m_languageMetadata[langCode]["isRemote"].toBool();
+    }
+    return false;
+}
+
+int TranslationManager::getTranslationPercent(const QString& langCode) const
+{
+    if (langCode == "en") {
+        return 100;  // English is always complete
+    }
+
+    // For current language, use cached values
+    if (langCode == m_currentLanguage) {
+        int total = m_stringRegistry.size();
+        if (total == 0) return 0;
+        int translated = total - m_untranslatedCount;
+        return (translated * 100) / total;
+    }
+
+    // For other languages, read from file
+    QFile file(languageFilePath(langCode));
+    if (!file.open(QIODevice::ReadOnly)) {
+        return 0;
+    }
+
+    QByteArray data = file.readAll();
+    file.close();
+
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    if (!doc.isObject()) {
+        return 0;
+    }
+
+    QJsonObject root = doc.object();
+    QJsonObject translations = root["translations"].toObject();
+
+    // Simple key -> translation format: count keys that have translations
+    int total = m_stringRegistry.size();
+    if (total == 0) return 0;
+
+    int translated = 0;
+    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        if (translations.contains(it.key()) && !translations.value(it.key()).toString().isEmpty()) {
+            translated++;
+        }
+    }
+
+    return (translated * 100) / total;
 }
 
 QVariantList TranslationManager::getGroupedStrings() const
@@ -826,6 +1179,7 @@ void TranslationManager::loadTranslations()
     QJsonObject root = doc.object();
     QJsonObject translations = root["translations"].toObject();
 
+    // Simple key -> translation format
     for (auto it = translations.constBegin(); it != translations.constEnd(); ++it) {
         m_translations[it.key()] = it.value().toString();
     }
@@ -842,6 +1196,7 @@ void TranslationManager::saveTranslations()
     root["nativeName"] = getLanguageNativeName(m_currentLanguage);
     root["isRtl"] = isRtlLanguage(m_currentLanguage);
 
+    // Simple key -> translation format
     QJsonObject translations;
     for (auto it = m_translations.constBegin(); it != m_translations.constEnd(); ++it) {
         translations[it.key()] = it.value();

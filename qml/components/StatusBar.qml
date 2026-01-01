@@ -31,18 +31,33 @@ Rectangle {
 
         Item { Layout.fillWidth: true }
 
-        // Temperature
-        Text {
-            text: DE1Device.temperature.toFixed(1) + "°C"
-            color: Theme.temperatureColor
-            font: Theme.bodyFont
+        // Temperature (tap to tare scale)
+        Item {
+            implicitWidth: tempText.implicitWidth
+            implicitHeight: tempText.implicitHeight
 
-            Accessible.role: Accessible.StaticText
-            Accessible.name: temperatureAccessible.text + DE1Device.temperature.toFixed(1) + " " + degreesCelsiusAccessible.text
+            Accessible.role: Accessible.Button
+            Accessible.name: temperatureAccessible.text + DE1Device.temperature.toFixed(1) + " " + degreesCelsiusAccessible.text + ". " + tapToTareAccessible.text
 
             // Hidden Tr elements for accessible names
             Tr { id: temperatureAccessible; key: "statusbar.temperature"; fallback: "Temperature: "; visible: false }
             Tr { id: degreesCelsiusAccessible; key: "statusbar.degrees_celsius"; fallback: "degrees Celsius"; visible: false }
+            Tr { id: tapToTareAccessible; key: "statusbar.tap_to_tare"; fallback: "Tap to tare scale"; visible: false }
+
+            Text {
+                id: tempText
+                text: DE1Device.temperature.toFixed(1) + "°C"
+                color: tempMouseArea.pressed ? Theme.accentColor : Theme.temperatureColor
+                font: Theme.bodyFont
+            }
+
+            MouseArea {
+                id: tempMouseArea
+                anchors.fill: parent
+                anchors.margins: -Theme.spacingSmall  // Expand touch target
+                cursorShape: Qt.PointingHandCursor
+                onClicked: MachineState.tareScale()
+            }
         }
 
         // Separator
@@ -75,7 +90,7 @@ Rectangle {
             opacity: 0.3
         }
 
-        // Scale warning (clickable to scan)
+        // Scale warning (clickable button to scan)
         Rectangle {
             visible: BLEManager.scaleConnectionFailed || (BLEManager.hasSavedScale && (!ScaleDevice || !ScaleDevice.connected))
             color: BLEManager.scaleConnectionFailed ? Theme.errorColor : "transparent"
@@ -92,6 +107,13 @@ Rectangle {
             Tr { id: scanAccessible; key: "statusbar.tap_to_scan"; fallback: "Tap to scan"; visible: false }
             Tr { id: scaleConnectingAccessible; key: "statusbar.scale_connecting"; fallback: "Scale connecting"; visible: false }
 
+            // Make entire area clickable
+            MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: BLEManager.scanForScales()
+            }
+
             Row {
                 id: scaleWarningRow
                 anchors.centerIn: parent
@@ -100,55 +122,51 @@ Rectangle {
                 Tr {
                     key: BLEManager.scaleConnectionFailed ? "statusbar.scale_not_found" : "statusbar.scale_ellipsis"
                     fallback: BLEManager.scaleConnectionFailed ? "Scale not found" : "Scale..."
-                    visible: BLEManager.scaleConnectionFailed || (ScaleDevice && !ScaleDevice.connected) || !ScaleDevice
                     color: BLEManager.scaleConnectionFailed ? "white" : Theme.textSecondaryColor
                     font: Theme.bodyFont
                     anchors.verticalCenter: parent.verticalCenter
                 }
-
-                Text {
-                    text: "[" + scanButton.text + "]"
-                    color: Theme.accentColor
-                    font.pixelSize: Theme.bodyFont.pixelSize
-                    font.underline: true
-                    visible: BLEManager.scaleConnectionFailed
-                    anchors.verticalCenter: parent.verticalCenter
-
-                    Tr { id: scanButton; key: "statusbar.scan"; fallback: "Scan"; visible: false }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: BLEManager.scanForScales()
-                    }
-                }
             }
         }
 
-        // Scale connected indicator
-        Row {
-            spacing: Theme.spacingSmall
+        // Scale connected indicator (tap to tare)
+        Item {
             visible: ScaleDevice && ScaleDevice.connected
+            implicitWidth: scaleRow.implicitWidth
+            implicitHeight: scaleRow.implicitHeight
 
-            Accessible.role: Accessible.StaticText
-            Accessible.name: scaleWeightAccessible.text + MachineState.scaleWeight.toFixed(1) + " " + gramsAccessible.text
+            Accessible.role: Accessible.Button
+            Accessible.name: scaleWeightAccessible.text + MachineState.scaleWeight.toFixed(1) + " " + gramsAccessible.text + ". " + tapToTareAccessible.text
 
             // Hidden Tr elements for accessible names
             Tr { id: scaleWeightAccessible; key: "statusbar.scale_weight"; fallback: "Scale weight: "; visible: false }
             Tr { id: gramsAccessible; key: "statusbar.grams"; fallback: "grams"; visible: false }
 
-            Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                width: Theme.scaled(8)
-                height: Theme.scaled(8)
-                radius: Theme.scaled(4)
-                color: Theme.weightColor
+            Row {
+                id: scaleRow
+                spacing: Theme.spacingSmall
+
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.scaled(8)
+                    height: Theme.scaled(8)
+                    radius: Theme.scaled(4)
+                    color: scaleMouseArea.pressed ? Theme.accentColor : Theme.weightColor
+                }
+
+                Text {
+                    text: MachineState.scaleWeight.toFixed(1) + "g"
+                    color: scaleMouseArea.pressed ? Theme.accentColor : Theme.weightColor
+                    font: Theme.bodyFont
+                }
             }
 
-            Text {
-                text: MachineState.scaleWeight.toFixed(1) + "g"
-                color: Theme.weightColor
-                font: Theme.bodyFont
+            MouseArea {
+                id: scaleMouseArea
+                anchors.fill: parent
+                anchors.margins: -Theme.spacingSmall  // Expand touch target
+                cursorShape: Qt.PointingHandCursor
+                onClicked: MachineState.tareScale()
             }
         }
 

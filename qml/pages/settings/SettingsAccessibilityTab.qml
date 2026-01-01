@@ -40,30 +40,6 @@ Item {
                     wrapMode: Text.WordWrap
                 }
 
-                // Tip about backdoor activation
-                Rectangle {
-                    Layout.fillWidth: true
-                    height: tipText.implicitHeight + 16
-                    radius: 6
-                    color: Qt.rgba(Theme.primaryColor.r, Theme.primaryColor.g, Theme.primaryColor.b, 0.15)
-                    border.color: Theme.primaryColor
-                    border.width: 1
-
-                    Tr {
-                        id: tipText
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        key: "settings.accessibility.tip"
-                        fallback: "Tip: 4-finger tap anywhere to toggle accessibility on/off"
-                        color: Theme.primaryColor
-                        font.pixelSize: 12
-                        wrapMode: Text.Wrap
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
-
-                Item { height: 5 }
-
                 // Enable toggle
                 RowLayout {
                     Layout.fillWidth: true
