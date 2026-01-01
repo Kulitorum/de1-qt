@@ -353,6 +353,13 @@ void MachineState::tareScale() {
     if (m_scale && m_scale->isConnected()) {
         m_scale->tare();
         m_scale->resetFlowCalculation();  // Avoid flow rate spikes after tare
-        m_tareCompleted = true;  // Now safe to check stop-at-weight
+
+        // Don't set m_tareCompleted immediately - BLE scales take time to process tare
+        // Wait 500ms for the scale to actually tare before allowing stop-at-weight checks
+        // This prevents early stop if old (pre-tare) weight readings arrive
+        QTimer::singleShot(500, this, [this]() {
+            m_tareCompleted = true;
+            qDebug() << "=== TARE COMPLETE: stop-at-weight now active ===";
+        });
     }
 }
