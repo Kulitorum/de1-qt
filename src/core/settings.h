@@ -98,6 +98,7 @@ class Settings : public QObject {
     Q_PROPERTY(int dyeEspressoEnjoyment READ dyeEspressoEnjoyment WRITE setDyeEspressoEnjoyment NOTIFY dyeEspressoEnjoymentChanged)
     Q_PROPERTY(QString dyeEspressoNotes READ dyeEspressoNotes WRITE setDyeEspressoNotes NOTIFY dyeEspressoNotesChanged)
     Q_PROPERTY(QString dyeBarista READ dyeBarista WRITE setDyeBarista NOTIFY dyeBaristaChanged)
+    Q_PROPERTY(QString dyeShotDateTime READ dyeShotDateTime WRITE setDyeShotDateTime NOTIFY dyeShotDateTimeChanged)
 
     // Water tank level calibration (auto-calibrated)
     Q_PROPERTY(double waterLevelMinMm READ waterLevelMinMm WRITE setWaterLevelMinMm NOTIFY waterLevelMinMmChanged)
@@ -320,6 +321,9 @@ public:
     QString dyeBarista() const;
     void setDyeBarista(const QString& value);
 
+    QString dyeShotDateTime() const;
+    void setDyeShotDateTime(const QString& value);
+
     // Water tank calibration (auto-calibrated, persisted)
     double waterLevelMinMm() const;
     void setWaterLevelMinMm(double mm);
@@ -387,6 +391,7 @@ signals:
     void dyeEspressoEnjoymentChanged();
     void dyeEspressoNotesChanged();
     void dyeBaristaChanged();
+    void dyeShotDateTimeChanged();
     void waterLevelMinMmChanged();
     void waterLevelMaxMmChanged();
     void valueChanged(const QString& key);

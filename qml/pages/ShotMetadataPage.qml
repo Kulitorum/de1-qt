@@ -138,6 +138,7 @@ Page {
                     label: TranslationManager.translate("shotmetadata.label.roastdate", "Roast date (yyyy-mm-dd)")
                     text: Settings.dyeRoastDate
                     inputHints: Qt.ImhDate
+                    inputMask: "9999-99-99"
                     onTextEdited: function(t) { Settings.dyeRoastDate = t }
                 }
 
@@ -169,13 +170,96 @@ Page {
                     onTextEdited: function(t) { Settings.dyeGrinderSetting = t }
                 }
 
-                // === ROW 3: Barista (spans 3 columns) ===
+                // === ROW 3: Barista, Preset, Shot Date ===
                 LabeledField {
-                    Layout.columnSpan: 3
                     Layout.fillWidth: true
                     label: TranslationManager.translate("shotmetadata.label.barista", "Barista")
                     text: Settings.dyeBarista
                     onTextEdited: function(t) { Settings.dyeBarista = t }
+                }
+
+                // Preset (read-only display)
+                Item {
+                    Layout.fillWidth: true
+                    implicitHeight: presetLabel.height + presetValue.height + 2
+
+                    Text {
+                        id: presetLabel
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        text: TranslationManager.translate("shotmetadata.label.preset", "Preset")
+                        color: Theme.textColor
+                        font.pixelSize: 11
+                    }
+
+                    Rectangle {
+                        id: presetValue
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: presetLabel.bottom
+                        anchors.topMargin: 2
+                        height: 48
+                        color: Theme.backgroundColor
+                        radius: 4
+                        border.color: Theme.textSecondaryColor
+                        border.width: 1
+
+                        Text {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            text: MainController.currentProfileName || ""
+                            color: Theme.textColor
+                            font.pixelSize: 14
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+
+                        Accessible.role: Accessible.StaticText
+                        Accessible.name: TranslationManager.translate("shotmetadata.label.preset", "Preset") + ": " + MainController.currentProfileName
+                    }
+                }
+
+                // Shot date/time (read-only display)
+                Item {
+                    Layout.fillWidth: true
+                    implicitHeight: shotDateLabel.height + shotDateValue.height + 2
+
+                    Text {
+                        id: shotDateLabel
+                        anchors.left: parent.left
+                        anchors.top: parent.top
+                        text: TranslationManager.translate("shotmetadata.label.shotdate", "Shot date")
+                        color: Theme.textColor
+                        font.pixelSize: 11
+                    }
+
+                    Rectangle {
+                        id: shotDateValue
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.top: shotDateLabel.bottom
+                        anchors.topMargin: 2
+                        height: 48
+                        color: Theme.backgroundColor
+                        radius: 4
+                        border.color: Theme.textSecondaryColor
+                        border.width: 1
+
+                        Text {
+                            anchors.fill: parent
+                            anchors.leftMargin: 12
+                            anchors.rightMargin: 12
+                            text: Settings.dyeShotDateTime || ""
+                            color: Theme.textColor
+                            font.pixelSize: 14
+                            verticalAlignment: Text.AlignVCenter
+                            elide: Text.ElideRight
+                        }
+
+                        Accessible.role: Accessible.StaticText
+                        Accessible.name: TranslationManager.translate("shotmetadata.label.shotdate", "Shot date") + ": " + Settings.dyeShotDateTime
+                    }
                 }
 
                 // === ROW 4: Measurements (4 ValueInputs spanning 3 columns) ===
@@ -401,7 +485,7 @@ Page {
                         background: Rectangle {
                             color: Theme.backgroundColor
                             radius: 4
-                            border.color: notesField.activeFocus ? Theme.primaryColor : Theme.borderColor
+                            border.color: notesField.activeFocus ? Theme.primaryColor : Theme.textSecondaryColor
                             border.width: 1
                         }
                         onTextChanged: Settings.dyeEspressoNotes = text
@@ -648,6 +732,7 @@ Page {
         property string label: ""
         property string text: ""
         property int inputHints: Qt.ImhNone
+        property string inputMask: ""
         signal textEdited(string text)
 
         implicitHeight: fieldLabel.height + fieldInput.height + 2
@@ -669,6 +754,7 @@ Page {
             anchors.topMargin: 2
             text: parent.text
             inputMethodHints: parent.inputHints
+            inputMask: parent.inputMask
             EnterKey.type: Qt.EnterKeyNext
             Keys.onReturnPressed: nextItemInFocusChain().forceActiveFocus()
             onTextChanged: parent.textEdited(text)

@@ -1260,6 +1260,8 @@ ApplicationWindow {
 
         function onShotEndedShowMetadata() {
             console.log("Shot ended, showing metadata page")
+            // Record the shot timestamp
+            Settings.dyeShotDateTime = Qt.formatDateTime(new Date(), "yyyy-MM-dd hh:mm")
             goToShotMetadata(true)
         }
     }

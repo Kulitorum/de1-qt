@@ -1523,6 +1523,17 @@ void Settings::setDyeBarista(const QString& value) {
     }
 }
 
+QString Settings::dyeShotDateTime() const {
+    return m_settings.value("dye/shotDateTime", "").toString();
+}
+
+void Settings::setDyeShotDateTime(const QString& value) {
+    if (dyeShotDateTime() != value) {
+        m_settings.setValue("dye/shotDateTime", value);
+        emit dyeShotDateTimeChanged();
+    }
+}
+
 // Water tank calibration
 double Settings::waterLevelMinMm() const {
     // Default 5mm matches de1app's water_level_mm_correction (sensor offset)
