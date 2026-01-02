@@ -139,120 +139,134 @@ Page {
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: Theme.scaled(10)
-                    spacing: Theme.scaled(10)
+                    anchors.margins: 0
+                    spacing: 0
 
-                    // Frame toolbar
-                    RowLayout {
+                    // Frame toolbar wrapper
+                    Rectangle {
+                        color: Theme.surfaceColor
                         Layout.fillWidth: true
-                        spacing: Theme.scaled(10)
+                        implicitHeight: toolbarRow.implicitHeight
+                        z: 1  // Above graph
 
-                        Tr {
-                            key: "profileeditor.frames.title"
-                            fallback: "Frames"
-                            font: Theme.subtitleFont
-                            color: Theme.textColor
-                        }
+                        RowLayout {
+                            id: toolbarRow
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.scaled(8)
+                            anchors.rightMargin: Theme.scaled(8)
+                            spacing: Theme.scaled(6)
 
-                        Item { Layout.fillWidth: true }
+                            Tr {
+                                key: "profileeditor.frames.title"
+                                fallback: "Frames"
+                                font: Theme.captionFont
+                                color: Theme.textColor
+                            }
 
-                        AccessibleButton {
-                            text: qsTr("+ Add")
-                            accessibleName: qsTr("Add frame")
-                            onClicked: addStep()
-                            background: Rectangle {
-                                implicitWidth: Theme.scaled(80)
-                                implicitHeight: Theme.scaled(32)
-                                radius: Theme.scaled(6)
-                                color: parent.down ? Qt.darker(Theme.accentColor, 1.2) : Theme.accentColor
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                font: Theme.bodyFont
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
+                            Item { Layout.fillWidth: true }
 
-                        AccessibleButton {
-                            text: qsTr("Delete")
-                            accessibleName: qsTr("Delete selected frame")
-                            enabled: selectedStepIndex >= 0
-                            onClicked: deleteStep(selectedStepIndex)
-                            background: Rectangle {
-                                implicitWidth: Theme.scaled(80)
-                                implicitHeight: Theme.scaled(32)
-                                radius: Theme.scaled(6)
-                                color: parent.down ? Qt.darker(Theme.errorColor, 1.2) : Theme.errorColor
-                                opacity: parent.enabled ? 1.0 : 0.4
+                            AccessibleButton {
+                                text: qsTr("+ Add")
+                                accessibleName: qsTr("Add frame")
+                                onClicked: addStep()
+                                background: Rectangle {
+                                    implicitWidth: Theme.scaled(70)
+                                    implicitHeight: Theme.scaled(26)
+                                    radius: Theme.scaled(4)
+                                    color: parent.down ? Qt.darker(Theme.accentColor, 1.2) : Theme.accentColor
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    font: Theme.captionFont
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
                             }
-                            contentItem: Text {
-                                text: parent.text
-                                font: Theme.bodyFont
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                opacity: parent.enabled ? 1.0 : 0.5
-                            }
-                        }
 
-                        AccessibleButton {
-                            text: "\u2190"
-                            accessibleName: qsTr("Move frame left")
-                            enabled: selectedStepIndex > 0
-                            onClicked: moveStep(selectedStepIndex, selectedStepIndex - 1)
-                            background: Rectangle {
-                                implicitWidth: Theme.scaled(36)
-                                implicitHeight: Theme.scaled(32)
-                                radius: Theme.scaled(6)
-                                color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
-                                opacity: parent.enabled ? 1.0 : 0.4
+                            AccessibleButton {
+                                text: qsTr("Delete")
+                                accessibleName: qsTr("Delete selected frame")
+                                enabled: selectedStepIndex >= 0
+                                onClicked: deleteStep(selectedStepIndex)
+                                background: Rectangle {
+                                    implicitWidth: Theme.scaled(70)
+                                    implicitHeight: Theme.scaled(26)
+                                    radius: Theme.scaled(4)
+                                    color: parent.down ? Qt.darker(Theme.errorColor, 1.2) : Theme.errorColor
+                                    opacity: parent.enabled ? 1.0 : 0.4
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    font: Theme.captionFont
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    opacity: parent.enabled ? 1.0 : 0.5
+                                }
                             }
-                            contentItem: Text {
-                                text: parent.text
-                                font.pixelSize: Theme.scaled(18)
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                opacity: parent.enabled ? 1.0 : 0.5
-                            }
-                        }
 
-                        AccessibleButton {
-                            text: "\u2192"
-                            accessibleName: qsTr("Move frame right")
-                            enabled: selectedStepIndex >= 0 && selectedStepIndex < (profile ? profile.steps.length - 1 : 0)
-                            onClicked: moveStep(selectedStepIndex, selectedStepIndex + 1)
-                            background: Rectangle {
-                                implicitWidth: Theme.scaled(36)
-                                implicitHeight: Theme.scaled(32)
-                                radius: Theme.scaled(6)
-                                color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
-                                opacity: parent.enabled ? 1.0 : 0.4
+                            AccessibleButton {
+                                text: "\u2190"
+                                accessibleName: qsTr("Move frame left")
+                                enabled: selectedStepIndex > 0
+                                onClicked: moveStep(selectedStepIndex, selectedStepIndex - 1)
+                                background: Rectangle {
+                                    implicitWidth: Theme.scaled(32)
+                                    implicitHeight: Theme.scaled(26)
+                                    radius: Theme.scaled(4)
+                                    color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
+                                    opacity: parent.enabled ? 1.0 : 0.4
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    font.pixelSize: Theme.scaled(14)
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    opacity: parent.enabled ? 1.0 : 0.5
+                                }
                             }
-                            contentItem: Text {
-                                text: parent.text
-                                font.pixelSize: Theme.scaled(18)
-                                color: "white"
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                                opacity: parent.enabled ? 1.0 : 0.5
+
+                            AccessibleButton {
+                                text: "\u2192"
+                                accessibleName: qsTr("Move frame right")
+                                enabled: selectedStepIndex >= 0 && selectedStepIndex < (profile ? profile.steps.length - 1 : 0)
+                                onClicked: moveStep(selectedStepIndex, selectedStepIndex + 1)
+                                background: Rectangle {
+                                    implicitWidth: Theme.scaled(32)
+                                    implicitHeight: Theme.scaled(26)
+                                    radius: Theme.scaled(4)
+                                    color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
+                                    opacity: parent.enabled ? 1.0 : 0.4
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    font.pixelSize: Theme.scaled(14)
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    opacity: parent.enabled ? 1.0 : 0.5
+                                }
                             }
                         }
                     }
 
                     // Profile graph
-                    ProfileGraph {
-                        id: profileGraph
+                    Item {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
-                        Layout.bottomMargin: Theme.scaled(30)  // Space for legend
-                        frames: profile ? profile.steps : []
-                        selectedFrameIndex: selectedStepIndex
+                        Layout.topMargin: -Theme.scaled(10)
 
-                        onFrameSelected: function(index) {
-                            selectedStepIndex = index
+                        ProfileGraph {
+                            id: profileGraph
+                            anchors.fill: parent
+                            frames: profile ? profile.steps : []
+                            selectedFrameIndex: selectedStepIndex
+
+                            onFrameSelected: function(index) {
+                                selectedStepIndex = index
+                            }
                         }
                     }
                 }

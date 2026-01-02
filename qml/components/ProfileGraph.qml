@@ -5,14 +5,14 @@ import DecenzaDE1
 ChartView {
     id: chart
     antialiasing: true
-    backgroundColor: "transparent"
+    backgroundColor: Qt.darker(Theme.surfaceColor, 1.3)  // Match plot area so no gaps show
     plotAreaColor: Qt.darker(Theme.surfaceColor, 1.3)
     legend.visible: false
 
-    margins.top: 0
-    margins.bottom: 0
-    margins.left: 0
-    margins.right: 0
+    margins.top: -Theme.scaled(45)
+    margins.bottom: -Theme.scaled(20)
+    margins.left: -Theme.scaled(15)
+    margins.right: -Theme.scaled(15)
 
     // Properties
     property var frames: []
@@ -318,46 +318,28 @@ ChartView {
         updateCurves()
     }
 
-    // Custom legend - vertical, top-left, overlaying graph
-    Rectangle {
-        id: legendBackground
-        x: chart.plotArea.x + Theme.spacingSmall
-        y: chart.plotArea.y + Theme.spacingSmall
-        width: legendColumn.width + Theme.spacingSmall * 2
-        height: legendColumn.height + Theme.spacingSmall * 2
-        color: Qt.rgba(Theme.surfaceColor.r, Theme.surfaceColor.g, Theme.surfaceColor.b, 0.85)
-        radius: Theme.scaled(4)
+    // Custom legend - horizontal, below graph
+    Row {
+        id: legendRow
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottomMargin: Theme.scaled(2)
+        spacing: Theme.spacingLarge
 
-        Column {
-            id: legendColumn
-            anchors.centerIn: parent
-            spacing: Theme.scaled(2)
-
-            Row {
-                spacing: Theme.spacingSmall
-                Rectangle { width: Theme.scaled(16); height: Theme.scaled(3); radius: Theme.scaled(1); color: Theme.pressureGoalColor; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "Pressure"; color: Theme.textSecondaryColor; font: Theme.captionFont }
-            }
-            Row {
-                spacing: Theme.spacingSmall
-                Rectangle { width: Theme.scaled(16); height: Theme.scaled(3); radius: Theme.scaled(1); color: Theme.flowGoalColor; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "Flow"; color: Theme.textSecondaryColor; font: Theme.captionFont }
-            }
-            Row {
-                spacing: Theme.spacingSmall
-                Rectangle { width: Theme.scaled(16); height: Theme.scaled(3); radius: Theme.scaled(1); color: Theme.temperatureGoalColor; anchors.verticalCenter: parent.verticalCenter }
-                Text { text: "Temp"; color: Theme.textSecondaryColor; font: Theme.captionFont }
-            }
+        Row {
+            spacing: Theme.scaled(4)
+            Rectangle { width: Theme.scaled(16); height: Theme.scaled(3); radius: Theme.scaled(1); color: Theme.pressureGoalColor; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: "Pressure"; color: Theme.textSecondaryColor; font: Theme.captionFont }
         }
-    }
-
-    // Time axis label - inside graph at bottom right
-    Text {
-        x: chart.plotArea.x + chart.plotArea.width - width - Theme.spacingSmall
-        y: chart.plotArea.y + chart.plotArea.height - height - Theme.scaled(12)
-        text: "Time (s)"
-        color: Theme.textSecondaryColor
-        font: Theme.captionFont
-        opacity: 0.7
+        Row {
+            spacing: Theme.scaled(4)
+            Rectangle { width: Theme.scaled(16); height: Theme.scaled(3); radius: Theme.scaled(1); color: Theme.flowGoalColor; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: "Flow"; color: Theme.textSecondaryColor; font: Theme.captionFont }
+        }
+        Row {
+            spacing: Theme.scaled(4)
+            Rectangle { width: Theme.scaled(16); height: Theme.scaled(3); radius: Theme.scaled(1); color: Theme.temperatureGoalColor; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: "Temp"; color: Theme.textSecondaryColor; font: Theme.captionFont }
+        }
     }
 }
