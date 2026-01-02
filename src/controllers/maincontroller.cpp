@@ -1395,11 +1395,10 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
     }
     m_lastSampleTime = sample.timer;
 
-    // Record shot data only during espresso phases
+    // Record shot data only during active espresso phases (not Ending - shot already saved)
     bool isEspressoPhase = (phase == MachineState::Phase::EspressoPreheating ||
                            phase == MachineState::Phase::Preinfusion ||
-                           phase == MachineState::Phase::Pouring ||
-                           phase == MachineState::Phase::Ending);
+                           phase == MachineState::Phase::Pouring);
 
     if (!isEspressoPhase) {
         // Don't reset m_shotStartTime here - it's reset in onEspressoCycleStarted()
