@@ -168,7 +168,10 @@ void ShotServer::handleRequest(QTcpSocket* socket, const QByteArray& request)
     QString method = requestLine[0];
     QString path = requestLine[1];
 
-    qDebug() << "ShotServer:" << method << path;
+    // Don't log debug polling requests (too noisy)
+    if (!path.startsWith("/api/debug")) {
+        qDebug() << "ShotServer:" << method << path;
+    }
 
     // Route requests
     if (path == "/" || path == "/index.html") {
