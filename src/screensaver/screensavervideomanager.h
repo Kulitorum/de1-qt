@@ -133,6 +133,9 @@ public:
     void setImageDisplayDuration(int seconds);
 
 public slots:
+    // Screen wake lock (prevents screen from turning off)
+    void setKeepScreenOn(bool on);
+
     // Category management
     void refreshCategories();
 

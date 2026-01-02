@@ -17,6 +17,8 @@ Page {
     property bool useFirstImage: true  // Toggle for cross-fade between two images
 
     Component.onCompleted: {
+        // Keep screen on while screensaver is active
+        ScreensaverManager.setKeepScreenOn(true)
         playNextMedia()
     }
 
@@ -363,6 +365,8 @@ Page {
     StackView.onRemoved: {
         mediaPlayer.stop()
         imageDisplayTimer.stop()
+        // Allow screen to turn off again
+        ScreensaverManager.setKeepScreenOn(false)
     }
 
     // Auto-wake when DE1 wakes up externally (button press on machine)

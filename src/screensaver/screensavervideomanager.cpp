@@ -11,6 +11,11 @@
 #include <QRandomGenerator>
 #include <QFileInfo>
 
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#include <QCoreApplication>
+#endif
+
 // New unified S3 bucket structure
 const QString ScreensaverVideoManager::BASE_URL =
     "https://decent-de1-media.s3.eu-north-1.amazonaws.com";
@@ -75,6 +80,39 @@ ScreensaverVideoManager::~ScreensaverVideoManager()
     saveCacheIndex();
 }
 
+void ScreensaverVideoManager::setKeepScreenOn(bool on)
+{
+#ifdef Q_OS_ANDROID
+    // FLAG_KEEP_SCREEN_ON = 128 (WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    constexpr int FLAG_KEEP_SCREEN_ON = 128;
+
+    QNativeInterface::QAndroidApplication::runOnAndroidMainThread([on]() {
+        QJniObject activity = QNativeInterface::QAndroidApplication::context();
+        if (!activity.isValid()) {
+            qWarning() << "[Screensaver] Failed to get Android activity";
+            return;
+        }
+
+        QJniObject window = activity.callObjectMethod(
+            "getWindow", "()Landroid/view/Window;");
+        if (!window.isValid()) {
+            qWarning() << "[Screensaver] Failed to get window";
+            return;
+        }
+
+        if (on) {
+            window.callMethod<void>("addFlags", "(I)V", FLAG_KEEP_SCREEN_ON);
+            qDebug() << "[Screensaver] Keep screen on: enabled";
+        } else {
+            window.callMethod<void>("clearFlags", "(I)V", FLAG_KEEP_SCREEN_ON);
+            qDebug() << "[Screensaver] Keep screen on: disabled";
+        }
+    });
+#else
+    Q_UNUSED(on)
+    qDebug() << "[Screensaver] Keep screen on not available on this platform";
+#endif
+}
 
 // Property setters
 void ScreensaverVideoManager::setEnabled(bool enabled)
