@@ -1342,7 +1342,7 @@ QString ShotServer::generateShotDetailPage(qint64 shotId) const
                         max: 12,
                         grid: { color: 'rgba(48, 54, 61, 0.5)' },
                         ticks: { color: '#8b949e' }
-                    },
+                    },)HTML" R"HTML(
                     y2: {
                         type: 'linear',
                         position: 'right',
@@ -1698,7 +1698,7 @@ QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
             .chart-wrapper { height: 350px; }
         }
     </style>
-</head>
+</head>)HTML" R"HTML(
 <body>
     <header class="header">
         <div class="header-content">
@@ -1767,6 +1767,13 @@ QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
             return closest;
         }
 
+        // Track mouse position for tooltip
+        var mouseX = 0, mouseY = 0;
+        document.addEventListener("mousemove", function(e) {
+            mouseX = e.pageX;
+            mouseY = e.pageY;
+        });
+
         // Custom external tooltip
         function externalTooltip(context) {
             var tooltipEl = document.getElementById("chartTooltip");
@@ -1830,9 +1837,9 @@ QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
             tooltipEl.innerHTML = html;
             tooltipEl.style.opacity = 1;
 
-            var pos = context.chart.canvas.getBoundingClientRect();
-            tooltipEl.style.left = pos.left + window.pageXOffset + tooltip.caretX + 10 + "px";
-            tooltipEl.style.top = pos.top + window.pageYOffset + tooltip.caretY - 10 + "px";
+            // Position tooltip near mouse cursor (offset to avoid covering cursor)
+            tooltipEl.style.left = (mouseX + 15) + "px";
+            tooltipEl.style.top = (mouseY - 10) + "px";
         }
 
         var ctx = document.getElementById("compareChart").getContext("2d");

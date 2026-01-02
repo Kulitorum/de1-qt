@@ -1,5 +1,5 @@
-#define BuildNumber "966"
-#define VersionNumber "1.0.966"
+#define BuildNumber "970"
+#define VersionNumber "1.0.970"
 #define TargetName "Decenza_DE1"
 #define TargetArch "x64"
 #define TargetProduct "Decenza DE1"
