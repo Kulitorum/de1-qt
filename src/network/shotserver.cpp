@@ -1748,10 +1748,6 @@ QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
         </div>
     </main>
     <script>
-        Chart.Tooltip.positioners.cursor = function(elements, eventPosition) {
-            return { x: eventPosition.x, y: eventPosition.y };
-        };
-
         var visibleCurves = { pressure: true, flow: true, weight: true, temp: true };
 
         // Find closest data point in a dataset to a given x value
@@ -1769,6 +1765,74 @@ QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
             return closest;
         }
 
+        // Custom external tooltip
+        function externalTooltip(context) {
+            var tooltipEl = document.getElementById("chartTooltip");
+            if (!tooltipEl) {
+                tooltipEl = document.createElement("div");
+                tooltipEl.id = "chartTooltip";
+                tooltipEl.style.cssText = "position:absolute;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;pointer-events:none;font-size:13px;color:#e6edf3;z-index:100;max-width:400px;";
+                document.body.appendChild(tooltipEl);
+            }
+
+            var tooltip = context.tooltip;
+            if (tooltip.opacity === 0) {
+                tooltipEl.style.opacity = 0;
+                return;
+            }
+
+            // Get x position from the nearest point
+            if (!tooltip.dataPoints || !tooltip.dataPoints.length) {
+                tooltipEl.style.opacity = 0;
+                return;
+            }
+
+            var targetX = tooltip.dataPoints[0].parsed.x;
+            var datasets = context.chart.data.datasets;
+
+            // Group by shot, collect all curve values at this time
+            var shotData = {};
+            for (var i = 0; i < datasets.length; i++) {
+                var ds = datasets[i];
+                var meta = context.chart.getDatasetMeta(i);
+                if (meta.hidden || !visibleCurves[ds.curveType]) continue;
+
+                var pt = findClosestPoint(ds.data, targetX);
+                if (!pt) continue;
+
+                var key = ds.shotIndex;
+                if (!shotData[key]) {
+                    shotData[key] = { color: ds.borderColor, label: ds.label.split(" - ")[1] || ds.label, values: {} };
+                }
+                shotData[key].values[ds.curveType] = pt.y;
+            }
+
+            // Build HTML
+            var html = "<div style='font-weight:600;margin-bottom:6px;'>" + targetX.toFixed(1) + "s</div>";
+            var curveInfo = { pressure: {l:"P", u:"bar"}, flow: {l:"F", u:"ml/s"}, weight: {l:"W", u:"g"}, temp: {l:"T", u:"°C"} };
+
+            for (var shotIdx in shotData) {
+                var shot = shotData[shotIdx];
+                var parts = [];
+                ["pressure", "flow", "weight", "temp"].forEach(function(ct) {
+                    if (shot.values[ct] !== undefined && visibleCurves[ct]) {
+                        parts.push("<span style='color:" + shot.color + "'>" + curveInfo[ct].l + ":</span>" + shot.values[ct].toFixed(1) + curveInfo[ct].u);
+                    }
+                });
+                if (parts.length > 0) {
+                    html += "<div style='margin-top:4px;'><span style='display:inline-block;width:10px;height:10px;border-radius:2px;background:" + shot.color + ";margin-right:6px;'></span>" + shot.label + "</div>";
+                    html += "<div style='color:#8b949e;margin-left:16px;'>" + parts.join(" &nbsp;") + "</div>";
+                }
+            }
+
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = 1;
+
+            var pos = context.chart.canvas.getBoundingClientRect();
+            tooltipEl.style.left = pos.left + window.pageXOffset + tooltip.caretX + 10 + "px";
+            tooltipEl.style.top = pos.top + window.pageYOffset + tooltip.caretY - 10 + "px";
+        }
+
         var ctx = document.getElementById("compareChart").getContext("2d");
         var chart = new Chart(ctx, {
             type: "line",
@@ -1784,62 +1848,8 @@ QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: "#161b22",
-                        borderColor: "#30363d",
-                        borderWidth: 1,
-                        titleColor: "#e6edf3",
-                        bodyColor: "#8b949e",
-                        padding: 12,
-                        position: "cursor",
-                        filter: function() { return false; }, // Hide default items
-                        callbacks: {
-                            title: function(items) {
-                                if (!items.length) return "";
-                                return items[0].parsed.x.toFixed(1) + "s";
-                            },
-                            beforeBody: function(items) {
-                                if (!items.length) return [];
-                                var targetX = items[0].parsed.x;
-                                var lines = [];
-                                var datasets = chart.data.datasets;
-
-                                // Group by shot, then show enabled curve types
-                                var shotData = {};
-                                for (var i = 0; i < datasets.length; i++) {
-                                    var ds = datasets[i];
-                                    var meta = chart.getDatasetMeta(i);
-                                    if (meta.hidden || !visibleCurves[ds.curveType]) continue;
-
-                                    var pt = findClosestPoint(ds.data, targetX);
-                                    if (!pt) continue;
-
-                                    var key = ds.shotIndex;
-                                    if (!shotData[key]) {
-                                        shotData[key] = { color: ds.borderColor, label: ds.label.split(" - ")[1] || ds.label, values: {} };
-                                    }
-                                    shotData[key].values[ds.curveType] = pt.y;
-                                }
-
-                                // Format output
-                                var curveLabels = { pressure: "P", flow: "F", weight: "W", temp: "T" };
-                                var curveUnits = { pressure: "bar", flow: "ml/s", weight: "g", temp: "°C" };
-                                for (var shotIdx in shotData) {
-                                    var shot = shotData[shotIdx];
-                                    var parts = [];
-                                    ["pressure", "flow", "weight", "temp"].forEach(function(ct) {
-                                        if (shot.values[ct] !== undefined && visibleCurves[ct]) {
-                                            parts.push(curveLabels[ct] + ":" + shot.values[ct].toFixed(1) + curveUnits[ct]);
-                                        }
-                                    });
-                                    if (parts.length > 0) {
-                                        lines.push(shot.label);
-                                        lines.push("  " + parts.join("  "));
-                                    }
-                                }
-                                return lines;
-                            },
-                            label: function() { return null; }
-                        }
+                        enabled: false,
+                        external: externalTooltip
                     }
                 },
                 scales: {
