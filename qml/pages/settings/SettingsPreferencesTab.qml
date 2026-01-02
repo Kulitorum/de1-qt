@@ -124,217 +124,300 @@ Item {
             }
         }
 
-        // Battery / Charging settings
-        Rectangle {
+        // Middle column: Battery / Charging and Water Level stacked
+        ColumnLayout {
             Layout.preferredWidth: 300
             Layout.fillHeight: true
-            color: Theme.surfaceColor
-            radius: Theme.cardRadius
+            spacing: 15
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 15
-                spacing: 10
+            // Battery / Charging settings
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
 
-                Tr {
-                    key: "settings.preferences.batteryCharging"
-                    fallback: "Battery Charging"
-                    color: Theme.textColor
-                    font.pixelSize: 16
-                    font.bold: true
-                }
-
-                Tr {
-                    Layout.fillWidth: true
-                    key: "settings.preferences.batteryChargingDesc"
-                    fallback: "Control the USB charger output from the DE1"
-                    color: Theme.textSecondaryColor
-                    font.pixelSize: 12
-                    wrapMode: Text.WordWrap
-                }
-
-                Item { height: 5 }
-
-                // Battery status
-                RowLayout {
-                    Layout.fillWidth: true
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 15
                     spacing: 10
 
                     Tr {
-                        key: "settings.preferences.battery"
-                        fallback: "Battery:"
-                        color: Theme.textSecondaryColor
-                    }
-
-                    Text {
-                        text: BatteryManager.batteryPercent + "%"
-                        color: BatteryManager.batteryPercent < 20 ? Theme.errorColor :
-                               BatteryManager.batteryPercent < 50 ? Theme.warningColor :
-                               Theme.successColor
+                        key: "settings.preferences.batteryCharging"
+                        fallback: "Battery Charging"
+                        color: Theme.textColor
+                        font.pixelSize: 16
                         font.bold: true
                     }
 
-                    Rectangle {
-                        width: 30
-                        height: 14
-                        radius: 2
-                        color: "transparent"
-                        border.color: Theme.textSecondaryColor
-                        border.width: 1
+                    Tr {
+                        Layout.fillWidth: true
+                        key: "settings.preferences.batteryChargingDesc"
+                        fallback: "Control the USB charger output from the DE1"
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: 12
+                        wrapMode: Text.WordWrap
+                    }
 
-                        Rectangle {
-                            x: 2
-                            y: 2
-                            width: (parent.width - 4) * BatteryManager.batteryPercent / 100
-                            height: parent.height - 4
-                            radius: 1
+                    Item { height: 5 }
+
+                    // Battery status
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+
+                        Tr {
+                            key: "settings.preferences.battery"
+                            fallback: "Battery:"
+                            color: Theme.textSecondaryColor
+                        }
+
+                        Text {
+                            text: BatteryManager.batteryPercent + "%"
                             color: BatteryManager.batteryPercent < 20 ? Theme.errorColor :
                                    BatteryManager.batteryPercent < 50 ? Theme.warningColor :
                                    Theme.successColor
+                            font.bold: true
                         }
 
-                        // Battery terminal
                         Rectangle {
-                            x: parent.width
-                            y: 4
-                            width: 3
-                            height: 6
-                            radius: 1
-                            color: Theme.textSecondaryColor
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    Tr {
-                        key: BatteryManager.isCharging ? "settings.preferences.charging" : "settings.preferences.notCharging"
-                        fallback: BatteryManager.isCharging ? "Charging" : "Not charging"
-                        color: BatteryManager.isCharging ? Theme.successColor : Theme.textSecondaryColor
-                        font.pixelSize: 12
-                    }
-                }
-
-                Item { height: 10 }
-
-                // Smart charging mode selector
-                Tr {
-                    key: "settings.preferences.smartChargingMode"
-                    fallback: "Smart Charging Mode"
-                    color: Theme.textSecondaryColor
-                    font.pixelSize: 12
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 8
-
-                    Repeater {
-                        model: [
-                            { value: 0, label: "Off", desc: "Always charging" },
-                            { value: 1, label: "On", desc: "55-65%" },
-                            { value: 2, label: "Night", desc: "90-95%" }
-                        ]
-
-                        delegate: Rectangle {
-                            id: chargingModeButton
-                            Layout.fillWidth: true
-                            height: 50
-                            radius: 6
-                            color: BatteryManager.chargingMode === modelData.value ?
-                                   Theme.primaryColor : Theme.backgroundColor
-                            border.color: BatteryManager.chargingMode === modelData.value ?
-                                          Theme.primaryColor : Theme.textSecondaryColor
+                            width: 30
+                            height: 14
+                            radius: 2
+                            color: "transparent"
+                            border.color: Theme.textSecondaryColor
                             border.width: 1
 
-                            ColumnLayout {
-                                anchors.centerIn: parent
-                                spacing: 2
-
-                                Text {
-                                    text: modelData.label
-                                    color: BatteryManager.chargingMode === modelData.value ?
-                                           "white" : Theme.textColor
-                                    font.pixelSize: 14
-                                    font.bold: true
-                                    Layout.alignment: Qt.AlignHCenter
-                                }
-
-                                Text {
-                                    text: modelData.desc
-                                    color: BatteryManager.chargingMode === modelData.value ?
-                                           Qt.rgba(1, 1, 1, 0.7) : Theme.textSecondaryColor
-                                    font.pixelSize: 10
-                                    Layout.alignment: Qt.AlignHCenter
-                                }
+                            Rectangle {
+                                x: 2
+                                y: 2
+                                width: (parent.width - 4) * BatteryManager.batteryPercent / 100
+                                height: parent.height - 4
+                                radius: 1
+                                color: BatteryManager.batteryPercent < 20 ? Theme.errorColor :
+                                       BatteryManager.batteryPercent < 50 ? Theme.warningColor :
+                                       Theme.successColor
                             }
 
-                            AccessibleMouseArea {
-                                anchors.fill: parent
-                                accessibleName: modelData.label + " charging mode. " + modelData.desc +
-                                               (BatteryManager.chargingMode === modelData.value ? ", selected" : "")
-                                accessibleItem: chargingModeButton
-                                onAccessibleClicked: BatteryManager.chargingMode = modelData.value
+                            // Battery terminal
+                            Rectangle {
+                                x: parent.width
+                                y: 4
+                                width: 3
+                                height: 6
+                                radius: 1
+                                color: Theme.textSecondaryColor
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Tr {
+                            key: BatteryManager.isCharging ? "settings.preferences.charging" : "settings.preferences.notCharging"
+                            fallback: BatteryManager.isCharging ? "Charging" : "Not charging"
+                            color: BatteryManager.isCharging ? Theme.successColor : Theme.textSecondaryColor
+                            font.pixelSize: 12
+                        }
+                    }
+
+                    Item { height: 10 }
+
+                    // Smart charging mode selector
+                    Tr {
+                        key: "settings.preferences.smartChargingMode"
+                        fallback: "Smart Charging Mode"
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: 12
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+
+                        Repeater {
+                            model: [
+                                { value: 0, label: "Off", desc: "Always charging" },
+                                { value: 1, label: "On", desc: "55-65%" },
+                                { value: 2, label: "Night", desc: "90-95%" }
+                            ]
+
+                            delegate: Rectangle {
+                                id: chargingModeButton
+                                Layout.fillWidth: true
+                                height: 50
+                                radius: 6
+                                color: BatteryManager.chargingMode === modelData.value ?
+                                       Theme.primaryColor : Theme.backgroundColor
+                                border.color: BatteryManager.chargingMode === modelData.value ?
+                                              Theme.primaryColor : Theme.textSecondaryColor
+                                border.width: 1
+
+                                ColumnLayout {
+                                    anchors.centerIn: parent
+                                    spacing: 2
+
+                                    Text {
+                                        text: modelData.label
+                                        color: BatteryManager.chargingMode === modelData.value ?
+                                               "white" : Theme.textColor
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                        Layout.alignment: Qt.AlignHCenter
+                                    }
+
+                                    Text {
+                                        text: modelData.desc
+                                        color: BatteryManager.chargingMode === modelData.value ?
+                                               Qt.rgba(1, 1, 1, 0.7) : Theme.textSecondaryColor
+                                        font.pixelSize: 10
+                                        Layout.alignment: Qt.AlignHCenter
+                                    }
+                                }
+
+                                AccessibleMouseArea {
+                                    anchors.fill: parent
+                                    accessibleName: modelData.label + " charging mode. " + modelData.desc +
+                                                   (BatteryManager.chargingMode === modelData.value ? ", selected" : "")
+                                    accessibleItem: chargingModeButton
+                                    onAccessibleClicked: BatteryManager.chargingMode = modelData.value
+                                }
                             }
                         }
                     }
+
+                    Item { height: 5 }
+
+                    // Explanation text
+                    Text {
+                        text: BatteryManager.chargingMode === 0 ?
+                              "Charger is always on. Battery stays at 100%." :
+                              BatteryManager.chargingMode === 1 ?
+                              "Cycles between 55-65% to extend battery lifespan." :
+                              "Keeps battery at 90-95% when active. Allows deeper discharge when sleeping."
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: 11
+                        wrapMode: Text.WordWrap
+                        Layout.fillWidth: true
+                    }
+
+                    Item { Layout.fillHeight: true }
+
+                    // Manual charger toggle
+                    RowLayout {
+                        Layout.fillWidth: true
+                        visible: BatteryManager.chargingMode === 0
+
+                        Tr {
+                            key: "settings.preferences.usbCharger"
+                            fallback: "USB Charger"
+                            color: Theme.textColor
+                            font.pixelSize: 14
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Switch {
+                            checked: DE1Device.usbChargerOn
+                            onClicked: DE1Device.setUsbChargerOn(checked)
+                        }
+                    }
+
+                    // Battery drain button for testing
+                    AccessibleButton {
+                        Layout.fillWidth: true
+                        text: BatteryDrainer.running ? "DRAINING... (tap to stop)" : "Drain Battery (Test)"
+                        accessibleName: BatteryDrainer.running ? "Stop battery drain test" : "Start battery drain test"
+                        background: Rectangle {
+                            radius: 6
+                            color: BatteryDrainer.running ? Theme.errorColor : Theme.backgroundColor
+                            border.color: Theme.errorColor
+                            border.width: 1
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: BatteryDrainer.running ? "white" : Theme.errorColor
+                            font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onClicked: BatteryDrainer.toggle()
+                    }
                 }
+            }
 
-                Item { height: 5 }
+            // Water Level Calibration
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 140
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
 
-                // Explanation text
-                Text {
-                    text: BatteryManager.chargingMode === 0 ?
-                          "Charger is always on. Battery stays at 100%." :
-                          BatteryManager.chargingMode === 1 ?
-                          "Cycles between 55-65% to extend battery lifespan." :
-                          "Keeps battery at 90-95% when active. Allows deeper discharge when sleeping."
-                    color: Theme.textSecondaryColor
-                    font.pixelSize: 11
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                }
-
-                Item { Layout.fillHeight: true }
-
-                // Manual charger toggle
-                RowLayout {
-                    Layout.fillWidth: true
-                    visible: BatteryManager.chargingMode === 0
+                ColumnLayout {
+                    anchors.fill: parent
+                    anchors.margins: 15
+                    spacing: 8
 
                     Tr {
-                        key: "settings.preferences.usbCharger"
-                        fallback: "USB Charger"
+                        key: "settings.preferences.waterLevelCalibration"
+                        fallback: "Water Level Sensor"
                         color: Theme.textColor
-                        font.pixelSize: 14
+                        font.pixelSize: 16
+                        font.bold: true
                     }
 
-                    Item { Layout.fillWidth: true }
+                    Tr {
+                        Layout.fillWidth: true
+                        key: "settings.preferences.waterLevelCalibrationDesc"
+                        fallback: "Auto-calibrates after two refill cycles"
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: 11
+                        wrapMode: Text.WordWrap
+                    }
 
-                    Switch {
-                        checked: DE1Device.usbChargerOn
-                        onClicked: DE1Device.setUsbChargerOn(checked)
-                    }
-                }
+                    // Current calibration values
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 15
 
-                // Battery drain button for testing
-                AccessibleButton {
-                    Layout.fillWidth: true
-                    text: BatteryDrainer.running ? "DRAINING... (tap to stop)" : "Drain Battery (Test)"
-                    accessibleName: BatteryDrainer.running ? "Stop battery drain test" : "Start battery drain test"
-                    background: Rectangle {
-                        radius: 6
-                        color: BatteryDrainer.running ? Theme.errorColor : Theme.backgroundColor
-                        border.color: Theme.errorColor
-                        border.width: 1
+                        Text {
+                            text: "Min: " + Settings.waterLevelMinMm.toFixed(0) + "mm"
+                            color: Theme.textSecondaryColor
+                            font.pixelSize: 11
+                        }
+
+                        Text {
+                            text: "Max: " + Settings.waterLevelMaxMm.toFixed(0) + "mm"
+                            color: Theme.textSecondaryColor
+                            font.pixelSize: 11
+                        }
+
+                        Text {
+                            text: "Now: " + DE1Device.waterLevelMm.toFixed(0) + "mm"
+                            color: Theme.primaryColor
+                            font.pixelSize: 11
+                        }
                     }
-                    contentItem: Text {
-                        text: parent.text
-                        color: BatteryDrainer.running ? "white" : Theme.errorColor
-                        font.pixelSize: 12
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+
+                    // Reset button
+                    AccessibleButton {
+                        Layout.fillWidth: true
+                        text: "Reset Calibration"
+                        accessibleName: "Reset water level calibration to default values"
+                        background: Rectangle {
+                            radius: 6
+                            color: Theme.backgroundColor
+                            border.color: Theme.textSecondaryColor
+                            border.width: 1
+                        }
+                        contentItem: Text {
+                            text: parent.text
+                            color: Theme.textColor
+                            font.pixelSize: 11
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
+                        onClicked: Settings.resetWaterLevelCalibration()
                     }
-                    onClicked: BatteryDrainer.toggle()
                 }
             }
         }
@@ -476,84 +559,6 @@ Item {
                             Accessible.name: "Keep steam heater on when idle"
                             Accessible.checked: checked
                         }
-                    }
-                }
-            }
-
-            // Water Level Calibration
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 160
-                color: Theme.surfaceColor
-                radius: Theme.cardRadius
-
-                ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 15
-                    spacing: 10
-
-                    Tr {
-                        key: "settings.preferences.waterLevelCalibration"
-                        fallback: "Water Level Sensor"
-                        color: Theme.textColor
-                        font.pixelSize: 16
-                        font.bold: true
-                    }
-
-                    Tr {
-                        Layout.fillWidth: true
-                        key: "settings.preferences.waterLevelCalibrationDesc"
-                        fallback: "Auto-calibrates when you refill (captures low point) and when tank is full (captures high point)"
-                        color: Theme.textSecondaryColor
-                        font.pixelSize: 12
-                        wrapMode: Text.WordWrap
-                    }
-
-                    // Current calibration values
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: 20
-
-                        Text {
-                            text: "Min: " + Settings.waterLevelMinMm.toFixed(0) + "mm"
-                            color: Theme.textSecondaryColor
-                            font.pixelSize: 12
-                        }
-
-                        Text {
-                            text: "Max: " + Settings.waterLevelMaxMm.toFixed(0) + "mm"
-                            color: Theme.textSecondaryColor
-                            font.pixelSize: 12
-                        }
-
-                        Text {
-                            text: "Now: " + DE1Device.waterLevelMm.toFixed(0) + "mm (" + DE1Device.waterLevel.toFixed(0) + "%)"
-                            color: Theme.primaryColor
-                            font.pixelSize: 12
-                        }
-                    }
-
-                    Item { Layout.fillHeight: true }
-
-                    // Reset button
-                    AccessibleButton {
-                        Layout.fillWidth: true
-                        text: "Reset Calibration"
-                        accessibleName: "Reset water level calibration to default values"
-                        background: Rectangle {
-                            radius: 6
-                            color: Theme.backgroundColor
-                            border.color: Theme.textSecondaryColor
-                            border.width: 1
-                        }
-                        contentItem: Text {
-                            text: parent.text
-                            color: Theme.textColor
-                            font.pixelSize: 12
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        onClicked: Settings.resetWaterLevelCalibration()
                     }
                 }
             }
