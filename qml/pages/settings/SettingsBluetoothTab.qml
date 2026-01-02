@@ -162,21 +162,22 @@ Item {
                     }
 
                     Tr {
+                        property bool isSimulated: ScaleDevice && (ScaleDevice.name === "Flow Scale" || ScaleDevice.name === "Simulated Scale")
                         key: {
                             if (ScaleDevice && ScaleDevice.connected) {
-                                return ScaleDevice.name === "Flow Scale" ? "settings.bluetooth.simulated" : "settings.bluetooth.connected"
+                                return isSimulated ? "settings.bluetooth.simulated" : "settings.bluetooth.connected"
                             }
                             return BLEManager.scaleConnectionFailed ? "settings.bluetooth.notFound" : "settings.bluetooth.disconnected"
                         }
                         fallback: {
                             if (ScaleDevice && ScaleDevice.connected) {
-                                return ScaleDevice.name === "Flow Scale" ? "Simulated" : "Connected"
+                                return isSimulated ? "Simulated" : "Connected"
                             }
                             return BLEManager.scaleConnectionFailed ? "Not found" : "Disconnected"
                         }
                         color: {
                             if (ScaleDevice && ScaleDevice.connected) {
-                                return ScaleDevice.name === "Flow Scale" ? Theme.warningColor : Theme.successColor
+                                return isSimulated ? Theme.warningColor : Theme.successColor
                             }
                             return BLEManager.scaleConnectionFailed ? Theme.errorColor : Theme.textSecondaryColor
                         }
@@ -192,22 +193,40 @@ Item {
                     }
                 }
 
-                // FlowScale fallback notice
+                // Connected scale name
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: ScaleDevice && ScaleDevice.connected
+
+                    Tr {
+                        key: "settings.bluetooth.connectedScale"
+                        fallback: "Connected:"
+                        color: Theme.textSecondaryColor
+                    }
+
+                    Text {
+                        text: ScaleDevice ? ScaleDevice.name : ""
+                        color: Theme.textColor
+                    }
+                }
+
+                // Simulated scale notice (Flow Scale or Simulated Scale)
                 Rectangle {
                     Layout.fillWidth: true
-                    height: flowScaleNotice.implicitHeight + 16
+                    height: simScaleNotice.implicitHeight + 16
                     radius: 6
                     color: Qt.rgba(Theme.warningColor.r, Theme.warningColor.g, Theme.warningColor.b, 0.15)
                     border.color: Theme.warningColor
                     border.width: 1
-                    visible: ScaleDevice && ScaleDevice.name === "Flow Scale"
+                    visible: ScaleDevice && (ScaleDevice.name === "Flow Scale" || ScaleDevice.name === "Simulated Scale")
 
-                    Tr {
-                        id: flowScaleNotice
+                    Text {
+                        id: simScaleNotice
                         anchors.fill: parent
                         anchors.margins: 8
-                        key: "settings.bluetooth.flowScaleNotice"
-                        fallback: "Using Flow Scale (estimated weight from DE1 flow data)"
+                        text: ScaleDevice && ScaleDevice.name === "Simulated Scale"
+                              ? "Using Simulated Scale (simulator mode)"
+                              : "Using Flow Scale (estimated weight from DE1 flow data)"
                         color: Theme.warningColor
                         font.pixelSize: 12
                         wrapMode: Text.Wrap
@@ -215,10 +234,10 @@ Item {
                     }
                 }
 
-                // Saved scale info
+                // Saved scale info (hidden in simulator mode)
                 RowLayout {
                     Layout.fillWidth: true
-                    visible: BLEManager.hasSavedScale
+                    visible: BLEManager.hasSavedScale && !BLEManager.disabled
 
                     Tr {
                         key: "settings.bluetooth.savedScale"

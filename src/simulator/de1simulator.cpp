@@ -658,19 +658,28 @@ bool DE1Simulator::checkExitCondition(const ProfileFrame& frame)
 
 void DE1Simulator::advanceToNextFrame()
 {
+    int prevFrame = m_currentFrameIndex;
+    double prevFrameDuration = (prevFrame >= 0 && prevFrame < m_profile.steps().size())
+        ? m_profile.steps()[prevFrame].seconds : 0;
+    double actualTime = m_shotTimer.elapsed() / 1000.0 - m_frameStartTime;
+
     m_currentFrameIndex++;
     m_frameStartTime = m_shotTimer.elapsed() / 1000.0;
     m_frameVolume = 0.0;
 
+    qDebug() << "DE1Simulator: Frame" << prevFrame << "ended after" << actualTime
+             << "sec (expected:" << prevFrameDuration << "sec)";
+
     if (m_currentFrameIndex >= m_profile.steps().size()) {
-        qDebug() << "DE1Simulator: All frames complete";
+        qDebug() << "DE1Simulator: All" << m_profile.steps().size() << "frames complete, entering Ending";
         m_endingStartTime = m_shotTimer.elapsed() / 1000.0;
         setState(DE1::State::Espresso, DE1::SubState::Ending);
         return;  // executeEnding() will handle pressure decay
     }
 
-    qDebug() << "DE1Simulator: Advancing to frame" << m_currentFrameIndex
-             << "-" << m_profile.steps()[m_currentFrameIndex].name;
+    const auto& nextFrame = m_profile.steps()[m_currentFrameIndex];
+    qDebug() << "DE1Simulator: Starting frame" << m_currentFrameIndex
+             << "-" << nextFrame.name << "(duration:" << nextFrame.seconds << "sec)";
 
     if (m_currentFrameIndex < m_profile.preinfuseFrameCount()) {
         setState(DE1::State::Espresso, DE1::SubState::Preinfusion);

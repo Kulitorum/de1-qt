@@ -157,13 +157,13 @@ private:
     static constexpr double PREHEAT_PUMP_FLOW = 2.5;      // ml/s pump rate during preheat
 
     // Puck resistance model (Darcy's law based)
-    // Calibrated so 18g dose at ~2.5 ml/s gives ~9 bar
-    // R = k * P / Q = 1.8 * 9 / 2.5 ≈ 6.5 for 18g reference dose
+    // Lower resistance for easier flow simulation
+    // R = k * P / Q - lower values = more flow at same pressure
     static constexpr double REFERENCE_DOSE = 18.0;        // Grams - baseline for resistance calc
     static constexpr double REFERENCE_GRIND = 25.0;       // Grind setting where factor = 1.0
-    static constexpr double BASELINE_RESISTANCE = 6.5;    // Fresh dry puck at reference dose/grind
-    static constexpr double PEAK_RESISTANCE = 8.5;        // After coffee swells (~30% increase)
-    static constexpr double MIN_RESISTANCE = 3.5;         // Fully extracted puck
+    static constexpr double BASELINE_RESISTANCE = 2.5;    // Fresh dry puck at reference dose/grind
+    static constexpr double PEAK_RESISTANCE = 3.5;        // After coffee swells (~40% increase)
+    static constexpr double MIN_RESISTANCE = 0.0;         // No minimum - test mode
     static constexpr double PUCK_FILL_VOLUME = 8.0;       // ml to saturate puck before dripping
 
     // Resistance dynamics

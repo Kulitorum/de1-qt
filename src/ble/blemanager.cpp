@@ -37,6 +37,17 @@ BLEManager::~BLEManager() {
     }
 }
 
+void BLEManager::setDisabled(bool disabled) {
+    if (m_disabled != disabled) {
+        m_disabled = disabled;
+        if (m_disabled && m_scanning) {
+            stopScan();
+        }
+        qDebug() << "BLEManager: BLE operations" << (disabled ? "disabled (simulator mode)" : "enabled");
+        emit disabledChanged();
+    }
+}
+
 bool BLEManager::isScanning() const {
     return m_scanning;
 }
@@ -85,6 +96,11 @@ QString BLEManager::getScaleType(const QString& address) const {
 }
 
 void BLEManager::startScan() {
+    if (m_disabled) {
+        qDebug() << "BLEManager: Scan request ignored (simulator mode)";
+        return;
+    }
+
     if (m_scanning) {
         return;
     }
@@ -326,6 +342,11 @@ void BLEManager::clearSavedScale() {
 }
 
 void BLEManager::scanForScales() {
+    if (m_disabled) {
+        qDebug() << "BLEManager: Scale scan request ignored (simulator mode)";
+        return;
+    }
+
     emit scaleLogMessage("Starting scale scan...");
     m_scaleConnectionFailed = false;
     emit scaleConnectionFailedChanged();
@@ -341,6 +362,10 @@ void BLEManager::scanForScales() {
 }
 
 void BLEManager::tryDirectConnectToScale() {
+    if (m_disabled) {
+        return;
+    }
+
     if (m_savedScaleAddress.isEmpty() || m_savedScaleType.isEmpty()) {
         return;
     }

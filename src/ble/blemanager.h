@@ -18,12 +18,15 @@ class BLEManager : public QObject {
     Q_PROPERTY(QVariantList discoveredScales READ discoveredScales NOTIFY scalesChanged)
     Q_PROPERTY(bool scaleConnectionFailed READ scaleConnectionFailed NOTIFY scaleConnectionFailedChanged)
     Q_PROPERTY(bool hasSavedScale READ hasSavedScale CONSTANT)
+    Q_PROPERTY(bool disabled READ isDisabled NOTIFY disabledChanged)
 
 public:
     explicit BLEManager(QObject* parent = nullptr);
     ~BLEManager();
 
     bool isScanning() const;
+    bool isDisabled() const { return m_disabled; }
+    void setDisabled(bool disabled);  // Disable all BLE operations (for simulator mode)
     QVariantList discoveredDevices() const;
     QVariantList discoveredScales() const;
     bool scaleConnectionFailed() const { return m_scaleConnectionFailed; }
@@ -59,6 +62,7 @@ signals:
     void flowScaleFallback();  // Emitted when no physical scale found, using FlowScale
     void scaleDisconnected();  // Emitted when physical scale disconnects
     void scanStarted();  // Emitted when BLE scan actually begins
+    void disabledChanged();
 
 private slots:
     void onDeviceDiscovered(const QBluetoothDeviceInfo& device);
@@ -86,4 +90,7 @@ private:
     // Saved scale for direct wake connection
     QString m_savedScaleAddress;
     QString m_savedScaleType;
+
+    // Simulator mode - disable all BLE operations
+    bool m_disabled = false;
 };

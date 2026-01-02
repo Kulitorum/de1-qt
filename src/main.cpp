@@ -61,6 +61,12 @@ int main(int argc, char *argv[])
     Settings settings;
     TranslationManager translationManager(&settings);
     BLEManager bleManager;
+
+    // Disable BLE early in simulator mode to prevent real device connections
+#if defined(Q_OS_WIN) && defined(QT_DEBUG)
+    bleManager.setDisabled(true);
+#endif
+
     DE1Device de1Device;
     de1Device.setSettings(&settings);  // For water level auto-calibration
     std::unique_ptr<ScaleDevice> physicalScale;  // Physical BLE scale (when connected)
