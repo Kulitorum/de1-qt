@@ -59,6 +59,7 @@ private:
     void startDownload();
     void installApk(const QString& apkPath);
     int extractBuildNumber(const QString& version) const;
+    bool isNewerVersion(const QString& latest, const QString& current) const;
 
     Settings* m_settings = nullptr;
     QNetworkAccessManager* m_network = nullptr;

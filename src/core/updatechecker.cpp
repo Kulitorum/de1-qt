@@ -135,13 +135,13 @@ void UpdateChecker::parseReleaseInfo(const QByteArray& data)
         }
     }
 
-    // Check if update is available
-    int currentBuild = BUILD_NUMBER;
+    // Check if update is available (compare full version, not just build number)
+    QString current = currentVersion();
     bool wasAvailable = m_updateAvailable;
-    m_updateAvailable = (m_latestBuildNumber > currentBuild) && !m_downloadUrl.isEmpty();
+    m_updateAvailable = isNewerVersion(m_latestVersion, current) && !m_downloadUrl.isEmpty();
 
-    qDebug() << "UpdateChecker: Current build:" << currentBuild
-             << "Latest build:" << m_latestBuildNumber
+    qDebug() << "UpdateChecker: Current version:" << current
+             << "Latest version:" << m_latestVersion
              << "Update available:" << m_updateAvailable;
 
     if (m_updateAvailable != wasAvailable) {
@@ -158,6 +158,31 @@ int UpdateChecker::extractBuildNumber(const QString& version) const
         return match.captured(3).toInt();
     }
     return 0;
+}
+
+bool UpdateChecker::isNewerVersion(const QString& latest, const QString& current) const
+{
+    // Compare versions like "1.1.1" vs "1.0.1054"
+    QRegularExpression re(R"((\d+)\.(\d+)\.(\d+))");
+    QRegularExpressionMatch latestMatch = re.match(latest);
+    QRegularExpressionMatch currentMatch = re.match(current);
+
+    if (!latestMatch.hasMatch() || !currentMatch.hasMatch()) {
+        return false;
+    }
+
+    int latestMajor = latestMatch.captured(1).toInt();
+    int latestMinor = latestMatch.captured(2).toInt();
+    int latestBuild = latestMatch.captured(3).toInt();
+
+    int currentMajor = currentMatch.captured(1).toInt();
+    int currentMinor = currentMatch.captured(2).toInt();
+    int currentBuild = currentMatch.captured(3).toInt();
+
+    // Compare major.minor.build
+    if (latestMajor != currentMajor) return latestMajor > currentMajor;
+    if (latestMinor != currentMinor) return latestMinor > currentMinor;
+    return latestBuild > currentBuild;
 }
 
 void UpdateChecker::downloadAndInstall()
