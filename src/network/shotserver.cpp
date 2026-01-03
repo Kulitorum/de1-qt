@@ -739,9 +739,11 @@ QString ShotServer::generateShotListPage() const
                     <button class="menu-btn" onclick="toggleMenu()" aria-label="Menu">&#9776;</button>
                     <div class="menu-dropdown" id="menuDropdown">
                         <a href="#" class="menu-item" id="powerToggle" onclick="togglePower(); return false;">&#9889; Loading...</a>
-                        <a href="/debug" class="menu-item">&#128196; Live Debug Log</a>
-                        <a href="/upload" class="menu-item">&#128230; Upload APK</a>
-                        <a href="/database.db" class="menu-item">&#128190; Download Database</a>
+                        <a href="/debug" class="menu-item">&#128196; Live Debug Log</a>)HTML"
+#ifdef Q_OS_ANDROID
+                        R"HTML(<a href="/upload" class="menu-item">&#128230; Upload APK</a>)HTML"
+#endif
+                        R"HTML(<a href="/database.db" class="menu-item">&#128190; Download Database</a>
                     </div>
                 </div>
             </div>
@@ -1154,9 +1156,11 @@ QString ShotServer::generateShotDetailPage(qint64 shotId) const
                 <button class="menu-btn" onclick="toggleMenu()" aria-label="Menu">&#9776;</button>
                 <div class="menu-dropdown" id="menuDropdown">
                     <a href="#" class="menu-item" id="powerToggle" onclick="togglePower(); return false;">&#9889; Loading...</a>
-                    <a href="/debug" class="menu-item">&#128196; Live Debug Log</a>
-                    <a href="/upload" class="menu-item">&#128230; Upload APK</a>
-                    <a href="/database.db" class="menu-item">&#128190; Download Database</a>
+                    <a href="/debug" class="menu-item">&#128196; Live Debug Log</a>)HTML"
+#ifdef Q_OS_ANDROID
+                    R"HTML(<a href="/upload" class="menu-item">&#128230; Upload APK</a>)HTML"
+#endif
+                    R"HTML(<a href="/database.db" class="menu-item">&#128190; Download Database</a>
                 </div>
             </div>
         </div>
@@ -1789,9 +1793,11 @@ QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
                 <button class="menu-btn" onclick="toggleMenu()" aria-label="Menu">&#9776;</button>
                 <div class="menu-dropdown" id="menuDropdown">
                     <a href="#" class="menu-item" id="powerToggle" onclick="togglePower(); return false;">&#9889; Loading...</a>
-                    <a href="/debug" class="menu-item">&#128196; Live Debug Log</a>
-                    <a href="/upload" class="menu-item">&#128230; Upload APK</a>
-                    <a href="/database.db" class="menu-item">&#128190; Download Database</a>
+                    <a href="/debug" class="menu-item">&#128196; Live Debug Log</a>)HTML"
+#ifdef Q_OS_ANDROID
+                    R"HTML(<a href="/upload" class="menu-item">&#128230; Upload APK</a>)HTML"
+#endif
+                    R"HTML(<a href="/database.db" class="menu-item">&#128190; Download Database</a>
                 </div>
             </div>
         </div>
