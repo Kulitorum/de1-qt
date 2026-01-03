@@ -744,6 +744,11 @@ bool MainController::saveProfile(const QString& filename) {
         m_baseProfileName = filename;
         markProfileClean();
         refreshProfiles();
+
+        // Re-upload profile to machine to ensure it's synced after save
+        if (m_currentProfile.mode() == Profile::Mode::FrameBased) {
+            uploadCurrentProfile();
+        }
     }
     return success;
 }
@@ -800,6 +805,13 @@ bool MainController::saveProfileAs(const QString& filename, const QString& title
         }
         markProfileClean();
         refreshProfiles();
+
+        // Re-upload profile to machine to ensure it's synced after save
+        // This catches edge cases where the previous upload may not have completed
+        if (m_currentProfile.mode() == Profile::Mode::FrameBased) {
+            uploadCurrentProfile();
+        }
+
         emit currentProfileChanged();
     }
     return success;

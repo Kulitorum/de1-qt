@@ -80,7 +80,6 @@ private:
     void handleMediaUpload(QTcpSocket* socket, const QString& tempFilePath, const QString& headers);
     bool resizeImage(const QString& inputPath, const QString& outputPath, int maxWidth, int maxHeight);
     bool resizeVideo(const QString& inputPath, const QString& outputPath, int maxWidth, int maxHeight);
-    bool convertRawImage(const QString& inputPath, const QString& outputPath, int maxWidth, int maxHeight);
     QDateTime extractImageDate(const QString& imagePath) const;
     QDateTime extractVideoDate(const QString& videoPath) const;
     QDateTime extractDateWithExiftool(const QString& filePath) const;

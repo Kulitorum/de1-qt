@@ -530,7 +530,17 @@ void ShotServer::handleRequest(QTcpSocket* socket, const QByteArray& request)
         }
         sendJson(socket, QJsonDocument(arr).toJson(QJsonDocument::Compact));
     }
+    else if (path == "/api/media/personal" && method == "DELETE") {
+        // Delete ALL personal media
+        if (!m_screensaverManager) {
+            sendJson(socket, R"({"error":"Screensaver manager not available"})");
+            return;
+        }
+        m_screensaverManager->clearPersonalMedia();
+        sendJson(socket, R"({"success":true})");
+    }
     else if (path.startsWith("/api/media/personal/") && method == "DELETE") {
+        // Delete single personal media by ID
         if (!m_screensaverManager) {
             sendJson(socket, R"({"error":"Screensaver manager not available"})");
             return;
@@ -3246,9 +3256,10 @@ QString ShotServer::generateMediaUploadPage() const
                     .arg(sizeStr);
             }
 
-            mediaListHtml += R"HTML(
+            mediaListHtml += QString(R"HTML(
                 </div>
-            </div>)HTML";
+                <button class="delete-all-btn" onclick="deleteAllMedia(%1)">Delete All (%1 items)</button>
+            </div>)HTML").arg(media.size());
         }
     }
 
@@ -3438,6 +3449,17 @@ QString ShotServer::generateMediaUploadPage() const
             border-radius: 4px;
         }
         .delete-btn:hover { background: rgba(248, 81, 73, 0.2); color: var(--error); }
+        .delete-all-btn {
+            margin-top: 1rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--error);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .delete-all-btn:hover { background: #c93c37; }
     </style>
 </head>
 )HTML";
@@ -3455,9 +3477,9 @@ QString ShotServer::generateMediaUploadPage() const
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
                 <div class="upload-icon">&#127912;</div>
                 <div class="upload-text">Click or drag media files here</div>
-                <div class="upload-hint">JPG, PNG, RAW (CR2, NEF, DNG), HEIC, MP4, WebM</div>
+                <div class="upload-hint">JPG, PNG, GIF, WebP, MP4, WebM</div>
             </div>
-            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov,.cr2,.nef,.arw,.dng,.raw,.raf,.orf,.rw2,.heic,.heif" multiple onchange="handleFiles(this.files)">
+            <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.webm,.mov" multiple onchange="handleFiles(this.files)">
             <div class="file-info" id="fileInfo">
                 <div class="file-name" id="fileName"></div>
                 <div class="file-size" id="fileSize"></div>
@@ -3469,16 +3491,14 @@ QString ShotServer::generateMediaUploadPage() const
             <div class="info-box">
                 <h4>Processing</h4>
                 <ul>
-                    <li><b>JPG/PNG/GIF/WebP</b> - Resized in browser (no tools needed)</li>
-                    <li><b>RAW/HEIC</b> - Converted on server (requires ImageMagick)</li>
+                    <li><b>Images</b> - Resized in browser (no tools needed)</li>
                     <li><b>Videos</b> - Resized on server (requires FFmpeg)</li>
                     <li><b>Photo dates</b> - Best results with exiftool</li>
                 </ul>
                 <details style="margin-top:0.75rem">
-                    <summary style="cursor:pointer;color:var(--accent)">Windows install commands</summary>
-                    <pre style="background:var(--bg);padding:0.5rem;margin-top:0.5rem;border-radius:4px;font-size:0.75rem;overflow-x:auto">winget install ImageMagick.ImageMagick
-winget install OliverBetz.ExifTool
-winget install Gyan.FFmpeg</pre>
+                    <summary style="cursor:pointer;color:var(--accent)">Windows install commands (for videos)</summary>
+                    <pre style="background:var(--bg);padding:0.5rem;margin-top:0.5rem;border-radius:4px;font-size:0.75rem;overflow-x:auto">winget install Gyan.FFmpeg
+winget install OliverBetz.ExifTool</pre>
                 </details>
             </div>
         </div>
@@ -3540,7 +3560,7 @@ winget install Gyan.FFmpeg</pre>
             for (var i = 0; i < files.length; i++) {
                 var file = files[i];
                 var ext = file.name.split('.').pop().toLowerCase();
-                var validExts = ['jpg','jpeg','png','gif','webp','mp4','webm','mov','cr2','nef','arw','dng','raw','raf','orf','rw2','heic','heif'];
+                var validExts = ['jpg','jpeg','png','gif','webp','mp4','webm','mov'];
                 if (validExts.indexOf(ext) === -1) {
                     showStatus("error", "Unsupported file type: " + file.name);
                     continue;
@@ -3746,6 +3766,20 @@ winget install Gyan.FFmpeg</pre>
             };
             xhr.send();
         }
+
+        function deleteAllMedia(count) {
+            if (!confirm("Delete all " + count + " personal media items? This cannot be undone.")) return;
+            var xhr = new XMLHttpRequest();
+            xhr.open("DELETE", "/api/media/personal", true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    location.reload();
+                } else {
+                    alert("Failed to delete media: " + xhr.responseText);
+                }
+            };
+            xhr.send();
+        }
     </script>
 </body>
 </html>
@@ -3785,16 +3819,8 @@ void ShotServer::handleMediaUpload(QTcpSocket* socket, const QString& uploadedTe
         bool isImage = (ext == "jpg" || ext == "jpeg" || ext == "png" || ext == "gif" || ext == "webp");
         bool isVideo = (ext == "mp4" || ext == "webm" || ext == "mov");
 
-        // RAW/HEIC formats that need conversion
-        bool needsConversion = (ext == "cr2" || ext == "nef" || ext == "arw" || ext == "dng" ||
-                                ext == "raw" || ext == "raf" || ext == "orf" || ext == "rw2" ||
-                                ext == "heic" || ext == "heif");
-        if (needsConversion) {
-            isImage = true;  // These are all image formats
-        }
-
         if (!isImage && !isVideo) {
-            sendResponse(socket, 400, "text/plain", "Unsupported file type. Use JPG, PNG, MP4, WebM, or RAW/HEIC.");
+            sendResponse(socket, 400, "text/plain", "Unsupported file type. Use JPG, PNG, GIF, WebP, MP4, or WebM.");
             cleanupTempFile();
             return;
         }
@@ -3831,42 +3857,23 @@ void ShotServer::handleMediaUpload(QTcpSocket* socket, const QString& uploadedTe
             mediaDate = extractVideoDate(tempPath);
         }
 
-        // Resize/convert the media
-        // RAW/HEIC files output as JPEG
-        QString outputExt = needsConversion ? "jpg" : ext;
-        QString outputPath = tempDir + "/resized_" + QString::number(QDateTime::currentMSecsSinceEpoch()) + "." + outputExt;
+        // Resize the media
+        QString outputPath = tempDir + "/resized_" + QString::number(QDateTime::currentMSecsSinceEpoch()) + "." + ext;
 
         // Target resolution matches shared screensaver media (1280x800)
         const int targetWidth = 1280;
         const int targetHeight = 800;
 
         if (isImage) {
-            bool success = false;
-            if (needsConversion) {
-                // Use ImageMagick for RAW/HEIC conversion
-                success = convertRawImage(tempPath, outputPath, targetWidth, targetHeight);
-                if (success) {
-                    QFile::remove(tempPath);
-                    tempPathToCleanup.clear();  // Successfully processed
-                    qDebug() << "RAW/HEIC converted successfully:" << outputPath;
-                } else {
-                    qDebug() << "RAW/HEIC conversion failed - ImageMagick may not be installed";
-                    sendResponse(socket, 500, "text/plain", "RAW/HEIC conversion failed. Install ImageMagick.");
-                    cleanupTempFile();
-                    return;
-                }
+            if (resizeImage(tempPath, outputPath, targetWidth, targetHeight)) {
+                QFile::remove(tempPath);
+                tempPathToCleanup.clear();  // Successfully processed
+                qDebug() << "Image resized successfully:" << outputPath;
             } else {
-                success = resizeImage(tempPath, outputPath, targetWidth, targetHeight);
-                if (success) {
-                    QFile::remove(tempPath);
-                    tempPathToCleanup.clear();  // Successfully processed
-                    qDebug() << "Image resized successfully:" << outputPath;
-                } else {
-                    // Use original if resize fails
-                    outputPath = tempPath;
-                    tempPathToCleanup.clear();  // Will use original, don't delete
-                    qDebug() << "Image resize failed, using original";
-                }
+                // Use original if resize fails
+                outputPath = tempPath;
+                tempPathToCleanup.clear();  // Will use original, don't delete
+                qDebug() << "Image resize failed, using original";
             }
         } else if (isVideo) {
             if (resizeVideo(tempPath, outputPath, targetWidth, targetHeight)) {
@@ -4010,62 +4017,6 @@ bool ShotServer::resizeVideo(const QString& inputPath, const QString& outputPath
     }
 
     qDebug() << "FFmpeg completed successfully";
-    return QFile::exists(outputPath);
-}
-
-bool ShotServer::convertRawImage(const QString& inputPath, const QString& outputPath, int maxWidth, int maxHeight)
-{
-    // Use ImageMagick to convert RAW/HEIC to JPEG
-    QString magickPath = "magick";  // ImageMagick 7
-
-#ifdef Q_OS_WIN
-    QStringList possiblePaths = {
-        "magick",
-        "convert",  // ImageMagick 6
-        "C:/Program Files/ImageMagick-7.1.1-Q16-HDRI/magick.exe",
-        "C:/Program Files/ImageMagick/magick.exe",
-        QCoreApplication::applicationDirPath() + "/magick.exe"
-    };
-    for (const QString& path : possiblePaths) {
-        if (QFile::exists(path) || path == "magick" || path == "convert") {
-            magickPath = path;
-            break;
-        }
-    }
-#endif
-
-    QStringList args;
-    args << inputPath
-         << "-auto-orient"          // Apply EXIF orientation first
-         << "-resize" << QString("%1x%2").arg(maxWidth).arg(maxHeight)  // Fit within bounds
-         << "-background" << "black"
-         << "-gravity" << "center"
-         << "-extent" << QString("%1x%2").arg(maxWidth).arg(maxHeight)  // Add letterbox/pillarbox
-         << "-quality" << "85"
-         << outputPath;
-
-    qDebug() << "Running ImageMagick:" << magickPath << args.join(" ");
-
-    QProcess process;
-    process.start(magickPath, args);
-
-    if (!process.waitForStarted(5000)) {
-        qWarning() << "ImageMagick failed to start. Is it installed?";
-        return false;
-    }
-
-    if (!process.waitForFinished(60000)) {  // 1 minute timeout for large RAW files
-        qWarning() << "ImageMagick timeout";
-        process.kill();
-        return false;
-    }
-
-    if (process.exitCode() != 0) {
-        qWarning() << "ImageMagick error:" << process.readAllStandardError();
-        return false;
-    }
-
-    qDebug() << "ImageMagick conversion successful";
     return QFile::exists(outputPath);
 }
 
