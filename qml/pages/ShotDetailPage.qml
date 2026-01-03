@@ -30,14 +30,6 @@ Page {
         return "-"
     }
 
-    function formatStars() {
-        var rating = Math.round((shotData.enjoyment || 0) / 20)
-        var stars = ""
-        for (var i = 0; i < 5; i++) {
-            stars += i < rating ? "\u2605" : "\u2606"
-        }
-        return stars
-    }
 
     ScrollView {
         anchors.left: parent.left
@@ -169,7 +161,7 @@ Page {
                         color: Theme.textSecondaryColor
                     }
                     Text {
-                        text: formatStars()
+                        text: (shotData.enjoyment || 0) > 0 ? shotData.enjoyment + "%" : "-"
                         font: Theme.subtitleFont
                         color: Theme.warningColor
                     }

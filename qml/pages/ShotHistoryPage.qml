@@ -293,18 +293,11 @@ Page {
                                 elide: Text.ElideRight
                             }
 
-                            // Rating stars
-                            Row {
-                                spacing: 2
-                                Repeater {
-                                    model: 5
-                                    Text {
-                                        text: "\u2605"
-                                        font.pixelSize: Theme.scaled(14)
-                                        color: index < Math.round(shotDelegate.shotEnjoyment / 20)
-                                               ? Theme.warningColor : Theme.borderColor
-                                    }
-                                }
+                            // Rating percentage
+                            Text {
+                                text: shotDelegate.shotEnjoyment > 0 ? shotDelegate.shotEnjoyment + "%" : "-"
+                                font: Theme.labelFont
+                                color: Theme.warningColor
                             }
                         }
 
