@@ -24,9 +24,9 @@ const QString ScreensaverVideoManager::CATEGORIES_URL =
     "https://decent-de1-media.s3.eu-north-1.amazonaws.com/categories.json";
 
 const QString ScreensaverVideoManager::DEFAULT_CATALOG_URL =
-    "https://decent-de1-media.s3.eu-north-1.amazonaws.com/catalogs/espresso.json";
+    "https://decent-de1-media.s3.eu-north-1.amazonaws.com/catalogs/coffee.json";
 
-const QString ScreensaverVideoManager::DEFAULT_CATEGORY_ID = "espresso";
+const QString ScreensaverVideoManager::DEFAULT_CATEGORY_ID = "coffee";
 
 ScreensaverVideoManager::ScreensaverVideoManager(Settings* settings, ProfileStorage* profileStorage, QObject* parent)
     : QObject(parent)
@@ -54,7 +54,6 @@ ScreensaverVideoManager::ScreensaverVideoManager(Settings* settings, ProfileStor
     m_catalogUrl = m_settings->value("screensaver/catalogUrl", DEFAULT_CATALOG_URL).toString();
     m_cacheEnabled = m_settings->value("screensaver/cacheEnabled", true).toBool();
     m_streamingFallbackEnabled = m_settings->value("screensaver/streamingFallback", true).toBool();
-    m_maxCacheBytes = m_settings->value("screensaver/maxCacheBytes", 2LL * 1024 * 1024 * 1024).toLongLong();
     m_lastETag = m_settings->value("screensaver/lastETag", "").toString();
     m_selectedCategoryId = m_settings->value("screensaver/categoryId", DEFAULT_CATEGORY_ID).toString();
     m_imageDisplayDuration = m_settings->value("screensaver/imageDisplayDuration", 10).toInt();
@@ -62,6 +61,8 @@ ScreensaverVideoManager::ScreensaverVideoManager(Settings* settings, ProfileStor
     m_screensaverType = m_settings->value("screensaver/type", "videos").toString();
     m_pipesSpeed = m_settings->value("screensaver/pipesSpeed", 0.5).toDouble();
     m_pipesCameraSpeed = m_settings->value("screensaver/pipesCameraSpeed", 60.0).toDouble();
+    m_flipClockUse24Hour = m_settings->value("screensaver/flipClockUse24Hour", true).toBool();
+    m_flipClockUse3D = m_settings->value("screensaver/flipClockUse3D", true).toBool();
 
     // Load cache index and personal catalog
     loadCacheIndex();
@@ -120,6 +121,69 @@ void ScreensaverVideoManager::setKeepScreenOn(bool on)
 #endif
 }
 
+void ScreensaverVideoManager::turnScreenOff()
+{
+#ifdef Q_OS_ANDROID
+    // First, clear the keep screen on flag
+    setKeepScreenOn(false);
+
+    QNativeInterface::QAndroidApplication::runOnAndroidMainThread([]() {
+        QJniObject activity = QNativeInterface::QAndroidApplication::context();
+        if (!activity.isValid()) {
+            qWarning() << "[Screensaver] Failed to get Android activity for screen off";
+            return;
+        }
+
+        QJniObject window = activity.callObjectMethod(
+            "getWindow", "()Landroid/view/Window;");
+        if (window.isValid()) {
+            QJniObject layoutParams = window.callObjectMethod(
+                "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
+            if (layoutParams.isValid()) {
+                // Set screen brightness to minimum (0.0f)
+                layoutParams.setField<jfloat>("screenBrightness", 0.0f);
+                window.callMethod<void>("setAttributes",
+                    "(Landroid/view/WindowManager$LayoutParams;)V",
+                    layoutParams.object());
+                qDebug() << "[Screensaver] Screen brightness set to minimum";
+            }
+        }
+    });
+#else
+    qDebug() << "[Screensaver] Turn screen off not available on this platform";
+#endif
+}
+
+void ScreensaverVideoManager::restoreScreenBrightness()
+{
+#ifdef Q_OS_ANDROID
+    QNativeInterface::QAndroidApplication::runOnAndroidMainThread([]() {
+        QJniObject activity = QNativeInterface::QAndroidApplication::context();
+        if (!activity.isValid()) {
+            qWarning() << "[Screensaver] Failed to get Android activity for brightness restore";
+            return;
+        }
+
+        QJniObject window = activity.callObjectMethod(
+            "getWindow", "()Landroid/view/Window;");
+        if (window.isValid()) {
+            QJniObject layoutParams = window.callObjectMethod(
+                "getAttributes", "()Landroid/view/WindowManager$LayoutParams;");
+            if (layoutParams.isValid()) {
+                // Set screen brightness to -1.0f (use system default)
+                layoutParams.setField<jfloat>("screenBrightness", -1.0f);
+                window.callMethod<void>("setAttributes",
+                    "(Landroid/view/WindowManager$LayoutParams;)V",
+                    layoutParams.object());
+                qDebug() << "[Screensaver] Screen brightness restored to system default";
+            }
+        }
+    });
+#else
+    qDebug() << "[Screensaver] Restore screen brightness not available on this platform";
+#endif
+}
+
 // Property setters
 void ScreensaverVideoManager::setEnabled(bool enabled)
 {
@@ -165,18 +229,6 @@ void ScreensaverVideoManager::setStreamingFallbackEnabled(bool enabled)
         m_streamingFallbackEnabled = enabled;
         m_settings->setValue("screensaver/streamingFallback", enabled);
         emit streamingFallbackEnabledChanged();
-    }
-}
-
-void ScreensaverVideoManager::setMaxCacheBytes(qint64 bytes)
-{
-    if (m_maxCacheBytes != bytes) {
-        m_maxCacheBytes = bytes;
-        m_settings->setValue("screensaver/maxCacheBytes", bytes);
-        emit maxCacheBytesChanged();
-
-        // Evict if over limit
-        evictLruIfNeeded(0);
     }
 }
 
@@ -262,6 +314,24 @@ void ScreensaverVideoManager::setPipesCameraSpeed(double speed)
         m_pipesCameraSpeed = speed;
         m_settings->setValue("screensaver/pipesCameraSpeed", speed);
         emit pipesCameraSpeedChanged();
+    }
+}
+
+void ScreensaverVideoManager::setFlipClockUse24Hour(bool use24Hour)
+{
+    if (m_flipClockUse24Hour != use24Hour) {
+        m_flipClockUse24Hour = use24Hour;
+        m_settings->setValue("screensaver/flipClockUse24Hour", use24Hour);
+        emit flipClockUse24HourChanged();
+    }
+}
+
+void ScreensaverVideoManager::setFlipClockUse3D(bool use3D)
+{
+    if (m_flipClockUse3D != use3D) {
+        m_flipClockUse3D = use3D;
+        m_settings->setValue("screensaver/flipClockUse3D", use3D);
+        emit flipClockUse3DChanged();
     }
 }
 
@@ -415,7 +485,15 @@ void ScreensaverVideoManager::parseCategories(const QByteArray& data)
     }
 
     if (!categoryExists && !m_categories.isEmpty()) {
-        m_selectedCategoryId = m_categories.first().id;
+        // Prefer "coffee" category, fallback to first if not found
+        QString fallbackId = m_categories.first().id;
+        for (const VideoCategory& cat : m_categories) {
+            if (cat.id == "coffee") {
+                fallbackId = cat.id;
+                break;
+            }
+        }
+        m_selectedCategoryId = fallbackId;
         m_settings->setValue("screensaver/categoryId", m_selectedCategoryId);
         emit selectedCategoryIdChanged();
 
@@ -701,37 +779,6 @@ void ScreensaverVideoManager::updateCacheUsedBytes()
     }
 }
 
-void ScreensaverVideoManager::evictLruIfNeeded(qint64 neededBytes)
-{
-    while (m_cacheUsedBytes + neededBytes > m_maxCacheBytes && !m_cacheIndex.isEmpty()) {
-        // Find LRU entry
-        QString lruKey;
-        QDateTime oldestAccess = QDateTime::currentDateTimeUtc();
-
-        for (auto it = m_cacheIndex.begin(); it != m_cacheIndex.end(); ++it) {
-            if (it.value().lastAccessed < oldestAccess) {
-                oldestAccess = it.value().lastAccessed;
-                lruKey = it.key();
-            }
-        }
-
-        if (!lruKey.isEmpty()) {
-            CachedVideo cv = m_cacheIndex[lruKey];
-            qDebug() << "[Screensaver] Evicting LRU cache entry:" << cv.localPath
-                     << "(" << (cv.bytes / 1024 / 1024) << "MB)";
-
-            QFile::remove(cv.localPath);
-            m_cacheIndex.remove(lruKey);
-            m_cacheUsedBytes -= cv.bytes;
-        } else {
-            break;
-        }
-    }
-
-    emit cacheUsedBytesChanged();
-    saveCacheIndex();
-}
-
 QString ScreensaverVideoManager::getCachePath(const VideoItem& item) const
 {
     // Use hash of full URL for unique filename across categories
@@ -873,16 +920,6 @@ void ScreensaverVideoManager::queueAllVideosForDownload()
         // Skip if already cached
         if (isVideoCached(item)) {
             continue;
-        }
-
-        // Skip if would exceed cache limit
-        if (item.bytes > 0 && m_cacheUsedBytes + item.bytes > m_maxCacheBytes) {
-            // Try to evict to make room
-            evictLruIfNeeded(item.bytes);
-            if (m_cacheUsedBytes + item.bytes > m_maxCacheBytes) {
-                qDebug() << "[Screensaver] Skipping video" << item.id << "- would exceed cache limit";
-                continue;
-            }
         }
 
         m_downloadQueue.append(i);

@@ -76,7 +76,6 @@ class ScreensaverVideoManager : public QObject {
     // Cache state
     Q_PROPERTY(bool cacheEnabled READ cacheEnabled WRITE setCacheEnabled NOTIFY cacheEnabledChanged)
     Q_PROPERTY(bool streamingFallbackEnabled READ streamingFallbackEnabled WRITE setStreamingFallbackEnabled NOTIFY streamingFallbackEnabledChanged)
-    Q_PROPERTY(qint64 maxCacheBytes READ maxCacheBytes WRITE setMaxCacheBytes NOTIFY maxCacheBytesChanged)
     Q_PROPERTY(qint64 cacheUsedBytes READ cacheUsedBytes NOTIFY cacheUsedBytesChanged)
     Q_PROPERTY(double downloadProgress READ downloadProgress NOTIFY downloadProgressChanged)
     Q_PROPERTY(bool isDownloading READ isDownloading NOTIFY isDownloadingChanged)
@@ -105,6 +104,10 @@ class ScreensaverVideoManager : public QObject {
     Q_PROPERTY(double pipesSpeed READ pipesSpeed WRITE setPipesSpeed NOTIFY pipesSpeedChanged)
     Q_PROPERTY(double pipesCameraSpeed READ pipesCameraSpeed WRITE setPipesCameraSpeed NOTIFY pipesCameraSpeedChanged)
 
+    // Flip clock settings
+    Q_PROPERTY(bool flipClockUse24Hour READ flipClockUse24Hour WRITE setFlipClockUse24Hour NOTIFY flipClockUse24HourChanged)
+    Q_PROPERTY(bool flipClockUse3D READ flipClockUse3D WRITE setFlipClockUse3D NOTIFY flipClockUse3DChanged)
+
 public:
     explicit ScreensaverVideoManager(Settings* settings, ProfileStorage* profileStorage, QObject* parent = nullptr);
     ~ScreensaverVideoManager();
@@ -124,7 +127,6 @@ public:
 
     bool cacheEnabled() const { return m_cacheEnabled; }
     bool streamingFallbackEnabled() const { return m_streamingFallbackEnabled; }
-    qint64 maxCacheBytes() const { return m_maxCacheBytes; }
     qint64 cacheUsedBytes() const { return m_cacheUsedBytes; }
     double downloadProgress() const { return m_downloadProgress; }
     bool isDownloading() const { return m_isDownloading; }
@@ -146,26 +148,35 @@ public:
 
     // Screensaver type
     QString screensaverType() const { return m_screensaverType; }
-    QStringList availableScreensaverTypes() const { return {"videos", "pipes"}; }
+    QStringList availableScreensaverTypes() const { return {"disabled", "videos", "pipes", "flipclock"}; }
     double pipesSpeed() const { return m_pipesSpeed; }
     double pipesCameraSpeed() const { return m_pipesCameraSpeed; }
+    bool flipClockUse24Hour() const { return m_flipClockUse24Hour; }
+    bool flipClockUse3D() const { return m_flipClockUse3D; }
 
     // Property setters
     void setEnabled(bool enabled);
     void setCatalogUrl(const QString& url);
     void setCacheEnabled(bool enabled);
     void setStreamingFallbackEnabled(bool enabled);
-    void setMaxCacheBytes(qint64 bytes);
     void setSelectedCategoryId(const QString& categoryId);
     void setImageDisplayDuration(int seconds);
     void setShowDateOnPersonal(bool show);
     void setScreensaverType(const QString& type);
     void setPipesSpeed(double speed);
     void setPipesCameraSpeed(double speed);
+    void setFlipClockUse24Hour(bool use24Hour);
+    void setFlipClockUse3D(bool use3D);
 
 public slots:
     // Screen wake lock (prevents screen from turning off)
     void setKeepScreenOn(bool on);
+
+    // Turn screen off (for disabled screensaver mode)
+    void turnScreenOff();
+
+    // Restore screen brightness (after disabled mode wake)
+    void restoreScreenBrightness();
 
     // Category management
     void refreshCategories();
@@ -205,7 +216,6 @@ signals:
 
     void cacheEnabledChanged();
     void streamingFallbackEnabledChanged();
-    void maxCacheBytesChanged();
     void cacheUsedBytesChanged();
     void downloadProgressChanged();
     void isDownloadingChanged();
@@ -219,6 +229,8 @@ signals:
     void screensaverTypeChanged();
     void pipesSpeedChanged();
     void pipesCameraSpeedChanged();
+    void flipClockUse24HourChanged();
+    void flipClockUse3DChanged();
 
 private slots:
     void onCategoriesReplyFinished();
@@ -245,7 +257,6 @@ private:
     void loadCacheIndex();
     void saveCacheIndex();
     void updateCacheUsedBytes();
-    void evictLruIfNeeded(qint64 neededBytes);
     QString getCachePath(const VideoItem& item) const;
     bool isVideoCached(const VideoItem& item) const;
     bool verifySha256(const QString& filePath, const QString& expectedHash) const;
@@ -291,7 +302,6 @@ private:
     // Cache state
     bool m_cacheEnabled = true;
     bool m_streamingFallbackEnabled = true;
-    qint64 m_maxCacheBytes = 2LL * 1024 * 1024 * 1024;  // 2 GB default
     qint64 m_cacheUsedBytes = 0;
     QString m_cacheDir;
     QMap<QString, CachedVideo> m_cacheIndex;  // video path -> CachedVideo
@@ -322,6 +332,8 @@ private:
     QString m_screensaverType = "videos";
     double m_pipesSpeed = 0.5;  // Default to slower speed
     double m_pipesCameraSpeed = 60.0;  // Seconds for full rotation (default 60s)
+    bool m_flipClockUse24Hour = true;  // Default to 24-hour format
+    bool m_flipClockUse3D = true;  // Default to 3D (perspective) mode
 
     // Constants
     static const QString BASE_URL;

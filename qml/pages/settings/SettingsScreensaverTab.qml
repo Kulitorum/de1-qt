@@ -133,12 +133,17 @@ Item {
                         id: typeComboBox
                         Layout.preferredWidth: Theme.scaled(180)
                         model: [
+                            TranslationManager.translate("settings.screensaver.type.disabled", "Disabled"),
                             TranslationManager.translate("settings.screensaver.type.videos", "Videos & Images"),
-                            TranslationManager.translate("settings.screensaver.type.pipes", "3D Pipes")
+                            TranslationManager.translate("settings.screensaver.type.pipes", "3D Pipes"),
+                            TranslationManager.translate("settings.screensaver.type.flipclock", "Flip Clock")
                         ]
-                        currentIndex: ScreensaverManager.screensaverType === "pipes" ? 1 : 0
+                        currentIndex: ScreensaverManager.screensaverType === "videos" ? 1 :
+                                      ScreensaverManager.screensaverType === "pipes" ? 2 :
+                                      ScreensaverManager.screensaverType === "flipclock" ? 3 : 0
                         onActivated: {
-                            ScreensaverManager.screensaverType = (currentIndex === 1) ? "pipes" : "videos"
+                            var types = ["disabled", "videos", "pipes", "flipclock"]
+                            ScreensaverManager.screensaverType = types[currentIndex]
                         }
                     }
 
@@ -198,6 +203,47 @@ Item {
                     Item { Layout.fillWidth: true }
                 }
 
+                // Flip Clock settings (flipclock mode only)
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(30)
+                    visible: ScreensaverManager.screensaverType === "flipclock"
+
+                    RowLayout {
+                        spacing: Theme.scaled(10)
+
+                        Tr {
+                            key: "settings.screensaver.flipclock24Hour"
+                            fallback: "24-hour format"
+                            color: Theme.textColor
+                            font.pixelSize: Theme.scaled(14)
+                        }
+
+                        StyledSwitch {
+                            checked: ScreensaverManager.flipClockUse24Hour
+                            onCheckedChanged: ScreensaverManager.flipClockUse24Hour = checked
+                        }
+                    }
+
+                    RowLayout {
+                        spacing: Theme.scaled(10)
+
+                        Tr {
+                            key: "settings.screensaver.flipclock3D"
+                            fallback: "3D perspective"
+                            color: Theme.textColor
+                            font.pixelSize: Theme.scaled(14)
+                        }
+
+                        StyledSwitch {
+                            checked: ScreensaverManager.flipClockUse3D
+                            onCheckedChanged: ScreensaverManager.flipClockUse3D = checked
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+                }
+
                 // Status row (only visible for videos mode)
                 RowLayout {
                     Layout.fillWidth: true
@@ -250,8 +296,7 @@ Item {
                         }
 
                         Text {
-                            text: (ScreensaverManager.cacheUsedBytes / 1024 / 1024).toFixed(0) + " MB / " +
-                                  (ScreensaverManager.maxCacheBytes / 1024 / 1024 / 1024).toFixed(1) + " GB"
+                            text: (ScreensaverManager.cacheUsedBytes / 1024 / 1024).toFixed(0) + " MB"
                             color: Theme.textColor
                             font.pixelSize: Theme.scaled(16)
                         }
@@ -278,31 +323,15 @@ Item {
                     }
                 }
 
-                // Toggles row
+                // Toggles row (videos mode only)
                 RowLayout {
                     Layout.fillWidth: true
                     spacing: Theme.scaled(30)
+                    visible: ScreensaverManager.screensaverType === "videos"
 
+                    // Cache toggle
                     RowLayout {
                         spacing: Theme.scaled(10)
-
-                        Tr {
-                            key: "settings.screensaver.enabled"
-                            fallback: "Enabled"
-                            color: Theme.textColor
-                            font.pixelSize: Theme.scaled(14)
-                        }
-
-                        StyledSwitch {
-                            checked: ScreensaverManager.enabled
-                            onCheckedChanged: ScreensaverManager.enabled = checked
-                        }
-                    }
-
-                    // Cache toggle - videos mode only
-                    RowLayout {
-                        spacing: Theme.scaled(10)
-                        visible: ScreensaverManager.screensaverType === "videos"
 
                         Tr {
                             key: "settings.screensaver.cacheVideos"
@@ -317,10 +346,10 @@ Item {
                         }
                     }
 
-                    // Show date toggle - only visible for Personal category in videos mode
+                    // Show date toggle - only visible for Personal category
                     RowLayout {
                         spacing: Theme.scaled(10)
-                        visible: ScreensaverManager.screensaverType === "videos" && ScreensaverManager.isPersonalCategory
+                        visible: ScreensaverManager.isPersonalCategory
 
                         Tr {
                             key: "settings.screensaver.showDate"
@@ -347,6 +376,7 @@ Item {
                     visible: ScreensaverManager.screensaverType === "videos"
 
                     AccessibleButton {
+                        visible: !ScreensaverManager.isPersonalCategory
                         text: TranslationManager.translate("settings.screensaver.refreshVideos", "Refresh Videos")
                         accessibleName: "Refresh screensaver videos"
                         onClicked: ScreensaverManager.refreshCatalog()
@@ -354,9 +384,10 @@ Item {
                     }
 
                     AccessibleButton {
-                        text: TranslationManager.translate("settings.screensaver.clearCache", "Clear Cache")
-                        accessibleName: "Clear video cache"
-                        onClicked: ScreensaverManager.clearCache()
+                        visible: ScreensaverManager.isPersonalCategory
+                        text: TranslationManager.translate("settings.screensaver.clearPersonal", "Clear Personal Media")
+                        accessibleName: "Clear personal media"
+                        onClicked: ScreensaverManager.clearPersonalMedia()
                     }
 
                     Item { Layout.fillWidth: true }

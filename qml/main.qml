@@ -1410,12 +1410,22 @@ ApplicationWindow {
     property bool screensaverActive: false
 
     function goToScreensaver() {
+        console.log("[Main] goToScreensaver called, type:", ScreensaverManager.screensaverType)
         screensaverActive = true
-        pageStack.replace(screensaverPage)
+
+        if (ScreensaverManager.screensaverType === "disabled") {
+            // Disabled mode: just turn off the screen, don't show screensaver
+            ScreensaverManager.turnScreenOff()
+            // Stay on idle page but mark as screensaver active so wake logic works
+        } else {
+            pageStack.replace(screensaverPage)
+        }
     }
 
     function goToIdleFromScreensaver() {
         screensaverActive = false
+        // Restore screen brightness in case disabled mode dimmed it
+        ScreensaverManager.restoreScreenBrightness()
         pageStack.replace(idlePage)
     }
 

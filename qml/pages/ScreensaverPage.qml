@@ -7,6 +7,7 @@ import "../components"
 // Screensaver mode enum
 // "videos" - Video/image slideshow from catalog
 // "pipes" - Classic 3D pipes animation
+// "flipclock" - Classic flip clock display
 
 Page {
     id: screensaverPage
@@ -17,6 +18,7 @@ Page {
     property string screensaverType: ScreensaverManager.screensaverType
     property bool isVideosMode: screensaverType === "videos"
     property bool isPipesMode: screensaverType === "pipes"
+    property bool isFlipClockMode: screensaverType === "flipclock"
 
     property int videoFailCount: 0
     property bool mediaPlaying: false
@@ -26,6 +28,8 @@ Page {
     property bool useFirstImage: true  // Toggle for cross-fade between two images
 
     Component.onCompleted: {
+        console.log("[ScreensaverPage] Loaded, type:", screensaverType,
+                    "videos:", isVideosMode, "pipes:", isPipesMode, "flipclock:", isFlipClockMode)
         // Keep screen on while screensaver is active
         ScreensaverManager.setKeepScreenOn(true)
         if (isVideosMode) {
@@ -226,6 +230,15 @@ Page {
         z: 0
     }
 
+    // Flip Clock screensaver
+    FlipClockScreensaver {
+        id: flipClockScreensaver
+        anchors.fill: parent
+        visible: isFlipClockMode
+        running: isFlipClockMode && screensaverPage.visible
+        z: 0
+    }
+
     // Fallback: show a subtle animation while no cached media (videos mode only)
     Rectangle {
         id: fallbackBackground
@@ -296,9 +309,10 @@ Page {
         }
     }
 
-    // Clock display
+    // Clock display (hidden in flip clock mode since it shows its own time)
     Text {
         z: 2
+        visible: !isFlipClockMode
         anchors.bottom: parent.bottom
         anchors.right: parent.right
         anchors.margins: Theme.scaled(50)
@@ -313,7 +327,7 @@ Page {
 
         Timer {
             interval: 1000
-            running: true
+            running: !isFlipClockMode
             repeat: true
             onTriggered: parent.currentTime = new Date()
         }
