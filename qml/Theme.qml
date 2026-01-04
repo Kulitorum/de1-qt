@@ -9,6 +9,9 @@ QtObject {
     // Scale factor - set from main.qml based on window size
     property real scale: 1.0
 
+    // Debug: scale multiplier (1.0 = auto, <1 = smaller, >1 = larger)
+    property real scaleMultiplier: 1.0
+
     // Helper function to scale values
     function scaled(value) { return Math.round(value * scale) }
 

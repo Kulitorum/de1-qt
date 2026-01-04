@@ -33,7 +33,7 @@ Item {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 60
+                    height: 80
                     color: Theme.backgroundColor
                     radius: 8
 
@@ -43,17 +43,25 @@ Item {
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
-                            text: MainController.updateChecker ? MainController.updateChecker.currentVersion : "Unknown"
-                            color: Theme.primaryColor
-                            font.pixelSize: 24
+                            text: "Decenza DE1"
+                            color: Theme.textColor
+                            font.pixelSize: 14
+                        }
+
+                        Text {
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "v" + AppVersion
+                            color: Theme.accentColor
+                            font.pixelSize: 22
                             font.bold: true
                         }
 
                         Text {
                             Layout.alignment: Qt.AlignHCenter
-                            text: "Decenza DE1"
-                            color: Theme.textSecondaryColor
+                            text: DE1Device.simulationMode ? "SIMULATION MODE" : "Built with Qt 6"
+                            color: DE1Device.simulationMode ? Theme.primaryColor : Theme.textSecondaryColor
                             font.pixelSize: 11
+                            font.bold: DE1Device.simulationMode
                         }
                     }
                 }

@@ -71,7 +71,7 @@ Item {
                 }
             }
 
-            // About box
+            // UI Scale (debug)
             Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -83,40 +83,35 @@ Item {
                     anchors.margins: 15
                     spacing: 8
 
-                    Tr {
-                        key: "settings.preferences.about"
-                        fallback: "About"
-                        color: Theme.textColor
+                    Text {
+                        text: "UI Scale (debug)"
+                        color: Theme.warningColor
                         font.pixelSize: 16
                         font.bold: true
                     }
 
+                    Tr {
+                        Layout.fillWidth: true
+                        key: "settings.preferences.uiScaleDesc"
+                        fallback: "Adjust UI density. Lower = smaller elements, more detail."
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: 11
+                        wrapMode: Text.WordWrap
+                    }
+
                     Item { Layout.fillHeight: true }
 
-                    Text {
-                        text: "Decenza DE1"
-                        color: Theme.textColor
-                        font.pixelSize: 14
-                    }
+                    ValueInput {
+                        id: scaleInput
+                        from: 0.5
+                        to: 2.0
+                        stepSize: 0.01
+                        decimals: 2
+                        value: Theme.scaleMultiplier
 
-                    Text {
-                        text: "Version 1.0.0"
-                        color: DE1Device.simulationMode ? Theme.primaryColor : Theme.textSecondaryColor
-                        font.pixelSize: 12
-                    }
-
-                    Text {
-                        text: "v" + AppVersion
-                        color: Theme.accentColor
-                        font.pixelSize: 18
-                        font.bold: true
-                    }
-
-                    Text {
-                        text: DE1Device.simulationMode ? "SIMULATION MODE" : "Built with Qt 6"
-                        color: DE1Device.simulationMode ? Theme.primaryColor : Theme.textSecondaryColor
-                        font.pixelSize: 12
-                        font.bold: DE1Device.simulationMode
+                        onValueModified: function(newValue) {
+                            Theme.scaleMultiplier = newValue
+                        }
                     }
 
                     Item { Layout.fillHeight: true }

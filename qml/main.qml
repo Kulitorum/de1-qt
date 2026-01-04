@@ -193,9 +193,13 @@ ApplicationWindow {
         }
     }
 
-    // Update scale factor when window resizes
+    // Update scale factor when window resizes or override changes
     onWidthChanged: updateScale()
     onHeightChanged: updateScale()
+    Connections {
+        target: Theme
+        function onScaleMultiplierChanged() { updateScale() }
+    }
     // Raise all application windows together when this window is activated
     onActiveChanged: {
         if (active && typeof GHCSimulator !== "undefined" && GHCSimulator) {
@@ -239,7 +243,10 @@ ApplicationWindow {
         // Scale based on window size vs reference (960x600 tablet dp)
         var scaleX = width / Theme.refWidth
         var scaleY = height / Theme.refHeight
-        Theme.scale = Math.min(scaleX, scaleY)
+        var autoScale = Math.min(scaleX, scaleY)
+
+        // Apply multiplier to auto scale
+        Theme.scale = autoScale * Theme.scaleMultiplier
     }
 
     // Global tap handler for accessibility - announces any Text tapped
