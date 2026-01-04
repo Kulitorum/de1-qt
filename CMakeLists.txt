@@ -275,6 +275,8 @@ set(QML_FILES
     qml/components/AccessibleLabel.qml
     qml/components/ComparisonGraph.qml
     qml/components/HistoryShotGraph.qml
+    qml/components/StyledSwitch.qml
+    qml/components/StyledComboBox.qml
 )
 
 # Simulator QML - Windows Debug only
