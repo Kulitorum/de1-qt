@@ -13,6 +13,18 @@ Item {
     // Local property to track auto-sleep value
     property int autoSleepMinutes: Settings.value("autoSleepMinutes", 60)
 
+    // Local property to track per-page scale config mode
+    property bool configurePageScaleEnabled: Settings.value("ui/configurePageScale", false) === true
+
+    Connections {
+        target: Settings
+        function onValueChanged(key) {
+            if (key === "ui/configurePageScale") {
+                preferencesTab.configurePageScaleEnabled = Settings.value("ui/configurePageScale", false) === true
+            }
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: Theme.scaled(15)
@@ -115,6 +127,42 @@ Item {
                     }
 
                     Item { Layout.fillHeight: true }
+
+                    // Per-page scale configuration toggle
+                    Rectangle {
+                        Layout.fillWidth: true
+                        height: 1
+                        color: Theme.borderColor
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(10)
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.scaled(2)
+
+                            Tr {
+                                key: "settings.preferences.configureScalePerScreen"
+                                fallback: "Configure scale per screen"
+                                color: Theme.textColor
+                                font.pixelSize: Theme.scaled(12)
+                            }
+
+                            Tr {
+                                key: "settings.preferences.configureScalePerScreenDesc"
+                                fallback: "Shows overlay to set scale for each page"
+                                color: Theme.textSecondaryColor
+                                font.pixelSize: Theme.scaled(10)
+                            }
+                        }
+
+                        StyledSwitch {
+                            checked: preferencesTab.configurePageScaleEnabled
+                            onClicked: Settings.setValue("ui/configurePageScale", checked)
+                        }
+                    }
                 }
             }
         }

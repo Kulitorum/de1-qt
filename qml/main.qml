@@ -142,6 +142,8 @@ ApplicationWindow {
                 var val = Settings.value("autoSleepMinutes", 60)
                 root.autoSleepMinutes = (val === undefined || val === null) ? 60 : parseInt(val)
                 resetInactivityTimer()
+            } else if (key === "ui/configurePageScale") {
+                root.configurePageScaleEnabled = Settings.value("ui/configurePageScale", false) === true
             }
         }
     }
@@ -167,6 +169,12 @@ ApplicationWindow {
 
     // Current page title - set by each page
     property string currentPageTitle: ""
+
+    // Current page object name - for per-page scale settings
+    property string currentPageObjectName: ""
+
+    // Per-page scale configuration mode enabled
+    property bool configurePageScaleEnabled: false
 
     // Suppress scale dialogs briefly after waking from sleep
     property bool justWokeFromSleep: false
@@ -199,6 +207,7 @@ ApplicationWindow {
     Connections {
         target: Theme
         function onScaleMultiplierChanged() { updateScale() }
+        function onPageScaleMultiplierChanged() { updateScale() }
     }
     // Raise all application windows together when this window is activated
     onActiveChanged: {
@@ -226,6 +235,9 @@ ApplicationWindow {
             }
         }
 
+        // Initialize per-page scale settings
+        root.configurePageScaleEnabled = Settings.value("ui/configurePageScale", false) === true
+
         updateScale()
 
         // Check for first run and show welcome dialog or start scanning
@@ -245,8 +257,8 @@ ApplicationWindow {
         var scaleY = height / Theme.refHeight
         var autoScale = Math.min(scaleX, scaleY)
 
-        // Apply multiplier to auto scale
-        Theme.scale = autoScale * Theme.scaleMultiplier
+        // Apply global multiplier and per-page multiplier
+        Theme.scale = autoScale * Theme.scaleMultiplier * Theme.pageScaleMultiplier
     }
 
     // Global tap handler for accessibility - announces any Text tapped
@@ -410,6 +422,32 @@ ApplicationWindow {
             id: shotMetadataPage
             ShotMetadataPage {}
         }
+    }
+
+    // Update per-page scale when navigating between pages
+    Connections {
+        target: pageStack
+        function onCurrentItemChanged() {
+            updateCurrentPageScale()
+        }
+    }
+
+    function updateCurrentPageScale() {
+        var pageName = pageStack.currentItem ? (pageStack.currentItem.objectName || "") : ""
+        root.currentPageObjectName = pageName
+        if (pageName) {
+            Theme.pageScaleMultiplier = parseFloat(Settings.value("pageScale/" + pageName, 1.0)) || 1.0
+        } else {
+            Theme.pageScaleMultiplier = 1.0
+        }
+    }
+
+    // Initialize page scale after pageStack is ready
+    Timer {
+        id: initPageScaleTimer
+        interval: 100
+        onTriggered: updateCurrentPageScale()
+        Component.onCompleted: start()
     }
 
     // Global error dialog for BLE issues
@@ -1564,6 +1602,76 @@ ApplicationWindow {
                 AccessibilityManager.announce(trAnnounceScaleConnected.text + " " + ScaleDevice.name)
             }
             // Disconnection is handled by scaleDisconnectedDialog
+        }
+    }
+
+    // ============ PER-PAGE SCALE CONFIGURATION OVERLAY ============
+    // Floating overlay at bottom-right to configure scale per page
+    Rectangle {
+        id: pageScaleOverlay
+        visible: root.configurePageScaleEnabled && !screensaverActive && root.currentPageObjectName !== ""
+        z: 9998  // Below hide keyboard button (9999), above most overlays
+
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: Theme.standardMargin
+        anchors.bottomMargin: Theme.bottomBarHeight + Theme.standardMargin
+
+        width: scaleOverlayContent.width + Theme.standardMargin * 2
+        height: scaleOverlayContent.height + Theme.standardMargin * 2
+        radius: Theme.cardRadius
+        color: Theme.surfaceColor
+        border.width: 2
+        border.color: Theme.primaryColor
+
+        Column {
+            id: scaleOverlayContent
+            anchors.centerIn: parent
+            spacing: Theme.spacingSmall
+
+            // Page name label
+            Text {
+                text: root.currentPageObjectName.replace("Page", "").replace(/([A-Z])/g, " $1").trim()
+                color: Theme.textSecondaryColor
+                font: Theme.labelFont
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            // Scale ValueInput
+            ValueInput {
+                id: pageScaleInput
+                value: Theme.pageScaleMultiplier
+                from: 0.3
+                to: 2.0
+                stepSize: 0.05
+                decimals: 2
+                suffix: "x"
+                valueColor: Theme.primaryColor
+
+                onValueModified: function(newValue) {
+                    Theme.pageScaleMultiplier = newValue
+                    Settings.setValue("pageScale/" + root.currentPageObjectName, newValue)
+                }
+            }
+
+            // Reset link (only if not default)
+            Text {
+                visible: Math.abs(Theme.pageScaleMultiplier - 1.0) > 0.01
+                text: TranslationManager.translate("settings.preferences.reset", "Reset")
+                color: Theme.primaryColor
+                font: Theme.captionFont
+                anchors.horizontalCenter: parent.horizontalCenter
+
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -Theme.spacingSmall
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        Theme.pageScaleMultiplier = 1.0
+                        Settings.setValue("pageScale/" + root.currentPageObjectName, 1.0)
+                    }
+                }
+            }
         }
     }
 
