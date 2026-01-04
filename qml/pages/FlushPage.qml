@@ -155,8 +155,9 @@ Page {
                     font.weight: Font.Bold
                 }
 
-                AccessibleMouseArea {
-                    id: stopMouseArea
+                // Using TapHandler for better touch responsiveness
+                AccessibleTapHandler {
+                    id: stopTapHandler
                     anchors.fill: parent
                     accessibleName: TranslationManager.translate("flush.accessible.stopFlushing", "Stop flushing")
                     accessibleItem: flushStopButton
@@ -333,7 +334,8 @@ Page {
                                 font.pixelSize: Theme.scaled(20)
                             }
 
-                            AccessibleMouseArea {
+                            // Using TapHandler for better touch responsiveness
+                            AccessibleTapHandler {
                                 anchors.fill: parent
                                 accessibleName: TranslationManager.translate("flush.accessible.addPreset", "Add new flush preset")
                                 accessibleItem: addPresetButton

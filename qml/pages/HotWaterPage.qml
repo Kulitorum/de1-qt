@@ -149,8 +149,9 @@ Page {
                     font.weight: Font.Bold
                 }
 
-                AccessibleMouseArea {
-                    id: stopMouseArea
+                // Using TapHandler for better touch responsiveness
+                AccessibleTapHandler {
+                    id: stopTapHandler
                     anchors.fill: parent
                     accessibleName: "Stop hot water"
                     accessibleItem: hotWaterStopButton
@@ -325,7 +326,8 @@ Page {
                                 font.pixelSize: Theme.scaled(20)
                             }
 
-                            AccessibleMouseArea {
+                            // Using TapHandler for better touch responsiveness
+                            AccessibleTapHandler {
                                 anchors.fill: parent
                                 accessibleName: "Add new hot water preset"
                                 accessibleItem: addVesselButton

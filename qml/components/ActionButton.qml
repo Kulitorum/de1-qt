@@ -99,8 +99,8 @@ Button {
         }
     }
 
-    // Custom interaction handling using AccessibleMouseArea
-    AccessibleMouseArea {
+    // Custom interaction handling using TapHandler (better touch responsiveness than MouseArea)
+    AccessibleTapHandler {
         anchors.fill: parent
         enabled: control.enabled
 
@@ -113,12 +113,15 @@ Button {
         onIsPressedChanged: control._isPressed = isPressed
 
         onAccessibleClicked: {
+            console.log("[ActionButton] accessibleClicked received for:", control.text)
             control.clicked()
         }
         onAccessibleDoubleClicked: {
+            console.log("[ActionButton] accessibleDoubleClicked received for:", control.text)
             control.doubleClicked()
         }
         onAccessibleLongPressed: {
+            console.log("[ActionButton] accessibleLongPressed received for:", control.text)
             control.pressAndHold()
         }
     }
@@ -146,10 +149,10 @@ Button {
     }
 
     // Announce button name when focused via keyboard (for accessibility)
-    // Touch taps are handled by AccessibleMouseArea which has more context
+    // Touch taps are handled by AccessibleTapHandler which has more context
     onActiveFocusChanged: {
         if (activeFocus && typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
-            // Only announce if not being pressed (tap in progress = AccessibleMouseArea will handle it)
+            // Only announce if not being pressed (tap in progress = AccessibleTapHandler will handle it)
             if (!control._isPressed) {
                 AccessibilityManager.announce(control.text)
             }

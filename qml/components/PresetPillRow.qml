@@ -207,7 +207,8 @@ FocusScope {
                             font.bold: true
                         }
 
-                        AccessibleMouseArea {
+                        // Using TapHandler for better touch responsiveness (avoids Flickable conflicts)
+                        AccessibleTapHandler {
                             anchors.fill: parent
 
                             accessibleName: {

@@ -572,6 +572,7 @@ Page {
                 KeyNavigation.right: settingsButton
 
                 function doSleep() {
+                    console.log("[IdlePage] doSleep called, enabled:", enabled)
                     if (!enabled) return
                     // Put scale to sleep and disconnect (if connected)
                     if (ScaleDevice && ScaleDevice.connected) {
@@ -579,6 +580,7 @@ Page {
                         scaleDisconnectTimer.start()
                     }
                     DE1Device.goToSleep()
+                    console.log("[IdlePage] Calling goToScreensaver")
                     root.goToScreensaver()
                 }
 
@@ -601,7 +603,7 @@ Page {
                     id: sleepButtonBg
                     anchors.fill: parent
                     implicitWidth: Theme.scaled(140)
-                    color: sleepMouseArea.isPressed ? Qt.darker("#555555", 1.2) : "#555555"
+                    color: sleepTapHandler.isPressed ? Qt.darker("#555555", 1.2) : "#555555"
                     radius: Theme.cardRadius
                     opacity: sleepButton.enabled ? 1.0 : 0.5
 
@@ -635,15 +637,19 @@ Page {
                     }
                 }
 
-                AccessibleMouseArea {
-                    id: sleepMouseArea
+                // Using TapHandler for better touch responsiveness
+                AccessibleTapHandler {
+                    id: sleepTapHandler
                     anchors.fill: parent
                     enabled: sleepButton.enabled
                     supportLongPress: true
                     longPressInterval: 1000
                     accessibleName: TranslationManager.translate("idle.accessible.sleep", "Sleep") + ". " + TranslationManager.translate("idle.accessible.sleep.description", "Put the machine to sleep")
                     accessibleItem: sleepButton
-                    onAccessibleClicked: sleepButton.doSleep()
+                    onAccessibleClicked: {
+                        console.log("[IdlePage] Sleep button tapped")
+                        sleepButton.doSleep()
+                    }
                     onAccessibleLongPressed: Qt.quit()
                 }
             }
@@ -687,7 +693,8 @@ Page {
                     radius: Theme.scaled(4)
                 }
 
-                AccessibleMouseArea {
+                // Using TapHandler for better touch responsiveness
+                AccessibleTapHandler {
                     anchors.fill: parent
                     accessibleName: "Settings. Open application settings"
                     accessibleItem: settingsButton

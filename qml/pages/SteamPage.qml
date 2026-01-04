@@ -282,8 +282,9 @@ Page {
                     font.weight: Font.Bold
                 }
 
-                AccessibleMouseArea {
-                    id: stopMouseArea
+                // Using TapHandler for better touch responsiveness
+                AccessibleTapHandler {
+                    id: stopTapHandler
                     anchors.fill: parent
                     accessibleName: steamSoftStopped ? "Purge steam wand" : "Stop steaming"
                     accessibleItem: steamStopButton
@@ -468,7 +469,8 @@ Page {
                                 font.pixelSize: Theme.scaled(20)
                             }
 
-                            AccessibleMouseArea {
+                            // Using TapHandler for better touch responsiveness
+                            AccessibleTapHandler {
                                 anchors.fill: parent
                                 accessibleName: "Add new steam preset"
                                 accessibleItem: addPitcherButton

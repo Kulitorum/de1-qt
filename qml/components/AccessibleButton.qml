@@ -48,7 +48,8 @@ Button {
     }
 
     // Tap-to-announce, tap-again-to-activate for accessibility mode
-    AccessibleMouseArea {
+    // Using TapHandler for better touch responsiveness
+    AccessibleTapHandler {
         anchors.fill: parent
         accessibleName: root.accessibleName
         accessibleItem: root.accessibleItem

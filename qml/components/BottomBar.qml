@@ -62,7 +62,8 @@ Rectangle {
             Keys.onEnterPressed: root.backClicked()
             Keys.onEscapePressed: root.backClicked()
 
-            AccessibleMouseArea {
+            // Using TapHandler for better touch responsiveness
+            AccessibleTapHandler {
                 anchors.fill: parent
                 accessibleName: TranslationManager.translate("bottombar.button.back.accessible", "Back. Return to previous screen")
                 accessibleItem: backButton

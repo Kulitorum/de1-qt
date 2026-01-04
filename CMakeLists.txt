@@ -267,6 +267,7 @@ set(QML_FILES
     qml/components/ProfileGraph.qml
     qml/components/BottomBar.qml
     qml/components/AccessibleMouseArea.qml
+    qml/components/AccessibleTapHandler.qml
     qml/components/AccessibleButton.qml
     qml/components/FocusIndicator.qml
     qml/components/ColorWheel.qml
@@ -281,6 +282,7 @@ set(QML_FILES
     qml/components/StyledComboBox.qml
     qml/components/StyledButton.qml
     qml/components/PipesScreensaver.qml
+    qml/components/FlipClockScreensaver.qml
 )
 
 # Simulator QML - Windows Debug only

@@ -39,7 +39,7 @@ Item {
             Layout.preferredWidth: root.buttonSize
             Layout.preferredHeight: root.buttonSize
             radius: height / 2
-            color: minusArea.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : Theme.surfaceColor
+            color: minusTapHandler.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : Theme.surfaceColor
             border.width: 1
             border.color: Theme.borderColor
 
@@ -51,10 +51,10 @@ Item {
                 color: root.value <= root.from ? Theme.textSecondaryColor : Theme.textColor
             }
 
-            MouseArea {
-                id: minusArea
-                anchors.fill: parent
-                onClicked: {
+            // Using TapHandler for better touch responsiveness
+            TapHandler {
+                id: minusTapHandler
+                onTapped: {
                     var newVal = root.value - root.stepSize
                     if (newVal >= root.from) {
                         root.value = Math.round(newVal / root.stepSize) * root.stepSize
@@ -62,9 +62,16 @@ Item {
                     }
                 }
                 // Long press for continuous decrement
-                onPressAndHold: decrementTimer.start()
-                onReleased: decrementTimer.stop()
-                onCanceled: decrementTimer.stop()
+                longPressThreshold: 0.3
+                onLongPressed: decrementTimer.start()
+                onPressedChanged: {
+                    if (!pressed) {
+                        decrementTimer.stop()
+                    }
+                }
+            }
+            HoverHandler {
+                cursorShape: Qt.PointingHandCursor
             }
 
             Timer {
@@ -155,7 +162,7 @@ Item {
             Layout.preferredWidth: root.buttonSize
             Layout.preferredHeight: root.buttonSize
             radius: height / 2
-            color: plusArea.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : Theme.surfaceColor
+            color: plusTapHandler.pressed ? Qt.darker(Theme.surfaceColor, 1.3) : Theme.surfaceColor
             border.width: 1
             border.color: Theme.borderColor
 
@@ -167,10 +174,10 @@ Item {
                 color: root.value >= root.to ? Theme.textSecondaryColor : Theme.textColor
             }
 
-            MouseArea {
-                id: plusArea
-                anchors.fill: parent
-                onClicked: {
+            // Using TapHandler for better touch responsiveness
+            TapHandler {
+                id: plusTapHandler
+                onTapped: {
                     var newVal = root.value + root.stepSize
                     if (newVal <= root.to) {
                         root.value = Math.round(newVal / root.stepSize) * root.stepSize
@@ -178,9 +185,16 @@ Item {
                     }
                 }
                 // Long press for continuous increment
-                onPressAndHold: incrementTimer.start()
-                onReleased: incrementTimer.stop()
-                onCanceled: incrementTimer.stop()
+                longPressThreshold: 0.3
+                onLongPressed: incrementTimer.start()
+                onPressedChanged: {
+                    if (!pressed) {
+                        incrementTimer.stop()
+                    }
+                }
+            }
+            HoverHandler {
+                cursorShape: Qt.PointingHandCursor
             }
 
             Timer {

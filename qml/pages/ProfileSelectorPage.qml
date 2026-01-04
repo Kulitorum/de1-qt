@@ -617,7 +617,8 @@ Page {
 
                                     onClicked: doEdit()
 
-                                    AccessibleMouseArea {
+                                    // Using TapHandler for better touch responsiveness
+                                    AccessibleTapHandler {
                                         anchors.fill: parent
                                         accessibleName: modelData ? (TranslationManager.translate("profileselector.accessible.edit", "Edit") + " " + root.cleanForSpeech(modelData.name)) : ""
                                         accessibleItem: editFavoriteButton
@@ -657,7 +658,8 @@ Page {
                                         color: "transparent"
                                     }
 
-                                    AccessibleMouseArea {
+                                    // Using TapHandler for better touch responsiveness
+                                    AccessibleTapHandler {
                                         anchors.fill: parent
                                         accessibleName: modelData ? (TranslationManager.translate("profileselector.accessible.remove", "Remove") + " " + root.cleanForSpeech(modelData.name) + " " + TranslationManager.translate("profileselector.accessible.from_favorites", "from favorites")) : ""
                                         accessibleItem: removeFavoriteButton
@@ -666,7 +668,8 @@ Page {
                                 }
                             }
 
-                            AccessibleMouseArea {
+                            // Using TapHandler for better touch responsiveness
+                            AccessibleTapHandler {
                                 anchors.fill: parent
                                 z: -1
                                 accessibleName: modelData ? (root.cleanForSpeech(modelData.name) + (index === Settings.selectedFavoriteProfile ? ", " + TranslationManager.translate("profileselector.accessible.selected_favorite", "selected favorite") : ", " + TranslationManager.translate("profileselector.accessible.favorite", "favorite"))) : ""

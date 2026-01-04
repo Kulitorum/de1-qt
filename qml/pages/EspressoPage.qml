@@ -184,7 +184,8 @@ Page {
                     sourceSize.height: Theme.scaled(28)
                 }
 
-                AccessibleMouseArea {
+                // Using TapHandler for better touch responsiveness
+                AccessibleTapHandler {
                     anchors.fill: parent
                     accessibleName: "Stop shot and go back"
                     accessibleItem: espressoBackButton
