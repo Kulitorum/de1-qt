@@ -54,6 +54,7 @@ signals:
     void buttonPressed(int button);
     void errorOccurred(const QString& error);
     void simulationModeChanged();
+    void logMessage(const QString& message);  // For debug logging to UI/file
 
 protected:
     void setConnected(bool connected);

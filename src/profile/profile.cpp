@@ -1,4 +1,6 @@
 #include "profile.h"
+#include "recipegenerator.h"
+#include "recipeanalyzer.h"
 #include "../ble/protocol/binarycodec.h"
 #include <QFile>
 #include <QJsonArray>
@@ -35,6 +37,12 @@ QJsonDocument Profile::toJson() const {
     }
     obj["steps"] = stepsArray;
 
+    // Recipe mode data
+    obj["is_recipe_mode"] = m_isRecipeMode;
+    if (m_isRecipeMode) {
+        obj["recipe"] = m_recipeParams.toJson();
+    }
+
     return QJsonDocument(obj);
 }
 
@@ -70,6 +78,12 @@ Profile Profile::fromJson(const QJsonDocument& doc) {
     QJsonArray stepsArray = obj["steps"].toArray();
     for (const auto& stepVal : stepsArray) {
         profile.m_steps.append(ProfileFrame::fromJson(stepVal.toObject()));
+    }
+
+    // Recipe mode data
+    profile.m_isRecipeMode = obj["is_recipe_mode"].toBool(false);
+    if (profile.m_isRecipeMode && obj.contains("recipe")) {
+        profile.m_recipeParams = RecipeParams::fromJson(obj["recipe"].toObject());
     }
 
     return profile;
@@ -218,6 +232,12 @@ Profile Profile::loadFromTclFile(const QString& filePath) {
     qDebug() << "Loaded Tcl profile:" << profile.m_title
              << "with" << profile.m_steps.size() << "steps";
 
+    // Try to convert to recipe mode if the frame pattern matches
+    if (RecipeAnalyzer::canConvertToRecipe(profile)) {
+        RecipeAnalyzer::convertToRecipeMode(profile);
+        qDebug() << "  → Converted to recipe mode";
+    }
+
     return profile;
 }
 
@@ -343,4 +363,24 @@ QList<QByteArray> Profile::toFrameBytes() const {
     frames.append(tailFrame);
 
     return frames;
+}
+
+void Profile::regenerateFromRecipe() {
+    if (!m_isRecipeMode) {
+        return;
+    }
+
+    // Regenerate frames from recipe parameters
+    m_steps = RecipeGenerator::generateFrames(m_recipeParams);
+
+    // Update profile metadata from recipe
+    m_targetWeight = m_recipeParams.targetWeight;
+    m_espressoTemperature = m_recipeParams.temperature;
+
+    // Calculate preinfuse frame count (fill + infuse)
+    int preinfuseCount = 1;  // Fill is always preinfuse
+    if (m_recipeParams.infuseTime > 0 || m_recipeParams.infuseByWeight) {
+        preinfuseCount = 2;  // Fill + Infuse
+    }
+    m_preinfuseFrameCount = preinfuseCount;
 }

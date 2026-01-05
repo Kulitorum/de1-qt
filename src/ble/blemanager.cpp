@@ -6,6 +6,10 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QLocationPermission>
+#include <QStandardPaths>
+#include <QDir>
+#include <QTextStream>
+#include <QDateTime>
 
 #ifdef Q_OS_ANDROID
 #include <QJniObject>
@@ -99,7 +103,7 @@ void BLEManager::connectToScale(const QString& address) {
     QBluetoothAddress addr(address);
     for (const auto& pair : m_scales) {
         if (pair.first.address() == addr) {
-            emit scaleLogMessage(QString("Connecting to %1...").arg(pair.first.name()));
+            appendScaleLog(QString("Connecting to %1...").arg(pair.first.name()));
             emit scaleDiscovered(pair.first, pair.second);
             return;
         }
@@ -236,7 +240,7 @@ void BLEManager::onDeviceDiscovered(const QBluetoothDeviceInfo& device) {
         }
         m_scales.append({device, scaleType});
         emit scalesChanged();
-        emit scaleLogMessage(QString("Found %1: %2 (%3)").arg(scaleType).arg(device.name()).arg(device.address().toString()));
+        appendScaleLog(QString("Found %1: %2 (%3)").arg(scaleType).arg(device.name()).arg(device.address().toString()));
         emit scaleDiscovered(device, scaleType);
     }
 }
@@ -245,7 +249,7 @@ void BLEManager::onScanFinished() {
     m_scanning = false;
     m_scanningForScales = false;
     emit de1LogMessage("Scan complete");
-    emit scaleLogMessage("Scan complete");
+    appendScaleLog("Scan complete");
     emit scanningChanged();
 }
 
@@ -275,7 +279,7 @@ void BLEManager::onScanError(QBluetoothDeviceDiscoveryAgent::Error error) {
             break;
     }
     emit de1LogMessage(QString("Error: %1").arg(errorMsg));
-    emit scaleLogMessage(QString("Error: %1").arg(errorMsg));
+    appendScaleLog(QString("Error: %1").arg(errorMsg));
     emit errorOccurred(errorMsg);
     m_scanning = false;
     m_scanningForScales = false;
@@ -319,6 +323,9 @@ void BLEManager::setScaleDevice(ScaleDevice* scale) {
     if (m_scaleDevice) {
         connect(m_scaleDevice, &ScaleDevice::connectedChanged,
                 this, &BLEManager::onScaleConnectedChanged);
+        // Connect scale's debug log to our logging system
+        connect(m_scaleDevice, &ScaleDevice::logMessage,
+                this, &BLEManager::appendScaleLog);
     }
 }
 
@@ -359,7 +366,7 @@ void BLEManager::scanForScales() {
         return;
     }
 
-    emit scaleLogMessage("Starting scale scan...");
+    appendScaleLog("Starting scale scan...");
     m_scaleConnectionFailed = false;
     emit scaleConnectionFailedChanged();
 
@@ -413,12 +420,130 @@ void BLEManager::openLocationSettings()
     QJniObject action = QJniObject::fromString("android.settings.LOCATION_SOURCE_SETTINGS");
     QJniObject intent("android/content/Intent", "(Ljava/lang/String;)V", action.object<jstring>());
     intent.callMethod<QJniObject>("addFlags", "(I)Landroid/content/Intent;", 0x10000000);  // FLAG_ACTIVITY_NEW_TASK
-    
+
     QJniObject activity = QNativeInterface::QAndroidApplication::context();
     if (activity.isValid() && intent.isValid()) {
         activity.callMethod<void>("startActivity", "(Landroid/content/Intent;)V", intent.object());
     }
 #else
     qDebug() << "openLocationSettings is only available on Android";
+#endif
+}
+
+// Scale debug logging methods
+void BLEManager::appendScaleLog(const QString& message) {
+    QString timestampedMsg = QDateTime::currentDateTime().toString("[hh:mm:ss.zzz] ") + message;
+    m_scaleLogMessages.append(timestampedMsg);
+    emit scaleLogMessage(message);
+
+    // Keep log size reasonable (last 1000 messages)
+    while (m_scaleLogMessages.size() > 1000) {
+        m_scaleLogMessages.removeFirst();
+    }
+}
+
+void BLEManager::clearScaleLog() {
+    m_scaleLogMessages.clear();
+    emit scaleLogMessage("Log cleared");
+}
+
+QString BLEManager::getScaleLogPath() const {
+    return m_scaleLogFilePath;
+}
+
+void BLEManager::writeScaleLogToFile() {
+    // Get app's cache directory for the log file
+    QString cacheDir = QStandardPaths::writableLocation(QStandardPaths::CacheLocation);
+    QDir().mkpath(cacheDir);
+    m_scaleLogFilePath = cacheDir + "/scale_debug_log.txt";
+
+    QFile file(m_scaleLogFilePath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        out << "=== Decenza Scale Debug Log ===" << Qt::endl;
+        out << "Generated: " << QDateTime::currentDateTime().toString(Qt::ISODate) << Qt::endl;
+        out << "================================" << Qt::endl << Qt::endl;
+
+        for (const QString& msg : m_scaleLogMessages) {
+            out << msg << Qt::endl;
+        }
+        file.close();
+        qDebug() << "Scale log written to:" << m_scaleLogFilePath;
+    } else {
+        qWarning() << "Failed to write scale log to:" << m_scaleLogFilePath;
+    }
+}
+
+void BLEManager::shareScaleLog() {
+    // First write the log to a file
+    writeScaleLogToFile();
+
+    if (m_scaleLogFilePath.isEmpty()) {
+        qWarning() << "No log file path available";
+        return;
+    }
+
+#ifdef Q_OS_ANDROID
+    // Use Android's share intent
+    QJniObject context = QNativeInterface::QAndroidApplication::context();
+
+    // Create a file URI using FileProvider for Android 7+
+    QJniObject fileObj = QJniObject::fromString(m_scaleLogFilePath);
+    QJniObject file("java/io/File", "(Ljava/lang/String;)V", fileObj.object<jstring>());
+
+    // Get the app's package name for FileProvider authority
+    QJniObject packageName = context.callObjectMethod("getPackageName", "()Ljava/lang/String;");
+    QString authority = packageName.toString() + ".fileprovider";
+    QJniObject authorityObj = QJniObject::fromString(authority);
+
+    // Get content URI via FileProvider
+    QJniObject uri = QJniObject::callStaticObjectMethod(
+        "androidx/core/content/FileProvider",
+        "getUriForFile",
+        "(Landroid/content/Context;Ljava/lang/String;Ljava/io/File;)Landroid/net/Uri;",
+        context.object(),
+        authorityObj.object<jstring>(),
+        file.object());
+
+    if (!uri.isValid()) {
+        qWarning() << "Failed to get content URI for file";
+        // Fallback: just notify user of file location
+        emit scaleLogMessage("Log saved to: " + m_scaleLogFilePath);
+        return;
+    }
+
+    // Create share intent
+    QJniObject actionSend = QJniObject::fromString("android.intent.action.SEND");
+    QJniObject intent("android/content/Intent", "(Ljava/lang/String;)V", actionSend.object<jstring>());
+
+    QJniObject mimeType = QJniObject::fromString("text/plain");
+    intent.callObjectMethod("setType", "(Ljava/lang/String;)Landroid/content/Intent;", mimeType.object<jstring>());
+
+    QJniObject extraStream = QJniObject::getStaticObjectField<jstring>("android/content/Intent", "EXTRA_STREAM");
+    intent.callObjectMethod("putExtra", "(Ljava/lang/String;Landroid/os/Parcelable;)Landroid/content/Intent;",
+                           extraStream.object<jstring>(), uri.object());
+
+    // Add grant read permission flag
+    intent.callObjectMethod("addFlags", "(I)Landroid/content/Intent;", 1);  // FLAG_GRANT_READ_URI_PERMISSION
+
+    // Create chooser
+    QJniObject chooserTitle = QJniObject::fromString("Share Scale Debug Log");
+    QJniObject chooser = QJniObject::callStaticObjectMethod(
+        "android/content/Intent",
+        "createChooser",
+        "(Landroid/content/Intent;Ljava/lang/CharSequence;)Landroid/content/Intent;",
+        intent.object(),
+        chooserTitle.object<jstring>());
+
+    chooser.callObjectMethod("addFlags", "(I)Landroid/content/Intent;", 0x10000000);  // FLAG_ACTIVITY_NEW_TASK
+
+    // Start the chooser activity
+    context.callMethod<void>("startActivity", "(Landroid/content/Intent;)V", chooser.object());
+
+    emit scaleLogMessage("Opening share dialog...");
+#else
+    // Desktop: just show the file path
+    emit scaleLogMessage("Log saved to: " + m_scaleLogFilePath);
+    qDebug() << "Scale log saved to:" << m_scaleLogFilePath;
 #endif
 }

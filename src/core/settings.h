@@ -100,10 +100,6 @@ class Settings : public QObject {
     Q_PROPERTY(QString dyeBarista READ dyeBarista WRITE setDyeBarista NOTIFY dyeBaristaChanged)
     Q_PROPERTY(QString dyeShotDateTime READ dyeShotDateTime WRITE setDyeShotDateTime NOTIFY dyeShotDateTimeChanged)
 
-    // Water tank level calibration (auto-calibrated)
-    Q_PROPERTY(double waterLevelMinMm READ waterLevelMinMm WRITE setWaterLevelMinMm NOTIFY waterLevelMinMmChanged)
-    Q_PROPERTY(double waterLevelMaxMm READ waterLevelMaxMm WRITE setWaterLevelMaxMm NOTIFY waterLevelMaxMmChanged)
-
     // Shot server settings (HTTP API)
     Q_PROPERTY(bool shotServerEnabled READ shotServerEnabled WRITE setShotServerEnabled NOTIFY shotServerEnabledChanged)
     Q_PROPERTY(QString shotServerHostname READ shotServerHostname WRITE setShotServerHostname NOTIFY shotServerHostnameChanged)
@@ -335,13 +331,6 @@ public:
     QString dyeShotDateTime() const;
     void setDyeShotDateTime(const QString& value);
 
-    // Water tank calibration (auto-calibrated, persisted)
-    double waterLevelMinMm() const;
-    void setWaterLevelMinMm(double mm);
-    double waterLevelMaxMm() const;
-    void setWaterLevelMaxMm(double mm);
-    Q_INVOKABLE void resetWaterLevelCalibration();
-
     // Shot server settings (HTTP API)
     bool shotServerEnabled() const;
     void setShotServerEnabled(bool enabled);
@@ -419,8 +408,6 @@ signals:
     void dyeEspressoNotesChanged();
     void dyeBaristaChanged();
     void dyeShotDateTimeChanged();
-    void waterLevelMinMmChanged();
-    void waterLevelMaxMmChanged();
     void shotServerEnabledChanged();
     void shotServerHostnameChanged();
     void shotServerPortChanged();

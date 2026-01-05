@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QByteArray>
 #include "profileframe.h"
+#include "recipeparams.h"
 
 /**
  * Profile represents a complete espresso profile for the DE1.
@@ -91,6 +92,17 @@ public:
     Mode mode() const { return m_mode; }
     void setMode(Mode mode) { m_mode = mode; }
 
+    // === Recipe Mode ===
+    // Recipe mode stores high-level parameters that generate frames automatically
+    bool isRecipeMode() const { return m_isRecipeMode; }
+    void setRecipeMode(bool enabled) { m_isRecipeMode = enabled; }
+
+    RecipeParams recipeParams() const { return m_recipeParams; }
+    void setRecipeParams(const RecipeParams& params) { m_recipeParams = params; }
+
+    // Regenerate frames from stored recipe parameters
+    void regenerateFromRecipe();
+
     // === Serialization ===
     QJsonDocument toJson() const;
     static Profile fromJson(const QJsonDocument& doc);
@@ -145,6 +157,10 @@ private:
 
     // Mode
     Mode m_mode = Mode::FrameBased;
+
+    // Recipe mode
+    bool m_isRecipeMode = false;
+    RecipeParams m_recipeParams;
 };
 
 Q_DECLARE_METATYPE(Profile)

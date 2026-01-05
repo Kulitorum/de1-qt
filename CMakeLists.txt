@@ -103,6 +103,9 @@ set(SOURCES
     src/machine/machinestate.cpp
     src/profile/profile.cpp
     src/profile/profileframe.cpp
+    src/profile/recipeparams.cpp
+    src/profile/recipegenerator.cpp
+    src/profile/recipeanalyzer.cpp
     src/models/shotdatamodel.cpp
     src/controllers/maincontroller.cpp
     src/controllers/directcontroller.cpp
@@ -158,6 +161,9 @@ set(HEADERS
     src/machine/machinestate.h
     src/profile/profile.h
     src/profile/profileframe.h
+    src/profile/recipeparams.h
+    src/profile/recipegenerator.h
+    src/profile/recipeanalyzer.h
     src/models/shotdatamodel.h
     src/controllers/maincontroller.h
     src/controllers/directcontroller.h
@@ -231,6 +237,7 @@ set(QML_FILES
     qml/pages/HotWaterPage.qml
     qml/pages/SettingsPage.qml
     qml/pages/ProfileEditorPage.qml
+    qml/pages/RecipeEditorPage.qml
     qml/pages/ProfileSelectorPage.qml
     qml/pages/DescalingPage.qml
     qml/pages/ScreensaverPage.qml
@@ -275,6 +282,9 @@ set(QML_FILES
     qml/components/ColorSwatch.qml
     qml/components/StyledTextField.qml
     qml/components/Tr.qml
+    qml/components/RecipeSection.qml
+    qml/components/RecipeRow.qml
+    qml/components/PresetButton.qml
     qml/components/AccessibleLabel.qml
     qml/components/ComparisonGraph.qml
     qml/components/HistoryShotGraph.qml

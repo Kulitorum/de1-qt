@@ -4,6 +4,7 @@
 #include "../ble/de1device.h"
 #include "../machine/machinestate.h"
 #include "../models/shotdatamodel.h"
+#include "../profile/recipegenerator.h"
 #include "../models/shotcomparisonmodel.h"
 #include "../network/visualizeruploader.h"
 #include "../network/visualizerimporter.h"
@@ -14,6 +15,7 @@
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
+#include <tuple>
 #include <QDateTime>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -219,6 +221,7 @@ QVariantList MainController::selectedProfiles() const {
             profile["title"] = info.title;
             profile["beverageType"] = info.beverageType;
             profile["source"] = static_cast<int>(info.source);
+            profile["isRecipeMode"] = info.isRecipeMode;
             result.append(profile);
         }
     }
@@ -246,6 +249,7 @@ QVariantList MainController::allBuiltInProfiles() const {
             profile["beverageType"] = info.beverageType;
             profile["source"] = static_cast<int>(info.source);
             profile["isSelected"] = selectedBuiltIns.contains(info.filename);
+            profile["isRecipeMode"] = info.isRecipeMode;
             result.append(profile);
         }
     }
@@ -270,6 +274,7 @@ QVariantList MainController::cleaningProfiles() const {
             profile["title"] = info.title;
             profile["beverageType"] = info.beverageType;
             profile["source"] = static_cast<int>(info.source);
+            profile["isRecipeMode"] = info.isRecipeMode;
             result.append(profile);
         }
     }
@@ -293,6 +298,7 @@ QVariantList MainController::downloadedProfiles() const {
             profile["title"] = info.title;
             profile["beverageType"] = info.beverageType;
             profile["source"] = static_cast<int>(info.source);
+            profile["isRecipeMode"] = info.isRecipeMode;
             result.append(profile);
         }
     }
@@ -316,6 +322,7 @@ QVariantList MainController::userCreatedProfiles() const {
             profile["title"] = info.title;
             profile["beverageType"] = info.beverageType;
             profile["source"] = static_cast<int>(info.source);
+            profile["isRecipeMode"] = info.isRecipeMode;
             result.append(profile);
         }
     }
@@ -338,6 +345,7 @@ QVariantList MainController::allProfilesList() const {
         profile["title"] = info.title;
         profile["beverageType"] = info.beverageType;
         profile["source"] = static_cast<int>(info.source);
+        profile["isRecipeMode"] = info.isRecipeMode;
         result.append(profile);
     }
 
@@ -524,21 +532,21 @@ void MainController::refreshProfiles() {
     m_allProfiles.clear();
 
     // Helper to load profile metadata from file path
-    auto loadProfileMeta = [](const QString& path) -> QPair<QString, QString> {
+    auto loadProfileMeta = [](const QString& path) -> std::tuple<QString, QString, bool> {
         QFile file(path);
         if (file.open(QIODevice::ReadOnly)) {
             QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
             QJsonObject obj = doc.object();
-            return {obj["title"].toString(), obj["beverage_type"].toString()};
+            return {obj["title"].toString(), obj["beverage_type"].toString(), obj["is_recipe_mode"].toBool(false)};
         }
-        return {QString(), QString()};
+        return {QString(), QString(), false};
     };
 
     // Helper to load profile metadata from JSON string
-    auto loadProfileMetaFromJson = [](const QString& jsonContent) -> QPair<QString, QString> {
+    auto loadProfileMetaFromJson = [](const QString& jsonContent) -> std::tuple<QString, QString, bool> {
         QJsonDocument doc = QJsonDocument::fromJson(jsonContent.toUtf8());
         QJsonObject obj = doc.object();
-        return {obj["title"].toString(), obj["beverage_type"].toString()};
+        return {obj["title"].toString(), obj["beverage_type"].toString(), obj["is_recipe_mode"].toBool(false)};
     };
 
     QStringList filters;
@@ -549,13 +557,14 @@ void MainController::refreshProfiles() {
     QStringList files = builtInDir.entryList(filters, QDir::Files);
     for (const QString& file : files) {
         QString name = file.left(file.length() - 5);  // Remove .json
-        auto [title, beverageType] = loadProfileMeta(":/profiles/" + file);
+        auto [title, beverageType, isRecipeMode] = loadProfileMeta(":/profiles/" + file);
 
         ProfileInfo info;
         info.filename = name;
         info.title = title.isEmpty() ? name : title;
         info.beverageType = beverageType;
         info.source = ProfileSource::BuiltIn;
+        info.isRecipeMode = isRecipeMode;
         m_allProfiles.append(info);
 
         m_availableProfiles.append(name);
@@ -575,13 +584,14 @@ void MainController::refreshProfiles() {
                 continue;
             }
 
-            auto [title, beverageType] = loadProfileMetaFromJson(jsonContent);
+            auto [title, beverageType, isRecipeMode] = loadProfileMetaFromJson(jsonContent);
 
             ProfileInfo info;
             info.filename = name;
             info.title = title.isEmpty() ? name : title;
             info.beverageType = beverageType;
             info.source = ProfileSource::UserCreated;  // All SAF profiles are user-created
+            info.isRecipeMode = isRecipeMode;
             m_allProfiles.append(info);
 
             m_availableProfiles.append(name);
@@ -598,13 +608,14 @@ void MainController::refreshProfiles() {
             continue;  // Skip if already loaded from ProfileStorage
         }
 
-        auto [title, beverageType] = loadProfileMeta(downloadedDir.filePath(file));
+        auto [title, beverageType, isRecipeMode] = loadProfileMeta(downloadedDir.filePath(file));
 
         ProfileInfo info;
         info.filename = name;
         info.title = title.isEmpty() ? name : title;
         info.beverageType = beverageType;
         info.source = ProfileSource::Downloaded;
+        info.isRecipeMode = isRecipeMode;
         m_allProfiles.append(info);
 
         m_availableProfiles.append(name);
@@ -620,13 +631,14 @@ void MainController::refreshProfiles() {
             continue;  // Skip if already loaded from ProfileStorage
         }
 
-        auto [title, beverageType] = loadProfileMeta(userDir.filePath(file));
+        auto [title, beverageType, isRecipeMode] = loadProfileMeta(userDir.filePath(file));
 
         ProfileInfo info;
         info.filename = name;
         info.title = title.isEmpty() ? name : title;
         info.beverageType = beverageType;
         info.source = ProfileSource::UserCreated;
+        info.isRecipeMode = isRecipeMode;
         m_allProfiles.append(info);
 
         m_availableProfiles.append(name);
@@ -770,6 +782,93 @@ void MainController::markProfileClean() {
         QFile::remove(tempPath);
         qDebug() << "Profile marked clean, removed temp file";
     }
+}
+
+// === Recipe Editor Methods ===
+
+void MainController::uploadRecipeProfile(const QVariantMap& recipeParams) {
+    RecipeParams recipe = RecipeParams::fromVariantMap(recipeParams);
+
+    // Update current profile's recipe params and regenerate frames
+    m_currentProfile.setRecipeMode(true);
+    m_currentProfile.setRecipeParams(recipe);
+    m_currentProfile.regenerateFromRecipe();
+
+    // Mark as modified
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+    emit targetWeightChanged();
+
+    // Upload to machine
+    uploadCurrentProfile();
+
+    qDebug() << "Recipe profile uploaded with" << m_currentProfile.steps().size() << "frames";
+}
+
+QVariantMap MainController::getCurrentRecipeParams() const {
+    if (m_currentProfile.isRecipeMode()) {
+        return m_currentProfile.recipeParams().toVariantMap();
+    }
+    // Return default params if not in recipe mode
+    return RecipeParams().toVariantMap();
+}
+
+void MainController::createNewRecipe(const QString& title) {
+    RecipeParams recipe;  // Default recipe params
+
+    // Create new profile from recipe
+    m_currentProfile = RecipeGenerator::createProfile(recipe, title);
+    m_baseProfileName = "";  // New profile, no base filename yet
+    m_profileModified = true;
+
+    emit currentProfileChanged();
+    emit profileModifiedChanged();
+    emit targetWeightChanged();
+    emit profilesChanged();
+
+    // Upload to machine
+    uploadCurrentProfile();
+
+    qDebug() << "Created new recipe profile:" << title;
+}
+
+void MainController::applyRecipePreset(const QString& presetName) {
+    RecipeParams recipe;
+
+    if (presetName == "classic") {
+        recipe = RecipeParams::classic();
+    } else if (presetName == "londinium") {
+        recipe = RecipeParams::londinium();
+    } else if (presetName == "turbo") {
+        recipe = RecipeParams::turbo();
+    } else if (presetName == "blooming") {
+        recipe = RecipeParams::blooming();
+    } else {
+        qWarning() << "Unknown recipe preset:" << presetName;
+        return;
+    }
+
+    // Preserve current target weight and title
+    recipe.targetWeight = m_currentProfile.targetWeight();
+
+    // Update current profile with preset
+    m_currentProfile.setRecipeMode(true);
+    m_currentProfile.setRecipeParams(recipe);
+    m_currentProfile.regenerateFromRecipe();
+
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+
+    // Upload to machine
+    uploadCurrentProfile();
+
+    qDebug() << "Applied recipe preset:" << presetName;
 }
 
 bool MainController::saveProfileAs(const QString& filename, const QString& title) {

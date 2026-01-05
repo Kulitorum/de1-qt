@@ -408,6 +408,11 @@ ApplicationWindow {
         }
 
         Component {
+            id: recipeEditorPage
+            RecipeEditorPage {}
+        }
+
+        Component {
             id: profileSelectorPage
             ProfileSelectorPage {}
         }
@@ -1346,8 +1351,18 @@ ApplicationWindow {
     }
 
     function goToProfileEditor() {
+        // Check if profile is recipe-mode and redirect to Recipe Editor
+        if (MainController.isCurrentProfileRecipe) {
+            goToRecipeEditor()
+            return
+        }
         announceNavigation("Profile editor")
         pageStack.push(profileEditorPage)
+    }
+
+    function goToRecipeEditor() {
+        announceNavigation("Recipe editor")
+        pageStack.push(recipeEditorPage)
     }
 
     function goToProfileSelector() {

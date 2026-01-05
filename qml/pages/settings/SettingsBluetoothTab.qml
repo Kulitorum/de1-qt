@@ -7,6 +7,174 @@ import "../../components"
 Item {
     id: bluetoothTab
 
+    // Share Log Dialog
+    Popup {
+        id: shareLogDialog
+        modal: true
+        anchors.centerIn: parent
+        width: Theme.scaled(400)
+        padding: 0
+
+        background: Rectangle {
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+            border.color: "white"
+            border.width: 1
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 0
+
+            // Title
+            Text {
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.scaled(20)
+                Layout.bottomMargin: Theme.scaled(15)
+                text: TranslationManager.translate("settings.bluetooth.shareLogTitle", "Share Scale Debug Log")
+                color: Theme.textColor
+                font.pixelSize: Theme.scaled(16)
+                font.bold: true
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            // Content
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.scaled(20)
+                Layout.rightMargin: Theme.scaled(20)
+                text: TranslationManager.translate("settings.bluetooth.shareLogInstructions", "Send the debug log to:")
+                color: Theme.textColor
+                font.pixelSize: Theme.scaled(14)
+            }
+
+            // Email address box
+            Rectangle {
+                id: emailBox
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.scaled(20)
+                Layout.rightMargin: Theme.scaled(20)
+                Layout.topMargin: Theme.scaled(10)
+                height: Theme.scaled(40)
+                color: emailMouseArea.containsMouse
+                       ? Qt.rgba(Theme.accentColor.r, Theme.accentColor.g, Theme.accentColor.b, 0.25)
+                       : Qt.rgba(Theme.accentColor.r, Theme.accentColor.g, Theme.accentColor.b, 0.15)
+                radius: Theme.scaled(6)
+                border.color: Theme.accentColor
+                border.width: 1
+
+                property bool copied: false
+
+                RowLayout {
+                    anchors.centerIn: parent
+                    spacing: Theme.scaled(8)
+
+                    Text {
+                        text: emailBox.copied ? "✓ Copied!" : "decenzalogs@kulitorum.com"
+                        color: Theme.accentColor
+                        font.pixelSize: Theme.scaled(15)
+                        font.bold: true
+                    }
+
+                    Text {
+                        text: "⧉"
+                        color: Theme.accentColor
+                        font.pixelSize: Theme.scaled(16)
+                        visible: !emailBox.copied
+                    }
+                }
+
+                MouseArea {
+                    id: emailMouseArea
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    hoverEnabled: true
+                    onClicked: {
+                        // Copy to clipboard
+                        copyHelper.text = "decenzalogs@kulitorum.com"
+                        copyHelper.selectAll()
+                        copyHelper.copy()
+                        emailBox.copied = true
+                        copyResetTimer.restart()
+                    }
+                }
+
+                // Hidden text input for clipboard access
+                TextInput {
+                    id: copyHelper
+                    visible: false
+                }
+
+                Timer {
+                    id: copyResetTimer
+                    interval: 2000
+                    onTriggered: emailBox.copied = false
+                }
+            }
+
+            // Instructions
+            Text {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.scaled(20)
+                Layout.rightMargin: Theme.scaled(20)
+                Layout.topMargin: Theme.scaled(12)
+                text: TranslationManager.translate("settings.bluetooth.shareLogInclude", "Please include your scale model and describe the issue.")
+                color: Theme.textSecondaryColor
+                font.pixelSize: Theme.scaled(12)
+                wrapMode: Text.Wrap
+            }
+
+            // Buttons row
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.topMargin: Theme.scaled(20)
+                Layout.bottomMargin: Theme.scaled(15)
+                Layout.leftMargin: Theme.scaled(20)
+                Layout.rightMargin: Theme.scaled(20)
+                spacing: Theme.scaled(12)
+
+                // Cancel button
+                Text {
+                    text: TranslationManager.translate("common.cancel", "Cancel")
+                    color: Theme.accentColor
+                    font.pixelSize: Theme.scaled(14)
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: shareLogDialog.close()
+                    }
+                }
+
+                Item { Layout.fillWidth: true }
+
+                // Share button
+                Rectangle {
+                    width: Theme.scaled(140)
+                    height: Theme.scaled(36)
+                    color: Theme.accentColor
+                    radius: Theme.scaled(6)
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: TranslationManager.translate("settings.bluetooth.shareNow", "Share Log File")
+                        color: "white"
+                        font.pixelSize: Theme.scaled(13)
+                        font.bold: true
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            shareLogDialog.close()
+                            BLEManager.shareScaleLog()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     RowLayout {
         anchors.fill: parent
         spacing: Theme.spacingMedium
@@ -337,21 +505,49 @@ Item {
                     color: Qt.darker(Theme.surfaceColor, 1.2)
                     radius: Theme.scaled(4)
 
-                    ScrollView {
-                        id: scaleLogScroll
+                    ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: Theme.scaled(8)
-                        clip: true
+                        spacing: Theme.scaled(4)
 
-                        TextArea {
-                            id: scaleLogText
-                            readOnly: true
-                            color: Theme.textSecondaryColor
-                            font.pixelSize: Theme.scaled(11)
-                            font.family: "monospace"
-                            wrapMode: Text.Wrap
-                            background: null
-                            text: ""
+                        ScrollView {
+                            id: scaleLogScroll
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+
+                            TextArea {
+                                id: scaleLogText
+                                readOnly: true
+                                color: Theme.textSecondaryColor
+                                font.pixelSize: Theme.scaled(11)
+                                font.family: "monospace"
+                                wrapMode: Text.Wrap
+                                background: null
+                                text: ""
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.scaled(8)
+
+                            Item { Layout.fillWidth: true }
+
+                            AccessibleButton {
+                                text: TranslationManager.translate("settings.bluetooth.clearLog", "Clear")
+                                accessibleName: "Clear scale log"
+                                onClicked: {
+                                    scaleLogText.text = ""
+                                    BLEManager.clearScaleLog()
+                                }
+                            }
+
+                            AccessibleButton {
+                                text: TranslationManager.translate("settings.bluetooth.shareLog", "Share Log")
+                                accessibleName: "Share scale debug log"
+                                onClicked: shareLogDialog.open()
+                            }
                         }
                     }
 

@@ -34,6 +34,7 @@ struct ProfileInfo {
     QString title;
     QString beverageType;
     ProfileSource source;
+    bool isRecipeMode = false;
 };
 
 class MainController : public QObject {
@@ -61,6 +62,7 @@ class MainController : public QObject {
     Q_PROPERTY(ShotComparisonModel* shotComparison READ shotComparison CONSTANT)
     Q_PROPERTY(ShotServer* shotServer READ shotServer CONSTANT)
     Q_PROPERTY(UpdateChecker* updateChecker READ updateChecker CONSTANT)
+    Q_PROPERTY(bool isCurrentProfileRecipe READ isCurrentProfileRecipe NOTIFY currentProfileChanged)
 
 public:
     explicit MainController(Settings* settings, DE1Device* device,
@@ -89,6 +91,7 @@ public:
     Profile* currentProfilePtr() { return &m_currentProfile; }
     bool isCalibrationMode() const { return m_calibrationMode; }
     QString currentFrameName() const { return m_currentFrameName; }
+    bool isCurrentProfileRecipe() const { return m_currentProfile.isRecipeMode(); }
     ShotHistoryStorage* shotHistory() const { return m_shotHistory; }
     ShotComparisonModel* shotComparison() const { return m_shotComparison; }
     ShotServer* shotServer() const { return m_shotServer; }
@@ -105,6 +108,12 @@ public:
     Q_INVOKABLE QString titleToFilename(const QString& title) const;
     Q_INVOKABLE bool profileExists(const QString& filename) const;
     Q_INVOKABLE bool deleteProfile(const QString& filename);  // Delete user/downloaded profile
+
+    // Recipe Editor methods
+    Q_INVOKABLE void uploadRecipeProfile(const QVariantMap& recipeParams);
+    Q_INVOKABLE QVariantMap getCurrentRecipeParams() const;
+    Q_INVOKABLE void createNewRecipe(const QString& title = "New Recipe");
+    Q_INVOKABLE void applyRecipePreset(const QString& presetName);
 
 public slots:
     void loadProfile(const QString& profileName);

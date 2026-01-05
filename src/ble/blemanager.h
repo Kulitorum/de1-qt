@@ -7,6 +7,8 @@
 #include <QVariant>
 #include <QPermissions>
 #include <QTimer>
+#include <QStringList>
+#include <QFile>
 
 class ScaleDevice;
 
@@ -42,6 +44,12 @@ public:
     void setSavedScaleAddress(const QString& address, const QString& type);
     Q_INVOKABLE void clearSavedScale();
     Q_INVOKABLE void openLocationSettings();
+
+    // Scale debug logging
+    Q_INVOKABLE void clearScaleLog();
+    Q_INVOKABLE void shareScaleLog();
+    Q_INVOKABLE QString getScaleLogPath() const;
+    void appendScaleLog(const QString& message);  // For use by scale implementations
 
 public slots:
     Q_INVOKABLE void tryDirectConnectToScale();
@@ -94,4 +102,9 @@ private:
 
     // Simulator mode - disable all BLE operations
     bool m_disabled = false;
+
+    // Scale debug log
+    QStringList m_scaleLogMessages;
+    QString m_scaleLogFilePath;
+    void writeScaleLogToFile();
 };

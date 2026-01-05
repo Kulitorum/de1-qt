@@ -264,7 +264,7 @@ Page {
                             Text {
                                 Layout.fillWidth: true
                                 Layout.alignment: Qt.AlignVCenter
-                                text: modelData.title
+                                text: modelData.title + (modelData.isRecipeMode ? " (D-Flow)" : "")
                                 color: Theme.textColor
                                 font: Theme.bodyFont
                                 elide: Text.ElideRight
@@ -464,7 +464,8 @@ Page {
                                          profileDelegate.isDownloaded ? TranslationManager.translate("profileselector.accessible.source_downloaded", "Downloaded") : TranslationManager.translate("profileselector.accessible.source_custom", "Custom")
                             var fav = profileDelegate.isFavorite ? ", " + TranslationManager.translate("profileselector.accessible.favorite", "favorite") : ""
                             var current = profileDelegate.isCurrentProfile ? ", " + TranslationManager.translate("profileselector.accessible.currently_selected", "currently selected") : ""
-                            return source + " " + TranslationManager.translate("profileselector.accessible.profile_label", "profile:") + " " + modelData.title + fav + current
+                            var dflow = modelData.isRecipeMode ? ", D-Flow" : ""
+                            return source + " " + TranslationManager.translate("profileselector.accessible.profile_label", "profile:") + " " + modelData.title + dflow + fav + current
                         }
                     }
                 }

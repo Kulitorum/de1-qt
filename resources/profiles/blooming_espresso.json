@@ -13,6 +13,25 @@
     "minimum_pressure": 0.0,
     "preinfuse_frame_count": 2,
     "mode": "frame_based",
+    "is_recipe_mode": true,
+    "recipe": {
+        "targetWeight": 40.0,
+        "temperature": 92.0,
+        "fillPressure": 6.0,
+        "fillTimeout": 8.0,
+        "infusePressure": 0.0,
+        "infuseTime": 20.0,
+        "infuseByWeight": false,
+        "infuseWeight": 4.0,
+        "pourStyle": "flow",
+        "pourPressure": 6.0,
+        "pourFlow": 2.0,
+        "flowLimit": 0.0,
+        "pressureLimit": 9.0,
+        "declineEnabled": false,
+        "declineTo": 6.0,
+        "declineTime": 30.0
+    },
     "steps": [
         {
             "name": "Fill",
