@@ -21,7 +21,7 @@ Dialog {
         color: Theme.surfaceColor
         radius: Theme.cardRadius
         border.width: 1
-        border.color: Theme.borderColor
+        border.color: "white"
     }
 
     contentItem: ColumnLayout {
@@ -31,6 +31,7 @@ Dialog {
         Item {
             Layout.fillWidth: true
             Layout.preferredHeight: Theme.scaled(50)
+            Layout.topMargin: Theme.scaled(10)
 
             Text {
                 anchors.left: parent.left
@@ -60,15 +61,21 @@ Dialog {
             Layout.margins: Theme.scaled(20)
         }
 
-        // Buttons
-        RowLayout {
+        // Buttons - use Grid for equal sizing
+        Grid {
             Layout.fillWidth: true
             Layout.leftMargin: Theme.scaled(20)
             Layout.rightMargin: Theme.scaled(20)
             Layout.bottomMargin: Theme.scaled(20)
+            columns: 3
             spacing: Theme.scaled(10)
 
+            property real buttonWidth: (width - spacing * 2) / 3
+            property real buttonHeight: Theme.scaled(50)
+
             AccessibleButton {
+                width: parent.buttonWidth
+                height: parent.buttonHeight
                 text: qsTr("Discard")
                 accessibleName: qsTr("Discard changes")
                 onClicked: {
@@ -76,8 +83,7 @@ Dialog {
                     root.discardClicked()
                 }
                 background: Rectangle {
-                    implicitWidth: Theme.scaled(90)
-                    implicitHeight: Theme.scaled(44)
+                    implicitHeight: Theme.scaled(60)
                     radius: Theme.buttonRadius
                     color: parent.down ? Qt.darker(Theme.errorColor, 1.2) : Theme.errorColor
                 }
@@ -90,18 +96,17 @@ Dialog {
                 }
             }
 
-            Item { Layout.fillWidth: true }
-
             AccessibleButton {
-                text: qsTr("Save As...")
+                width: parent.buttonWidth
+                height: parent.buttonHeight
+                text: qsTr("Save As")
                 accessibleName: qsTr("Save as new %1").arg(root.itemType)
                 onClicked: {
                     root.close()
                     root.saveAsClicked()
                 }
                 background: Rectangle {
-                    implicitWidth: Theme.scaled(100)
-                    implicitHeight: Theme.scaled(44)
+                    implicitHeight: Theme.scaled(60)
                     radius: Theme.buttonRadius
                     color: "transparent"
                     border.width: 1
@@ -117,6 +122,8 @@ Dialog {
             }
 
             AccessibleButton {
+                width: parent.buttonWidth
+                height: parent.buttonHeight
                 text: qsTr("Save")
                 accessibleName: qsTr("Save %1").arg(root.itemType)
                 enabled: root.canSave
@@ -125,8 +132,7 @@ Dialog {
                     root.saveClicked()
                 }
                 background: Rectangle {
-                    implicitWidth: Theme.scaled(80)
-                    implicitHeight: Theme.scaled(44)
+                    implicitHeight: Theme.scaled(60)
                     radius: Theme.buttonRadius
                     color: parent.enabled
                         ? (parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor)

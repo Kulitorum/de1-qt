@@ -401,25 +401,51 @@ Item {
 
                     Item { Layout.fillHeight: true }
 
-                    // Calibration button
-                    AccessibleButton {
+                    // Calibration buttons
+                    RowLayout {
                         Layout.fillWidth: true
-                        text: TranslationManager.translate("settings.preferences.startCalibration", "Start Calibration")
-                        accessibleName: "Start flow sensor calibration"
-                        enabled: DE1Device.connected
-                        onClicked: preferencesTab.openFlowCalibrationDialog()
-                        background: Rectangle {
-                            radius: Theme.scaled(6)
-                            color: parent.enabled ? Theme.primaryColor : Theme.backgroundColor
-                            border.color: parent.enabled ? Theme.primaryColor : Theme.textSecondaryColor
-                            border.width: 1
+                        spacing: Theme.scaled(10)
+
+                        AccessibleButton {
+                            Layout.fillWidth: true
+                            text: TranslationManager.translate("settings.preferences.startCalibration", "Start Calibration")
+                            accessibleName: "Start flow sensor calibration"
+                            enabled: DE1Device.connected
+                            onClicked: preferencesTab.openFlowCalibrationDialog()
+                            background: Rectangle {
+                                radius: Theme.scaled(6)
+                                color: parent.enabled ? Theme.primaryColor : Theme.backgroundColor
+                                border.color: parent.enabled ? Theme.primaryColor : Theme.textSecondaryColor
+                                border.width: 1
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: parent.enabled ? "white" : Theme.textSecondaryColor
+                                font.pixelSize: Theme.scaled(14)
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
-                        contentItem: Text {
-                            text: parent.text
-                            color: parent.enabled ? "white" : Theme.textSecondaryColor
-                            font.pixelSize: Theme.scaled(14)
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+
+                        AccessibleButton {
+                            Layout.preferredWidth: Theme.scaled(80)
+                            text: qsTr("Reset")
+                            accessibleName: "Reset flow calibration to 1.0"
+                            enabled: Settings.flowCalibrationFactor !== 1.0
+                            onClicked: Settings.flowCalibrationFactor = 1.0
+                            background: Rectangle {
+                                radius: Theme.scaled(6)
+                                color: "transparent"
+                                border.color: parent.enabled ? Theme.textSecondaryColor : Theme.backgroundColor
+                                border.width: 1
+                            }
+                            contentItem: Text {
+                                text: parent.text
+                                color: parent.enabled ? Theme.textColor : Theme.textSecondaryColor
+                                font.pixelSize: Theme.scaled(14)
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                            }
                         }
                     }
                 }
