@@ -297,7 +297,7 @@ Page {
                                     id: infuseByWeightCheck
                                     text: qsTr("By weight")
                                     checked: recipe.infuseByWeight || false
-                                    onCheckedChanged: updateRecipe("infuseByWeight", checked)
+                                    onToggled: updateRecipe("infuseByWeight", checked)
                                     contentItem: Text {
                                         text: parent.text
                                         font: Theme.captionFont
@@ -334,7 +334,7 @@ Page {
                                 RadioButton {
                                     text: qsTr("Pressure")
                                     checked: (recipe.pourStyle || "pressure") === "pressure"
-                                    onCheckedChanged: if (checked) updateRecipe("pourStyle", "pressure")
+                                    onToggled: if (checked) updateRecipe("pourStyle", "pressure")
                                     contentItem: Text {
                                         text: parent.text
                                         font: Theme.captionFont
@@ -347,7 +347,7 @@ Page {
                                 RadioButton {
                                     text: qsTr("Flow")
                                     checked: recipe.pourStyle === "flow"
-                                    onCheckedChanged: if (checked) updateRecipe("pourStyle", "flow")
+                                    onToggled: if (checked) updateRecipe("pourStyle", "flow")
                                     contentItem: Text {
                                         text: parent.text
                                         font: Theme.captionFont
@@ -431,7 +431,7 @@ Page {
                                 id: declineEnabledCheck
                                 text: qsTr("Enable pressure decline")
                                 checked: recipe.declineEnabled || false
-                                onCheckedChanged: updateRecipe("declineEnabled", checked)
+                                onToggled: updateRecipe("declineEnabled", checked)
                                 contentItem: Text {
                                     text: parent.text
                                     font: Theme.captionFont
