@@ -13,13 +13,13 @@ Page {
     property int maxSelections: 3
 
     Component.onCompleted: {
-        root.currentPageTitle = "Shot History"
+        root.currentPageTitle = TranslationManager.translate("shothistory.title", "Shot History")
         refreshFilterOptions()
         loadShots()
     }
 
     StackView.onActivated: {
-        root.currentPageTitle = "Shot History"
+        root.currentPageTitle = TranslationManager.translate("shothistory.title", "Shot History")
         refreshFilterOptions()
         loadShots()
     }

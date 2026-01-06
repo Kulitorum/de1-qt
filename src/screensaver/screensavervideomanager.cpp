@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QRandomGenerator>
 #include <QFileInfo>
+#include <utility>
 
 #ifdef Q_OS_ANDROID
 #include <QJniObject>
@@ -365,7 +366,7 @@ QVariantList ScreensaverVideoManager::categories() const
         qDebug() << "[Screensaver] Category for QML: personal" << personal["name"].toString();
     }
 
-    for (const VideoCategory& cat : m_categories) {
+    for (const VideoCategory& cat : std::as_const(m_categories)) {
         QVariantMap item;
         item["id"] = cat.id;
         item["name"] = cat.name;
@@ -383,7 +384,7 @@ QString ScreensaverVideoManager::selectedCategoryName() const
         return QString("Personal (%1)").arg(m_personalCatalog.size());
     }
 
-    for (const VideoCategory& cat : m_categories) {
+    for (const VideoCategory& cat : std::as_const(m_categories)) {
         if (cat.id == m_selectedCategoryId) {
             return cat.name;
         }
@@ -462,7 +463,7 @@ void ScreensaverVideoManager::parseCategories(const QByteArray& data)
         return;
     }
 
-    QJsonArray array = doc.array();
+    const QJsonArray array = doc.array();
     QList<VideoCategory> newCategories;
 
     for (const QJsonValue& val : array) {
@@ -494,7 +495,7 @@ void ScreensaverVideoManager::parseCategories(const QByteArray& data)
 
     // Validate selected category exists, fallback to first if not
     bool categoryExists = false;
-    for (const VideoCategory& cat : m_categories) {
+    for (const VideoCategory& cat : std::as_const(m_categories)) {
         if (cat.id == m_selectedCategoryId) {
             categoryExists = true;
             break;
@@ -504,7 +505,7 @@ void ScreensaverVideoManager::parseCategories(const QByteArray& data)
     if (!categoryExists && !m_categories.isEmpty()) {
         // Prefer "coffee" category, fallback to first if not found
         QString fallbackId = m_categories.first().id;
-        for (const VideoCategory& cat : m_categories) {
+        for (const VideoCategory& cat : std::as_const(m_categories)) {
             if (cat.id == "coffee") {
                 fallbackId = cat.id;
                 break;
@@ -617,7 +618,7 @@ void ScreensaverVideoManager::parseCatalog(const QByteArray& data)
         return;
     }
 
-    QJsonArray array = doc.array();
+    const QJsonArray array = doc.array();
     QList<VideoItem> newCatalog;
 
     for (const QJsonValue& val : array) {
@@ -787,7 +788,7 @@ void ScreensaverVideoManager::saveCacheIndex()
 void ScreensaverVideoManager::updateCacheUsedBytes()
 {
     qint64 total = 0;
-    for (const CachedVideo& cv : m_cacheIndex) {
+    for (const CachedVideo& cv : std::as_const(m_cacheIndex)) {
         total += cv.bytes;
     }
     if (m_cacheUsedBytes != total) {
@@ -873,7 +874,7 @@ void ScreensaverVideoManager::clearCache()
     stopBackgroundDownload();
 
     // Delete all cached files
-    for (const CachedVideo& cv : m_cacheIndex) {
+    for (const CachedVideo& cv : std::as_const(m_cacheIndex)) {
         QFile::remove(cv.localPath);
     }
 
@@ -1309,7 +1310,7 @@ QVariantList ScreensaverVideoManager::creditsList() const
 {
     QVariantList credits;
 
-    for (const VideoItem& item : m_catalog) {
+    for (const VideoItem& item : std::as_const(m_catalog)) {
         QVariantMap credit;
         credit["author"] = item.author;
         credit["authorUrl"] = item.authorUrl;
@@ -1339,7 +1340,7 @@ QString ScreensaverVideoManager::getExternalCachePath() const
 QString ScreensaverVideoManager::getFallbackCachePath() const
 {
 #if defined(Q_OS_ANDROID)
-    QStringList appDataPaths = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
+    const QStringList appDataPaths = QStandardPaths::standardLocations(QStandardPaths::AppDataLocation);
     QString externalPath;
     for (const QString& path : appDataPaths) {
         if (path.contains("/Android/data/")) {
@@ -1400,7 +1401,7 @@ void ScreensaverVideoManager::migrateCacheToExternal()
     }
 
     // Migrate cache index and files
-    QStringList files = fallbackDir.entryList(QDir::Files);
+    const QStringList files = fallbackDir.entryList(QDir::Files);
     int migrated = 0;
 
     for (const QString& file : files) {
@@ -1468,7 +1469,7 @@ void ScreensaverVideoManager::loadPersonalCatalog()
 
     if (!doc.isArray()) return;
 
-    QJsonArray items = doc.array();
+    const QJsonArray items = doc.array();
     for (const QJsonValue& val : items) {
         QJsonObject obj = val.toObject();
         VideoItem item;
@@ -1504,7 +1505,7 @@ void ScreensaverVideoManager::savePersonalCatalog()
     }
 
     QJsonArray items;
-    for (const VideoItem& item : m_personalCatalog) {
+    for (const VideoItem& item : std::as_const(m_personalCatalog)) {
         QJsonObject obj;
         obj["id"] = item.id;
         obj["type"] = item.isImage() ? "image" : "video";
@@ -1525,7 +1526,7 @@ void ScreensaverVideoManager::savePersonalCatalog()
 int ScreensaverVideoManager::generatePersonalMediaId() const
 {
     int maxId = 0;
-    for (const VideoItem& item : m_personalCatalog) {
+    for (const VideoItem& item : std::as_const(m_personalCatalog)) {
         if (item.id > maxId) {
             maxId = item.id;
         }
@@ -1555,7 +1556,7 @@ bool ScreensaverVideoManager::addPersonalMedia(const QString& filePath, const QS
 
     // Check for duplicate by original filename (the part after the ID prefix)
     QString checkName = originalName.isEmpty() ? fileInfo.fileName() : originalName;
-    for (const VideoItem& existing : m_personalCatalog) {
+    for (const VideoItem& existing : std::as_const(m_personalCatalog)) {
         // Extract original name from stored path (format: "ID_originalname.ext")
         int underscorePos = existing.path.indexOf('_');
         QString existingOriginal = underscorePos >= 0 ? existing.path.mid(underscorePos + 1) : existing.path;
@@ -1618,7 +1619,7 @@ bool ScreensaverVideoManager::addPersonalMedia(const QString& filePath, const QS
 
 bool ScreensaverVideoManager::hasPersonalMediaWithName(const QString& originalName) const
 {
-    for (const VideoItem& existing : m_personalCatalog) {
+    for (const VideoItem& existing : std::as_const(m_personalCatalog)) {
         // Extract original name from stored path (format: "ID_originalname.ext")
         int underscorePos = existing.path.indexOf('_');
         QString existingOriginal = underscorePos >= 0 ? existing.path.mid(underscorePos + 1) : existing.path;
@@ -1634,7 +1635,7 @@ QVariantList ScreensaverVideoManager::getPersonalMediaList() const
     QVariantList list;
     QString personalDir = m_cacheDir + "/personal";
 
-    for (const VideoItem& item : m_personalCatalog) {
+    for (const VideoItem& item : std::as_const(m_personalCatalog)) {
         QVariantMap map;
         map["id"] = item.id;
         map["type"] = item.isImage() ? "image" : "video";
@@ -1681,7 +1682,7 @@ void ScreensaverVideoManager::clearPersonalMedia()
     QString personalDir = m_cacheDir + "/personal";
 
     qint64 freedBytes = 0;
-    for (const VideoItem& item : m_personalCatalog) {
+    for (const VideoItem& item : std::as_const(m_personalCatalog)) {
         QString filePath = personalDir + "/" + item.path;
         if (QFile::exists(filePath)) {
             QFile::remove(filePath);

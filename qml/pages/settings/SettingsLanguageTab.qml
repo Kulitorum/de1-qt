@@ -363,7 +363,8 @@ Item {
                 // Browse strings button
                 StyledButton {
                     Layout.fillWidth: true
-                    text: TranslationManager.currentLanguage === "en" ? "Browse & Customize Strings..." : "Browse & Translate Strings..."
+                    activeFocusOnTab: false
+                    text: TranslationManager.currentLanguage === "en" ? TranslationManager.translate("language.browseCustomize", "Browse & Customize Strings...") : TranslationManager.translate("language.browseTranslate", "Browse & Translate Strings...")
 
                     Accessible.role: Accessible.Button
                     Accessible.name: TranslationManager.currentLanguage === "en" ? TranslationManager.translate("language.accessible.browse.en", "Browse and customize strings") : TranslationManager.translate("language.accessible.browse", "Browse and translate strings")
@@ -391,6 +392,7 @@ Item {
                 // Submit to community button (not for English, developer mode only)
                 StyledButton {
                     Layout.fillWidth: true
+                    activeFocusOnTab: false
                     text: TranslationManager.uploading ? "Uploading..." : "Submit to Community"
                     visible: TranslationManager.currentLanguage !== "en" && Settings.developerTranslationUpload
                     enabled: !TranslationManager.uploading
@@ -603,6 +605,49 @@ Item {
                 }
 
                 onClicked: submitResultPopup.close()
+            }
+        }
+    }
+
+    // Retry status popup - shows when server is busy and retrying
+    Popup {
+        id: retryStatusPopup
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        modal: false
+        dim: false
+        padding: Theme.spacingMedium
+        closePolicy: Popup.NoAutoClose
+
+        // Auto-show/hide based on retryStatus
+        visible: TranslationManager.retryStatus !== ""
+
+        background: Rectangle {
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+            border.width: 2
+            border.color: Theme.warningColor
+        }
+
+        contentItem: Column {
+            spacing: Theme.spacingSmall
+            width: Theme.scaled(280)
+
+            Text {
+                width: parent.width
+                text: TranslationManager.retryStatus
+                font: Theme.bodyFont
+                color: Theme.textColor
+                wrapMode: Text.Wrap
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Text {
+                width: parent.width
+                text: "Please wait..."
+                font: Theme.captionFont
+                color: Theme.textSecondaryColor
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }

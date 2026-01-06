@@ -20,9 +20,7 @@ public slots:
     void startTimer() override;
     void stopTimer() override;
     void resetTimer() override;
-    // Note: We intentionally DON'T disable the LCD on sleep() because
-    // Skale's LCD is the primary display and users want to see weight on it
-    void sleep() override { /* Do nothing - keep LCD on */ }
+    void sleep() override { disableLcd(); }
     void wake() override { enableLcd(); }
 
     // Skale-specific functions

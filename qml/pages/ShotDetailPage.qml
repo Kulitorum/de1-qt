@@ -13,7 +13,7 @@ Page {
     property var shotData: ({})
 
     Component.onCompleted: {
-        root.currentPageTitle = "Shot Detail"
+        root.currentPageTitle = TranslationManager.translate("shotdetail.title", "Shot Detail")
         loadShot()
     }
 

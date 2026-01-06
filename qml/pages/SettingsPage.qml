@@ -10,8 +10,8 @@ Page {
     objectName: "settingsPage"
     background: Rectangle { color: Theme.backgroundColor }
 
-    Component.onCompleted: root.currentPageTitle = "Settings"
-    StackView.onActivated: root.currentPageTitle = "Settings"
+    Component.onCompleted: root.currentPageTitle = TranslationManager.translate("settings.title", "Settings")
+    StackView.onActivated: root.currentPageTitle = TranslationManager.translate("settings.title", "Settings")
 
     // Requested tab to switch to (set before pushing page)
     property int requestedTabIndex: -1
@@ -66,7 +66,7 @@ Page {
 
         TabButton {
             id: bluetoothTab
-            text: "Bluetooth"
+            text: TranslationManager.translate("settings.tab.bluetooth", "Bluetooth")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 0
@@ -83,7 +83,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Bluetooth tab" + (tabBar.currentIndex === 0 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.bluetooth", "Bluetooth") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 0 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: bluetoothTab
                 onAccessibleClicked: tabBar.currentIndex = 0
             }
@@ -91,7 +91,7 @@ Page {
 
         TabButton {
             id: preferencesTabButton
-            text: "Preferences"
+            text: TranslationManager.translate("settings.tab.preferences", "Preferences")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 1
@@ -108,7 +108,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Preferences tab" + (tabBar.currentIndex === 1 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.preferences", "Preferences") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 1 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: preferencesTabButton
                 onAccessibleClicked: tabBar.currentIndex = 1
             }
@@ -116,7 +116,7 @@ Page {
 
         TabButton {
             id: screensaverTab
-            text: "Screensaver"
+            text: TranslationManager.translate("settings.tab.screensaver", "Screensaver")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 2
@@ -133,7 +133,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Screensaver tab" + (tabBar.currentIndex === 2 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.screensaver", "Screensaver") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 2 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: screensaverTab
                 onAccessibleClicked: tabBar.currentIndex = 2
             }
@@ -141,7 +141,7 @@ Page {
 
         TabButton {
             id: visualizerTabButton
-            text: "Visualizer"
+            text: TranslationManager.translate("settings.tab.visualizer", "Visualizer")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 3
@@ -158,7 +158,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Visualizer tab" + (tabBar.currentIndex === 3 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.visualizer", "Visualizer") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 3 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: visualizerTabButton
                 onAccessibleClicked: tabBar.currentIndex = 3
             }
@@ -166,7 +166,7 @@ Page {
 
         TabButton {
             id: aiTabButton
-            text: "AI"
+            text: TranslationManager.translate("settings.tab.ai", "AI")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 4
@@ -183,7 +183,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "AI tab" + (tabBar.currentIndex === 4 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.ai", "AI") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 4 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: aiTabButton
                 onAccessibleClicked: tabBar.currentIndex = 4
             }
@@ -191,7 +191,7 @@ Page {
 
         TabButton {
             id: accessibilityTabButton
-            text: "Access"
+            text: TranslationManager.translate("settings.tab.accessibility", "Access")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 5
@@ -208,7 +208,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Accessibility tab" + (tabBar.currentIndex === 5 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.accessibility.full", "Accessibility") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 5 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: accessibilityTabButton
                 onAccessibleClicked: tabBar.currentIndex = 5
             }
@@ -216,7 +216,7 @@ Page {
 
         TabButton {
             id: themesTabButton
-            text: "Themes"
+            text: TranslationManager.translate("settings.tab.themes", "Themes")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 6
@@ -233,7 +233,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Themes tab" + (tabBar.currentIndex === 6 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.themes", "Themes") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 6 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: themesTabButton
                 onAccessibleClicked: tabBar.currentIndex = 6
             }
@@ -241,7 +241,7 @@ Page {
 
         TabButton {
             id: languageTabButton
-            text: "Language"
+            text: TranslationManager.translate("settings.tab.language", "Language")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 7
@@ -279,7 +279,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Language tab" + (tabBar.currentIndex === 7 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.language", "Language") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 7 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: languageTabButton
                 onAccessibleClicked: tabBar.currentIndex = 7
             }
@@ -287,7 +287,7 @@ Page {
 
         TabButton {
             id: historyTabButton
-            text: "History"
+            text: TranslationManager.translate("settings.tab.history", "History")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 8
@@ -304,7 +304,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "History tab" + (tabBar.currentIndex === 8 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.history", "History") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 8 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: historyTabButton
                 onAccessibleClicked: tabBar.currentIndex = 8
             }
@@ -312,7 +312,7 @@ Page {
 
         TabButton {
             id: updateTabButton
-            text: "Update"
+            text: TranslationManager.translate("settings.tab.update", "Update")
             width: implicitWidth
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 9
@@ -329,7 +329,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Update tab" + (tabBar.currentIndex === 9 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.update", "Update") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 9 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: updateTabButton
                 onAccessibleClicked: tabBar.currentIndex = 9
             }
@@ -338,7 +338,7 @@ Page {
         TabButton {
             id: debugTabButton
             visible: Settings.isDebugBuild
-            text: "Debug"
+            text: TranslationManager.translate("settings.tab.debug", "Debug")
             width: visible ? implicitWidth : 0
             font.pixelSize: Theme.scaled(14)
             font.bold: tabBar.currentIndex === 10
@@ -355,7 +355,7 @@ Page {
             }
             AccessibleMouseArea {
                 anchors.fill: parent
-                accessibleName: "Debug tab" + (tabBar.currentIndex === 10 ? ", selected" : "")
+                accessibleName: TranslationManager.translate("settings.tab.debug", "Debug") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 10 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
                 accessibleItem: debugTabButton
                 onAccessibleClicked: tabBar.currentIndex = 10
             }
@@ -1092,7 +1092,7 @@ Page {
     // Bottom bar with back button
     BottomBar {
         id: bottomBar
-        title: "Settings"
+        title: TranslationManager.translate("settings.title", "Settings")
         onBackClicked: root.goToIdle()
     }
 }

@@ -15,6 +15,8 @@
 #include <QSet>
 #include <QRegularExpression>
 #include <QCoreApplication>
+#include <functional>
+#include <memory>
 
 TranslationManager::TranslationManager(Settings* settings, QObject* parent)
     : QObject(parent)
@@ -51,6 +53,21 @@ TranslationManager::TranslationManager(Settings* settings, QObject* parent)
 
     // Load string registry
     loadStringRegistry();
+
+    // Clean up any empty/whitespace keys that might have been saved previously
+    QStringList keysToRemove;
+    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        if (it.key().trimmed().isEmpty() || it.value().trimmed().isEmpty()) {
+            keysToRemove.append(it.key());
+        }
+    }
+    if (!keysToRemove.isEmpty()) {
+        for (const QString& key : keysToRemove) {
+            m_stringRegistry.remove(key);
+        }
+        qDebug() << "TranslationManager: Cleaned up" << keysToRemove.size() << "empty registry entries";
+        saveStringRegistry();
+    }
 
     // Load translations for current language
     loadTranslations();
@@ -173,11 +190,34 @@ QString TranslationManager::lastError() const
 
 QString TranslationManager::translate(const QString& key, const QString& fallback)
 {
+    // Skip empty/whitespace keys or fallbacks
+    if (key.trimmed().isEmpty() || fallback.trimmed().isEmpty()) {
+        return fallback;
+    }
+
     // Auto-register the string if not already registered
     if (!m_stringRegistry.contains(key)) {
         m_stringRegistry[key] = fallback;
         // Don't save on every call - batch save periodically
         m_registryDirty = true;
+
+        // Propagate existing translation from other keys with the same fallback
+        // This ensures new keys get translations that were applied before they were registered
+        if (m_currentLanguage != "en") {
+            QString normalizedFallback = fallback.trimmed();
+            for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+                if (it.key() != key && it.value().trimmed() == normalizedFallback) {
+                    QString existingTranslation = m_translations.value(it.key());
+                    if (!existingTranslation.isEmpty()) {
+                        m_translations[key] = existingTranslation;
+                        if (m_aiGenerated.contains(it.key())) {
+                            m_aiGenerated.insert(key);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     // Check for custom translation (including English customizations)
@@ -300,6 +340,11 @@ QString TranslationManager::getLanguageNativeName(const QString& langCode) const
 
 void TranslationManager::registerString(const QString& key, const QString& fallback)
 {
+    // Skip empty/whitespace keys or fallbacks
+    if (key.trimmed().isEmpty() || fallback.trimmed().isEmpty()) {
+        return;
+    }
+
     if (!m_stringRegistry.contains(key)) {
         m_stringRegistry[key] = fallback;
         saveStringRegistry();
@@ -370,7 +415,7 @@ void TranslationManager::scanAllStrings()
                 key.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
                 fallback.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
 
-                if (!key.isEmpty() && !fallback.isEmpty()) {
+                if (!key.trimmed().isEmpty() && !fallback.trimmed().isEmpty()) {
                     if (!m_stringRegistry.contains(key)) {
                         m_stringRegistry[key] = fallback;
                         stringsFound++;
@@ -410,7 +455,7 @@ void TranslationManager::scanAllStrings()
                         key.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
                         fallback.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
 
-                        if (!key.isEmpty() && !fallback.isEmpty()) {
+                        if (!key.trimmed().isEmpty() && !fallback.trimmed().isEmpty()) {
                             if (!m_stringRegistry.contains(key)) {
                                 m_stringRegistry[key] = fallback;
                                 stringsFound++;
@@ -455,14 +500,14 @@ void TranslationManager::scanAllStrings()
                     }
                 }
 
-                if (!fallback.isEmpty()) {
+                if (!fallback.trimmed().isEmpty()) {
                     // Unescape
                     QString keyClean = key;
                     QString fallbackClean = fallback;
                     keyClean.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
                     fallbackClean.replace("\\\"", "\"").replace("\\n", "\n").replace("\\t", "\t");
 
-                    if (!keyClean.isEmpty() && !fallbackClean.isEmpty()) {
+                    if (!keyClean.trimmed().isEmpty() && !fallbackClean.trimmed().isEmpty()) {
                         if (!m_stringRegistry.contains(keyClean)) {
                             m_stringRegistry[keyClean] = fallbackClean;
                             stringsFound++;
@@ -501,6 +546,9 @@ void TranslationManager::downloadLanguageList()
         return;
     }
 
+    // Reset retry counter for new download
+    m_downloadRetryCount = 0;
+
     m_downloading = true;
     emit downloadingChanged();
 
@@ -521,6 +569,9 @@ void TranslationManager::downloadLanguage(const QString& langCode)
         return;
     }
 
+    // Reset retry counter for new download
+    m_downloadRetryCount = 0;
+
     m_downloading = true;
     m_downloadingLangCode = langCode;
     emit downloadingChanged();
@@ -539,16 +590,55 @@ void TranslationManager::downloadLanguage(const QString& langCode)
 void TranslationManager::onLanguageListFetched(QNetworkReply* reply)
 {
     reply->deleteLater();
-    m_downloading = false;
-    emit downloadingChanged();
 
     if (reply->error() != QNetworkReply::NoError) {
+        // Check for 429 Too Many Requests - retry after delay
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (statusCode == 429 && m_downloadRetryCount < MAX_RETRIES) {
+            m_downloadRetryCount++;
+            qDebug() << "Language list rate limited (429), retrying in" << (RETRY_DELAY_MS / 1000)
+                     << "seconds... (attempt" << m_downloadRetryCount << "of" << MAX_RETRIES << ")";
+
+            // Show retry status to user
+            m_retryStatus = QString("Server busy, retrying download %1/%2...").arg(m_downloadRetryCount).arg(MAX_RETRIES);
+            emit retryStatusChanged();
+
+            // Schedule retry after delay
+            QTimer::singleShot(RETRY_DELAY_MS, this, [this]() {
+                QString url = QString("%1/languages").arg(TRANSLATION_API_BASE);
+                qDebug() << "Retrying language list from:" << url;
+
+                QNetworkRequest request{QUrl(url)};
+                QNetworkReply* retryReply = m_networkManager->get(request);
+
+                connect(retryReply, &QNetworkReply::finished, this, [this, retryReply]() {
+                    onLanguageListFetched(retryReply);
+                });
+            });
+            return;
+        }
+
+        m_downloading = false;
+        m_downloadRetryCount = 0;
+        m_retryStatus.clear();
+        emit retryStatusChanged();
+        emit downloadingChanged();
+
         m_lastError = QString("Failed to fetch language list: %1").arg(reply->errorString());
         emit lastErrorChanged();
         emit languageListDownloaded(false);
         qWarning() << m_lastError;
         return;
     }
+
+    // Success - reset state
+    m_downloading = false;
+    m_downloadRetryCount = 0;
+    if (!m_retryStatus.isEmpty()) {
+        m_retryStatus.clear();
+        emit retryStatusChanged();
+    }
+    emit downloadingChanged();
 
     QByteArray data = reply->readAll();
     QJsonDocument doc = QJsonDocument::fromJson(data);
@@ -591,18 +681,58 @@ void TranslationManager::onLanguageListFetched(QNetworkReply* reply)
 void TranslationManager::onLanguageFileFetched(QNetworkReply* reply)
 {
     reply->deleteLater();
-    m_downloading = false;
     QString langCode = m_downloadingLangCode;
-    m_downloadingLangCode.clear();
-    emit downloadingChanged();
 
     if (reply->error() != QNetworkReply::NoError) {
+        // Check for 429 Too Many Requests - retry after delay
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (statusCode == 429 && m_downloadRetryCount < MAX_RETRIES) {
+            m_downloadRetryCount++;
+            qDebug() << "Download rate limited (429), retrying in" << (RETRY_DELAY_MS / 1000)
+                     << "seconds... (attempt" << m_downloadRetryCount << "of" << MAX_RETRIES << ")";
+
+            // Show retry status to user
+            m_retryStatus = QString("Server busy, retrying download %1/%2...").arg(m_downloadRetryCount).arg(MAX_RETRIES);
+            emit retryStatusChanged();
+
+            // Schedule retry after delay (keep m_downloading true and m_downloadingLangCode set)
+            QTimer::singleShot(RETRY_DELAY_MS, this, [this, langCode]() {
+                QString url = QString("%1/languages/%2").arg(TRANSLATION_API_BASE, langCode);
+                qDebug() << "Retrying download from:" << url;
+
+                QNetworkRequest request{QUrl(url)};
+                QNetworkReply* retryReply = m_networkManager->get(request);
+
+                connect(retryReply, &QNetworkReply::finished, this, [this, retryReply]() {
+                    onLanguageFileFetched(retryReply);
+                });
+            });
+            return;
+        }
+
+        m_downloading = false;
+        m_downloadingLangCode.clear();
+        m_downloadRetryCount = 0;
+        m_retryStatus.clear();
+        emit retryStatusChanged();
+        emit downloadingChanged();
+
         m_lastError = QString("Failed to download %1: %2").arg(langCode, reply->errorString());
         emit lastErrorChanged();
         emit languageDownloaded(langCode, false, m_lastError);
         qWarning() << m_lastError;
         return;
     }
+
+    // Success - reset state
+    m_downloading = false;
+    m_downloadingLangCode.clear();
+    m_downloadRetryCount = 0;
+    if (!m_retryStatus.isEmpty()) {
+        m_retryStatus.clear();
+        emit retryStatusChanged();
+    }
+    emit downloadingChanged();
 
     QByteArray data = reply->readAll();
     QJsonDocument doc = QJsonDocument::fromJson(data);
@@ -740,6 +870,9 @@ void TranslationManager::submitTranslation()
         return;
     }
 
+    // Reset retry counter for new upload
+    m_uploadRetryCount = 0;
+
     if (m_currentLanguage == "en") {
         m_lastError = "Cannot submit English - it's the base language";
         emit lastErrorChanged();
@@ -784,13 +917,53 @@ void TranslationManager::onUploadUrlReceived(QNetworkReply* reply)
     reply->deleteLater();
 
     if (reply->error() != QNetworkReply::NoError) {
+        // Check for 429 Too Many Requests - retry after delay
+        int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (statusCode == 429 && m_uploadRetryCount < MAX_RETRIES) {
+            m_uploadRetryCount++;
+            qDebug() << "Upload rate limited (429), retrying in" << (RETRY_DELAY_MS / 1000)
+                     << "seconds... (attempt" << m_uploadRetryCount << "of" << MAX_RETRIES << ")";
+
+            // Show retry status to user
+            m_retryStatus = QString("Server busy, retrying upload %1/%2...").arg(m_uploadRetryCount).arg(MAX_RETRIES);
+            emit retryStatusChanged();
+
+            // Schedule retry after delay
+            QTimer::singleShot(RETRY_DELAY_MS, this, [this]() {
+                // Re-request the upload URL
+                QString uploadUrlEndpoint = QString("%1/upload-url?lang=%2")
+                    .arg(TRANSLATION_API_BASE)
+                    .arg(m_currentLanguage);
+
+                QNetworkRequest request{QUrl(uploadUrlEndpoint)};
+                QNetworkReply* retryReply = m_networkManager->get(request);
+
+                connect(retryReply, &QNetworkReply::finished, this, [this, retryReply]() {
+                    onUploadUrlReceived(retryReply);
+                });
+
+                qDebug() << "Retrying upload URL request...";
+            });
+            return;
+        }
+
         m_uploading = false;
+        m_uploadRetryCount = 0;  // Reset for next upload
+        m_retryStatus.clear();
+        emit retryStatusChanged();
         m_lastError = QString("Failed to get upload URL: %1").arg(reply->errorString());
         emit uploadingChanged();
         emit lastErrorChanged();
         emit translationSubmitted(false, m_lastError);
         qWarning() << m_lastError;
         return;
+    }
+
+    // Success - reset retry counter and clear status
+    m_uploadRetryCount = 0;
+    if (!m_retryStatus.isEmpty()) {
+        m_retryStatus.clear();
+        emit retryStatusChanged();
     }
 
     QByteArray data = reply->readAll();
@@ -918,10 +1091,17 @@ int TranslationManager::getTranslationPercent(const QString& langCode) const
         return 100;  // English is always complete
     }
 
-    // For current language, use cached values
+    // Count total strings (excluding empty fallbacks)
+    int total = 0;
+    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        if (!it.value().trimmed().isEmpty()) {
+            total++;
+        }
+    }
+    if (total == 0) return 0;
+
+    // For current language, use cached untranslated count
     if (langCode == m_currentLanguage) {
-        int total = m_stringRegistry.size();
-        if (total == 0) return 0;
         int translated = total - m_untranslatedCount;
         return (translated * 100) / total;
     }
@@ -943,12 +1123,10 @@ int TranslationManager::getTranslationPercent(const QString& langCode) const
     QJsonObject root = doc.object();
     QJsonObject translations = root["translations"].toObject();
 
-    // Simple key -> translation format: count keys that have translations
-    int total = m_stringRegistry.size();
-    if (total == 0) return 0;
-
+    // Count keys that have translations (excluding empty fallbacks)
     int translated = 0;
     for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        if (it.value().trimmed().isEmpty()) continue;  // Skip empty fallbacks
         if (translations.contains(it.key()) && !translations.value(it.key()).toString().isEmpty()) {
             translated++;
         }
@@ -959,72 +1137,36 @@ int TranslationManager::getTranslationPercent(const QString& langCode) const
 
 QVariantList TranslationManager::getGroupedStrings() const
 {
-    // Group strings by their fallback (English) text
-    QMap<QString, QStringList> fallbackToKeys;
-    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
-        fallbackToKeys[it.value()].append(it.key());
-    }
-
+    // Return individual strings (one per key) - no grouping
+    // This ensures the "missing" count matches the percentage calculation exactly
     QVariantList result;
-    for (auto it = fallbackToKeys.constBegin(); it != fallbackToKeys.constEnd(); ++it) {
-        QString fallback = it.key();
-        QStringList keys = it.value();
 
-        // Get AI translation for this fallback (shared across all keys)
-        QString aiTranslation = m_aiTranslations.value(fallback);
+    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        QString key = it.key();
+        QString fallback = it.value();
 
-        // Check translation status for all keys in this group
-        QVariantList keysInfo;
-        QString groupTranslation;
-        bool hasAnyTranslation = false;
-        bool allSameTranslation = true;
-        bool allAiGenerated = true;
-        bool anyAiGenerated = false;
-        QString firstTranslation;
+        // Skip empty fallbacks - they're not real translatable strings
+        if (fallback.trimmed().isEmpty()) continue;
 
-        for (const QString& key : keys) {
-            QString translation = m_translations.value(key);
-            bool isAiGen = m_aiGenerated.contains(key);
+        QString translation = m_translations.value(key);
+        bool isAiGen = m_aiGenerated.contains(key);
 
-            if (!translation.isEmpty()) {
-                if (!hasAnyTranslation) {
-                    firstTranslation = translation;
-                    groupTranslation = translation;
-                    hasAnyTranslation = true;
-                } else if (translation != firstTranslation) {
-                    allSameTranslation = false;
-                }
-            }
-
-            if (isAiGen) {
-                anyAiGenerated = true;
-            } else if (!translation.isEmpty()) {
-                allAiGenerated = false;
-            }
-
-            keysInfo.append(QVariantMap{
-                {"key", key},
-                {"translation", translation},
-                {"isTranslated", !translation.isEmpty()},
-                {"isAiGenerated", isAiGen}
-            });
+        // Look up AI translation by normalized fallback
+        QString aiTranslation = m_aiTranslations.value(fallback.trimmed());
+        if (aiTranslation.isEmpty()) {
+            aiTranslation = m_aiTranslations.value(fallback);  // Try exact match too
         }
 
-        // If there are mixed translations, consider it "split"
-        bool isSplit = hasAnyTranslation && !allSameTranslation;
-
-        // Group is AI-generated if all translated keys are AI-generated
-        bool groupIsAiGenerated = hasAnyTranslation && allAiGenerated && anyAiGenerated;
-
         result.append(QVariantMap{
+            {"key", key},
             {"fallback", fallback},
-            {"translation", groupTranslation},
+            {"translation", translation},
             {"aiTranslation", aiTranslation},
-            {"keys", keysInfo},
-            {"keyCount", keys.size()},
-            {"isTranslated", hasAnyTranslation},
-            {"isSplit", isSplit},
-            {"isAiGenerated", groupIsAiGenerated}
+            {"isTranslated", !translation.isEmpty()},
+            {"isAiGenerated", isAiGen},
+            // Keep these for compatibility with QML that might use them
+            {"keyCount", 1},
+            {"isSplit", false}
         });
     }
 
@@ -1034,8 +1176,10 @@ QVariantList TranslationManager::getGroupedStrings() const
 QStringList TranslationManager::getKeysForFallback(const QString& fallback) const
 {
     QStringList keys;
+    QString normalizedFallback = fallback.trimmed();
     for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
-        if (it.value() == fallback) {
+        // Use trimmed comparison for robustness against whitespace differences
+        if (it.value().trimmed() == normalizedFallback) {
             keys.append(it.key());
         }
     }
@@ -1269,7 +1413,13 @@ void TranslationManager::loadStringRegistry()
     QJsonObject strings = root["strings"].toObject();
 
     for (auto it = strings.constBegin(); it != strings.constEnd(); ++it) {
-        m_stringRegistry[it.key()] = it.value().toString();
+        QString key = it.key();
+        QString fallback = it.value().toString();
+        // Skip empty/whitespace keys or fallbacks
+        if (key.trimmed().isEmpty() || fallback.trimmed().isEmpty()) {
+            continue;
+        }
+        m_stringRegistry[key] = fallback;
     }
 }
 
@@ -1280,6 +1430,10 @@ void TranslationManager::saveStringRegistry()
 
     QJsonObject strings;
     for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        // Skip empty/whitespace keys or fallbacks
+        if (it.key().trimmed().isEmpty() || it.value().trimmed().isEmpty()) {
+            continue;
+        }
         strings[it.key()] = it.value();
     }
     root["strings"] = strings;
@@ -1292,12 +1446,63 @@ void TranslationManager::saveStringRegistry()
     }
 }
 
+void TranslationManager::propagateTranslationsToAllKeys()
+{
+    // For each unique fallback (normalized), find if any key has a translation
+    // and propagate it to all other keys with the same fallback
+    if (m_currentLanguage == "en") return;
+
+    // Build map of normalized fallback -> first found translation
+    QMap<QString, QPair<QString, bool>> fallbackToTranslation;  // normalized fallback -> (translation, isAiGenerated)
+
+    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        QString normalizedFallback = it.value().trimmed();
+        if (normalizedFallback.isEmpty()) continue;  // Skip empty fallbacks
+        if (!fallbackToTranslation.contains(normalizedFallback)) {
+            QString translation = m_translations.value(it.key());
+            if (!translation.isEmpty()) {
+                bool isAiGen = m_aiGenerated.contains(it.key());
+                fallbackToTranslation[normalizedFallback] = qMakePair(translation, isAiGen);
+            }
+        }
+    }
+
+    // Now propagate to all keys that don't have translations
+    int propagated = 0;
+    for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        QString normalizedFallback = it.value().trimmed();
+        if (normalizedFallback.isEmpty()) continue;  // Skip empty fallbacks
+        if (m_translations.value(it.key()).isEmpty()) {
+            if (fallbackToTranslation.contains(normalizedFallback)) {
+                auto& pair = fallbackToTranslation[normalizedFallback];
+                m_translations[it.key()] = pair.first;
+                if (pair.second) {
+                    m_aiGenerated.insert(it.key());
+                }
+                propagated++;
+            }
+        }
+    }
+
+    if (propagated > 0) {
+        qDebug() << "TranslationManager: Propagated translations to" << propagated << "keys";
+        saveTranslations();  // Save propagated translations to file
+    }
+}
+
 void TranslationManager::recalculateUntranslatedCount()
 {
+    // First, propagate any existing translations to keys that are missing them
+    // This handles keys that were registered after AI translation ran
+    propagateTranslationsToAllKeys();
+
     // For English: count uncustomized strings
     // For other languages: count untranslated strings
     int count = 0;
     for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
+        // Skip empty fallbacks - they're not real translatable strings
+        if (it.value().trimmed().isEmpty()) continue;
+
         if (!m_translations.contains(it.key()) || m_translations.value(it.key()).isEmpty()) {
             count++;
         }
@@ -1332,26 +1537,30 @@ void TranslationManager::autoTranslate()
     }
 
     // Get unique untranslated fallback texts (more efficient - translate once, apply to all keys)
+    // Use trimmed fallbacks for comparison to handle whitespace variations
     QSet<QString> seenFallbacks;
     m_stringsToTranslate.clear();
 
     for (auto it = m_stringRegistry.constBegin(); it != m_stringRegistry.constEnd(); ++it) {
         QString fallback = it.value();
+        QString normalizedFallback = fallback.trimmed();
+
         // Skip if already translated (check if ANY key with this fallback is translated)
+        // Use trimmed comparison for robustness
         bool hasTranslation = false;
         for (auto keyIt = m_stringRegistry.constBegin(); keyIt != m_stringRegistry.constEnd(); ++keyIt) {
-            if (keyIt.value() == fallback && !m_translations.value(keyIt.key()).isEmpty()) {
+            if (keyIt.value().trimmed() == normalizedFallback && !m_translations.value(keyIt.key()).isEmpty()) {
                 hasTranslation = true;
                 break;
             }
         }
 
-        if (!hasTranslation && !seenFallbacks.contains(fallback)) {
-            seenFallbacks.insert(fallback);
-            // Use fallback as both key and fallback for unique translation
+        if (!hasTranslation && !seenFallbacks.contains(normalizedFallback)) {
+            seenFallbacks.insert(normalizedFallback);
+            // Use normalized fallback to avoid whitespace issues with AI
             m_stringsToTranslate.append(QVariantMap{
-                {"key", fallback},  // Use fallback as key for grouped translation
-                {"fallback", fallback}
+                {"key", normalizedFallback},  // Use normalized fallback as key for grouped translation
+                {"fallback", normalizedFallback}
             });
         }
     }
@@ -1374,6 +1583,11 @@ void TranslationManager::autoTranslate()
     qDebug() << "=== AUTO-TRANSLATE START (run" << m_translationRunId << ") ===";
     qDebug() << "Language:" << m_currentLanguage;
     qDebug() << "Provider:" << provider << (m_batchProcessing ? "(batch mode)" : "(single mode)");
+    qDebug() << "Registry total:" << m_stringRegistry.size() << "keys";
+    qDebug() << "Translations loaded:" << m_translations.size();
+    qDebug() << "AI cache loaded:" << m_aiTranslations.size();
+    qDebug() << "Unique fallbacks:" << uniqueStringCount();
+    qDebug() << "Unique untranslated:" << uniqueUntranslatedCount();
     qDebug() << "Strings to translate:" << m_autoTranslateTotal;
 
     // Fire all batches in parallel for faster translation
@@ -1630,6 +1844,7 @@ void TranslationManager::parseAutoTranslateResponse(const QByteArray& data)
     if (transDoc.isObject()) {
         QJsonObject translations = transDoc.object();
         int count = 0;
+        int appliedCount = 0;
         for (auto it = translations.constBegin(); it != translations.constEnd(); ++it) {
             QString fallbackText = it.key();
             QString translation = it.value().toString().trimmed();
@@ -1638,11 +1853,17 @@ void TranslationManager::parseAutoTranslateResponse(const QByteArray& data)
                 m_aiTranslations[fallbackText] = translation;
 
                 // Apply to ALL keys with this fallback text that don't have a translation yet
+                // getKeysForFallback uses trimmed comparison for robustness
                 QStringList keys = getKeysForFallback(fallbackText);
+                if (keys.isEmpty()) {
+                    qDebug() << "TranslationManager: No keys found for fallback:" << fallbackText.left(50);
+                }
+
                 for (const QString& key : keys) {
                     if (m_translations.value(key).isEmpty()) {
                         m_translations[key] = translation;
                         m_aiGenerated.insert(key);  // Mark as AI-generated
+                        appliedCount++;
                     }
                 }
 
@@ -1653,10 +1874,11 @@ void TranslationManager::parseAutoTranslateResponse(const QByteArray& data)
                 count++;
             }
         }
-        m_autoTranslateProgress += count;
+        // Track actual translations applied, not just AI responses
+        m_autoTranslateProgress += appliedCount;
         emit autoTranslateProgressChanged();
 
-        qDebug() << "AI translated" << count << "strings, progress:" << m_autoTranslateProgress << "/" << m_autoTranslateTotal;
+        qDebug() << "AI translated" << count << "unique texts," << appliedCount << "keys applied, progress:" << m_autoTranslateProgress << "/" << m_autoTranslateTotal;
     } else {
         qWarning() << "Failed to parse AI translation response:" << content.left(200);
     }
@@ -1847,30 +2069,41 @@ void TranslationManager::translateAndUploadAllLanguages()
     QMetaObject::Connection* autoConn = new QMetaObject::Connection();
     QMetaObject::Connection* submitConn = new QMetaObject::Connection();
 
-    // Lambda to process next item (language or provider)
-    auto processNext = [this, autoConn, submitConn, allLanguages]() {
+    // Lambda to process next language (using shared_ptr to allow recursion and survive async calls)
+    auto processNext = std::make_shared<std::function<void()>>();
+    *processNext = [this, autoConn, submitConn, processNext]() {
         if (!m_batchProcessing) return;
 
         if (!m_batchLanguageQueue.isEmpty()) {
-            // More languages to process with current provider
+            // More languages to process - reset provider queue for new language
+            m_batchProviderQueue = getConfiguredProviders();
+            if (!m_batchProviderQueue.isEmpty()) {
+                m_batchCurrentProvider = m_batchProviderQueue.takeFirst();
+                m_settings->setAiProvider(m_batchCurrentProvider);
+            }
             QString nextLang = m_batchLanguageQueue.takeFirst();
             qDebug() << "Batch: Processing language:" << nextLang << "with provider:" << m_batchCurrentProvider;
             setCurrentLanguage(nextLang);
-            autoTranslate();
-        } else if (!m_batchProviderQueue.isEmpty()) {
-            // Switch to next provider and restart language queue
-            QString nextProvider = m_batchProviderQueue.takeFirst();
-            m_batchCurrentProvider = nextProvider;  // Bypass QSettings cache
-            m_settings->setAiProvider(nextProvider);  // Still set for UI consistency
-            m_batchLanguageQueue = allLanguages;
-            qDebug() << "=== BATCH: SWITCHING PROVIDER ===" << nextProvider;
-            QString nextLang = m_batchLanguageQueue.takeFirst();
-            qDebug() << "Batch: Processing language:" << nextLang << "with new provider:" << m_batchCurrentProvider;
-            setCurrentLanguage(nextLang);
-            autoTranslate();
+
+            // Check if translation is needed or just upload
+            int untranslated = uniqueUntranslatedCount();
+            qDebug() << "Batch: Language status -"
+                     << "Registry:" << m_stringRegistry.size()
+                     << "Translations:" << m_translations.size()
+                     << "Unique untranslated:" << untranslated;
+            if (m_translations.size() < m_stringRegistry.size()) {
+                qDebug() << "****************** MISSING TRANSLATIONS:" << (m_stringRegistry.size() - m_translations.size()) << "******************";
+            }
+            if (untranslated == 0) {
+                qDebug() << "Batch:" << nextLang << "is fully translated, skipping (no changes needed)";
+                (*processNext)();
+            } else {
+                qDebug() << "Batch:" << nextLang << "has" << untranslated << "untranslated strings, translating...";
+                autoTranslate();
+            }
         } else {
             // All done - restore original provider and clear batch state
-            m_batchCurrentProvider.clear();  // Clear the override
+            m_batchCurrentProvider.clear();
             m_settings->setAiProvider(m_originalProvider);
             m_batchProcessing = false;
             disconnect(*autoConn);
@@ -1891,13 +2124,30 @@ void TranslationManager::translateAndUploadAllLanguages()
                  << "provider:" << m_batchCurrentProvider;
 
         if (success) {
-            // Translation done, now upload
-            qDebug() << "Batch: Uploading" << m_currentLanguage << "...";
-            submitTranslation();
+            // Check if there were actual translations made (not "all already translated")
+            if (message.contains("already translated")) {
+                qDebug() << "Batch: Skipping upload for" << m_currentLanguage << "(no changes needed)";
+                (*processNext)();
+            } else {
+                // Translation done with changes, now upload
+                qDebug() << "Batch: Uploading" << m_currentLanguage << "...";
+                submitTranslation();
+            }
         } else {
-            // Translation failed (might be "all translated" or actual error), move to next
-            qDebug() << "Batch: Skipping upload for" << m_currentLanguage << "(translation not successful)";
-            processNext();
+            // Translation failed - check if we can try another provider
+            if (!m_batchProviderQueue.isEmpty()) {
+                // Try next provider for the SAME language
+                QString nextProvider = m_batchProviderQueue.takeFirst();
+                m_batchCurrentProvider = nextProvider;
+                m_settings->setAiProvider(nextProvider);
+                qDebug() << "Batch: Rate limited/error, trying provider:" << nextProvider << "for" << m_currentLanguage;
+                autoTranslate();
+            } else {
+                // All providers exhausted for this language, move to next
+                // (*processNext)() will reset the provider queue
+                qDebug() << "Batch: All providers exhausted for" << m_currentLanguage << ", moving to next language";
+                (*processNext)();
+            }
         }
     });
 
@@ -1906,12 +2156,28 @@ void TranslationManager::translateAndUploadAllLanguages()
 
         qDebug() << "Batch: Upload" << (success ? "SUCCEEDED" : "FAILED")
                  << "for" << m_currentLanguage << "-" << message;
-        processNext();
+        (*processNext)();
     });
 
     // Start with first language
     QString firstLang = m_batchLanguageQueue.takeFirst();
     qDebug() << "Batch: Starting with language:" << firstLang;
     setCurrentLanguage(firstLang);
-    autoTranslate();
+
+    // Check if translation is needed or just upload
+    int untranslated = uniqueUntranslatedCount();
+    qDebug() << "Batch: Language status -"
+             << "Registry:" << m_stringRegistry.size()
+             << "Translations:" << m_translations.size()
+             << "Unique untranslated:" << untranslated;
+    if (m_translations.size() < m_stringRegistry.size()) {
+        qDebug() << "****************** MISSING TRANSLATIONS:" << (m_stringRegistry.size() - m_translations.size()) << "******************";
+    }
+    if (untranslated == 0) {
+        qDebug() << "Batch:" << firstLang << "is fully translated, skipping (no changes needed)";
+        (*processNext)();
+    } else {
+        qDebug() << "Batch:" << firstLang << "has" << untranslated << "untranslated strings, translating...";
+        autoTranslate();
+    }
 }

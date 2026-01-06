@@ -25,6 +25,7 @@ class TranslationManager : public QObject {
     Q_PROPERTY(bool downloading READ isDownloading NOTIFY downloadingChanged)
     Q_PROPERTY(bool uploading READ isUploading NOTIFY uploadingChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY lastErrorChanged)
+    Q_PROPERTY(QString retryStatus READ retryStatus NOTIFY retryStatusChanged)
 
     // String scanning status
     Q_PROPERTY(bool scanning READ isScanning NOTIFY scanningChanged)
@@ -54,6 +55,7 @@ public:
     bool isDownloading() const;
     bool isUploading() const;
     QString lastError() const;
+    QString retryStatus() const { return m_retryStatus; }
     bool isScanning() const;
     int scanProgress() const;
     int scanTotal() const;
@@ -156,6 +158,7 @@ signals:
     void downloadingChanged();
     void uploadingChanged();
     void lastErrorChanged();
+    void retryStatusChanged();
     void translationSubmitted(bool success, const QString& message);
     void scanningChanged();
     void scanProgressChanged();
@@ -186,6 +189,7 @@ private:
     void saveLanguageMetadata();
     void loadStringRegistry();
     void saveStringRegistry();
+    void propagateTranslationsToAllKeys();
     void recalculateUntranslatedCount();
     QString translationsDir() const;
     QString languageFilePath(const QString& langCode) const;
@@ -208,6 +212,7 @@ private:
     int m_scanProgress = 0;
     int m_scanTotal = 0;
     QString m_lastError;
+    QString m_retryStatus;
     QByteArray m_pendingUploadData;
 
     // translations[key] = translated_text
@@ -256,6 +261,12 @@ private:
     QString m_originalProvider;
     QString m_batchCurrentProvider;  // Bypasses QSettings cache during batch ops
     bool m_batchProcessing = false;
+
+    // Retry state (for 429 rate limiting)
+    int m_uploadRetryCount = 0;
+    int m_downloadRetryCount = 0;
+    static constexpr int MAX_RETRIES = 100;
+    static constexpr int RETRY_DELAY_MS = 10000;  // 10 seconds
 
     // Helper to get all configured AI providers
     QStringList getConfiguredProviders() const;
