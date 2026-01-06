@@ -210,7 +210,7 @@ Supported metadata fields:
 
 ### Creating a Release
 
-**IMPORTANT**: Release notes must include ALL changes since the previous release, not just the most recent commit.
+**IMPORTANT**: Release notes should only include **user-experience changes** (new features, UI changes, bug fixes users would notice). Skip internal changes like code refactoring, developer tools, translation system improvements, or debug logging changes.
 
 #### Step 1: Find the previous release tag
 ```bash
