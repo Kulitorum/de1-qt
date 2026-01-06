@@ -79,6 +79,7 @@ public:
     QString firmwareVersion() const { return m_firmwareVersion; }
     bool usbChargerOn() const { return m_usbChargerOn; }
     bool isHeadless() const { return m_isHeadless; }
+    Q_INVOKABLE void setIsHeadless(bool headless);  // Debug toggle
 
     // Simulation mode for GUI development without hardware
     bool simulationMode() const { return m_simulationMode; }

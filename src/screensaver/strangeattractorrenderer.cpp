@@ -586,7 +586,11 @@ void StrangeAttractorRenderer::reset() {
     m_displayMaxDensity = 0.0f;
     m_totalPoints = 0;
     m_frameCount = 0;
-    m_image.fill(Qt::black);
+    {
+        QMutexLocker locker(&m_imageMutex);
+        m_frontBuffer.fill(Qt::black);
+        m_backBuffer.fill(Qt::black);
+    }
     emit totalPointsChanged();
     update();
 }
@@ -621,7 +625,11 @@ void StrangeAttractorRenderer::randomize() {
     m_displayMaxDensity = 0.0f;
     m_totalPoints = 0;
     m_frameCount = 0;
-    m_image.fill(Qt::black);
+    {
+        QMutexLocker locker(&m_imageMutex);
+        m_frontBuffer.fill(Qt::black);
+        m_backBuffer.fill(Qt::black);
+    }
     emit totalPointsChanged();
     update();
 }
@@ -777,8 +785,17 @@ void StrangeAttractorRenderer::resizeBuffer() {
     m_density.fill(0.0f);
     m_maxDensity = 0.0f;
 
-    m_image = QImage(w, h, QImage::Format_RGB32);
-    m_image.fill(Qt::black);
+    // Create new buffers, then swap under lock to avoid race with render thread
+    QImage newFront(w, h, QImage::Format_RGB32);
+    QImage newBack(w, h, QImage::Format_RGB32);
+    newFront.fill(Qt::black);
+    newBack.fill(Qt::black);
+
+    {
+        QMutexLocker locker(&m_imageMutex);
+        m_frontBuffer.swap(newFront);
+        m_backBuffer.swap(newBack);
+    }
 
     // Just reset the counters, don't reinitialize attractor (keeps zoom/offset)
     m_totalPoints = 0;
@@ -919,6 +936,7 @@ void StrangeAttractorRenderer::iterate() {
 void StrangeAttractorRenderer::updateImage() {
     if (m_bufferWidth <= 0 || m_bufferHeight <= 0) return;
     if (m_maxDensity <= 0) return;
+    if (m_backBuffer.isNull()) return;
 
     // Smoothly transition display max density toward actual max (over ~5 seconds)
     // This prevents jarring color rescaling jumps
@@ -933,7 +951,8 @@ void StrangeAttractorRenderer::updateImage() {
     // Use logarithmic scaling for better dynamic range
     float logMax = qLn(1.0f + m_displayMaxDensity);
 
-    QRgb* pixels = reinterpret_cast<QRgb*>(m_image.bits());
+    // Write to back buffer (no lock needed - only main thread writes here)
+    QRgb* pixels = reinterpret_cast<QRgb*>(m_backBuffer.bits());
 
     for (int i = 0; i < m_bufferWidth * m_bufferHeight; i++) {
         float d = m_density[i];
@@ -949,11 +968,18 @@ void StrangeAttractorRenderer::updateImage() {
             pixels[i] = m_colormap[colorIdx];
         }
     }
+
+    // Swap buffers atomically - render thread will see the new image on next paint()
+    {
+        QMutexLocker locker(&m_imageMutex);
+        m_frontBuffer.swap(m_backBuffer);
+    }
 }
 
 void StrangeAttractorRenderer::paint(QPainter* painter) {
-    if (m_image.isNull()) return;
-    painter->drawImage(0, 0, m_image);
+    QMutexLocker locker(&m_imageMutex);
+    if (m_frontBuffer.isNull()) return;
+    painter->drawImage(0, 0, m_frontBuffer);
 }
 
 // ============ Attractor Step Functions ============

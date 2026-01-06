@@ -270,15 +270,15 @@ Page {
                 visible: DE1Device.isHeadless
                 radius: Theme.cardRadius
                 color: stopTapHandler.isPressed
-                    ? Qt.darker(steamSoftStopped ? Theme.primaryColor : Theme.errorColor, 1.2)
-                    : (steamSoftStopped ? Theme.primaryColor : Theme.errorColor)
+                    ? Qt.darker((steamSoftStopped && !Settings.headlessSkipPurgeConfirm) ? Theme.primaryColor : Theme.errorColor, 1.2)
+                    : ((steamSoftStopped && !Settings.headlessSkipPurgeConfirm) ? Theme.primaryColor : Theme.errorColor)
                 border.color: "white"
                 border.width: Theme.scaled(2)
 
                 Text {
                     id: stopButtonText
                     anchors.centerIn: parent
-                    text: steamSoftStopped ? "PURGE" : "STOP"
+                    text: (steamSoftStopped && !Settings.headlessSkipPurgeConfirm) ? "PURGE" : "STOP"
                     color: "white"
                     font.pixelSize: Theme.scaled(24)
                     font.weight: Font.Bold
@@ -291,15 +291,19 @@ Page {
                     accessibleName: steamSoftStopped ? "Purge steam wand" : "Stop steaming"
                     accessibleItem: steamStopButton
                     onAccessibleClicked: {
-                        if (steamSoftStopped) {
-                            // Second press: request Idle to trigger purge
+                        if (Settings.headlessSkipPurgeConfirm) {
+                            // Single press mode: stop immediately and trigger auto-purge
+                            DE1Device.requestIdle()
+                            root.goToIdle()
+                        } else if (steamSoftStopped) {
+                            // Two-press mode, second press: request Idle to trigger purge
                             steamSoftStopped = false  // Reset before navigating
                             DE1Device.requestIdle()
                             root.goToIdle()
                         } else {
-                            // First press: indicate ready for purge
-                            // Don't call stopOperation() - let machine timeout naturally
-                            // or user can press PURGE to stop and trigger purge sequence
+                            // Two-press mode, first press: soft stop steam without purge
+                            // Sends 1-second timeout which triggers elapsed > target stop
+                            MainController.softStopSteam()
                             steamSoftStopped = true
                         }
                     }

@@ -6,6 +6,7 @@
 #include <QVector>
 #include <QColor>
 #include <QRandomGenerator>
+#include <QMutex>
 
 // Attractor types
 enum class AttractorType {
@@ -117,8 +118,10 @@ private:
     QVector<QRgb> m_colormap;
     double m_baseHue = 0.0;
 
-    // Output image
-    QImage m_image;
+    // Double-buffered output images (prevents race between render thread and main thread)
+    QImage m_frontBuffer;  // Read by paint() on render thread
+    QImage m_backBuffer;   // Written by updateImage() on main thread
+    mutable QMutex m_imageMutex;  // Protects buffer swap
 
     // Animation timer
     QTimer* m_timer = nullptr;

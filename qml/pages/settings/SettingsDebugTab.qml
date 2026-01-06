@@ -114,6 +114,49 @@ Item {
                 }
             }
 
+            // Simulation toggles
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: simTogglesContent.implicitHeight + Theme.scaled(30)
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
+
+                ColumnLayout {
+                    id: simTogglesContent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.scaled(15)
+                    spacing: Theme.scaled(10)
+
+                    Tr {
+                        key: "settings.debug.simulationToggles"
+                        fallback: "Simulation Toggles"
+                        color: Theme.textColor
+                        font.pixelSize: Theme.scaled(16)
+                        font.bold: true
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(20)
+
+                        Text {
+                            text: "Headless machine"
+                            color: Theme.textColor
+                            font.pixelSize: Theme.scaled(14)
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        StyledSwitch {
+                            checked: DE1Device.isHeadless
+                            onToggled: DE1Device.setIsHeadless(checked)
+                        }
+                    }
+                }
+            }
+
             // Spacer
             Item { Layout.fillHeight: true }
         }

@@ -1133,6 +1133,23 @@ void MainController::setSteamTimeoutImmediate(int timeout) {
     qDebug() << "Steam timeout set to:" << timeout;
 }
 
+void MainController::softStopSteam() {
+    if (!m_device || !m_device->isConnected() || !m_settings) return;
+
+    // Send shot settings with 1-second timeout to trigger elapsed > target stop
+    // This stops steam without triggering the purge sequence (which requestIdle() would do)
+    // Does NOT save to settings - just sends the command
+    m_device->setShotSettings(
+        m_settings->steamTemperature(),
+        1,  // 1 second - any elapsed time > 1 will trigger stop
+        m_settings->waterTemperature(),
+        m_settings->waterVolume(),
+        93.0
+    );
+
+    qDebug() << "Soft stop steam: sent 1-second timeout to trigger natural stop";
+}
+
 void MainController::startCalibrationDispense(double flowRate, double targetWeight) {
     if (!m_device || !m_device->isConnected() || !m_settings) return;
 

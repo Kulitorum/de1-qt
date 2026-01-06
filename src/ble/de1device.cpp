@@ -109,6 +109,13 @@ void DE1Device::setSettings(Settings* settings) {
     m_settings = settings;
 }
 
+void DE1Device::setIsHeadless(bool headless) {
+    if (m_isHeadless != headless) {
+        m_isHeadless = headless;
+        emit isHeadlessChanged();
+    }
+}
+
 void DE1Device::setSimulatedState(DE1::State state, DE1::SubState subState) {
     if (!m_simulationMode) return;
 

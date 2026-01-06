@@ -11,7 +11,7 @@ Item {
         anchors.fill: parent
         spacing: Theme.scaled(15)
 
-        // Left column: Offline Mode and Steam Heater
+        // Left column: Offline Mode, Water Level Display, Steam Heater
         ColumnLayout {
             Layout.preferredWidth: Theme.scaled(350)
             Layout.fillHeight: true
@@ -68,60 +68,6 @@ Item {
                                 if (ScaleDevice) {
                                     ScaleDevice.simulationMode = checked
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Water Level Display
-            Rectangle {
-                Layout.fillWidth: true
-                implicitHeight: waterLevelContent.implicitHeight + Theme.scaled(30)
-                color: Theme.surfaceColor
-                radius: Theme.cardRadius
-
-                ColumnLayout {
-                    id: waterLevelContent
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    anchors.margins: Theme.scaled(15)
-                    spacing: Theme.scaled(8)
-
-                    Tr {
-                        key: "settings.options.waterLevelDisplay"
-                        fallback: "Water Level Display"
-                        color: Theme.textColor
-                        font.pixelSize: Theme.scaled(16)
-                        font.bold: true
-                    }
-
-                    Tr {
-                        Layout.fillWidth: true
-                        key: "settings.options.waterLevelDisplayDesc"
-                        fallback: "Choose how to display the water tank level"
-                        color: Theme.textSecondaryColor
-                        font.pixelSize: Theme.scaled(12)
-                        wrapMode: Text.WordWrap
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-
-                        Tr {
-                            key: "settings.options.showInMl"
-                            fallback: "Show in milliliters (ml)"
-                            color: Theme.textColor
-                            font.pixelSize: Theme.scaled(14)
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        StyledSwitch {
-                            checked: Settings.waterLevelDisplayUnit === "ml"
-                            onToggled: {
-                                Settings.waterLevelDisplayUnit = checked ? "ml" : "percent"
                             }
                         }
                     }
@@ -201,18 +147,73 @@ Item {
             Item { Layout.fillHeight: true }
         }
 
-        // Right column: Headless Machine Settings
+        // Middle column: Water Level, Headless Machine (conditional) + placeholder
         ColumnLayout {
             Layout.preferredWidth: Theme.scaled(350)
             Layout.fillHeight: true
             spacing: Theme.scaled(15)
 
-            // Headless Machine Settings
+            // Water Level Display
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: waterLevelContent.implicitHeight + Theme.scaled(30)
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
+
+                ColumnLayout {
+                    id: waterLevelContent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.scaled(15)
+                    spacing: Theme.scaled(8)
+
+                    Tr {
+                        key: "settings.options.waterLevelDisplay"
+                        fallback: "Water Level Display"
+                        color: Theme.textColor
+                        font.pixelSize: Theme.scaled(16)
+                        font.bold: true
+                    }
+
+                    Tr {
+                        Layout.fillWidth: true
+                        key: "settings.options.waterLevelDisplayDesc"
+                        fallback: "Choose how to display the water tank level"
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: Theme.scaled(12)
+                        wrapMode: Text.WordWrap
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Tr {
+                            key: "settings.options.showInMl"
+                            fallback: "Show in milliliters (ml)"
+                            color: Theme.textColor
+                            font.pixelSize: Theme.scaled(14)
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        StyledSwitch {
+                            checked: Settings.waterLevelDisplayUnit === "ml"
+                            onToggled: {
+                                Settings.waterLevelDisplayUnit = checked ? "ml" : "percent"
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Headless Machine Settings (only visible on headless machines)
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: headlessContent.implicitHeight + Theme.scaled(30)
                 color: Theme.surfaceColor
                 radius: Theme.cardRadius
+                visible: DE1Device.isHeadless
 
                 ColumnLayout {
                     id: headlessContent
@@ -228,39 +229,6 @@ Item {
                         color: Theme.textColor
                         font.pixelSize: Theme.scaled(16)
                         font.bold: true
-                    }
-
-                    Tr {
-                        Layout.fillWidth: true
-                        key: "settings.options.headlessMachineDesc"
-                        fallback: "Settings for DE1 machines without a touchscreen (headless mode)"
-                        color: Theme.textSecondaryColor
-                        font.pixelSize: Theme.scaled(12)
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Rectangle {
-                        Layout.fillWidth: true
-                        height: 1
-                        color: Theme.textSecondaryColor
-                        opacity: 0.3
-                    }
-
-                    Tr {
-                        key: "settings.options.steamStopBehavior"
-                        fallback: "Steam Stop Behavior"
-                        color: Theme.textColor
-                        font.pixelSize: Theme.scaled(14)
-                        font.bold: true
-                    }
-
-                    Tr {
-                        Layout.fillWidth: true
-                        key: "settings.options.steamStopBehaviorDesc"
-                        fallback: "Controls what happens when you press STOP while steaming"
-                        color: Theme.textSecondaryColor
-                        font.pixelSize: Theme.scaled(12)
-                        wrapMode: Text.WordWrap
                     }
 
                     RowLayout {
@@ -283,23 +251,33 @@ Item {
                             }
                         }
                     }
-
-                    Tr {
-                        Layout.fillWidth: true
-                        key: Settings.headlessSkipPurgeConfirm ?
-                            "settings.options.singlePressDesc" :
-                            "settings.options.twoPressDesc"
-                        fallback: Settings.headlessSkipPurgeConfirm ?
-                            "STOP immediately stops steam and triggers auto-purge (2 second delay)" :
-                            "First press stops steam, second press (PURGE) triggers the purge sequence"
-                        color: Theme.primaryColor
-                        font.pixelSize: Theme.scaled(11)
-                        wrapMode: Text.WordWrap
-                    }
                 }
             }
 
-            Item { Layout.fillHeight: true }
+            // Placeholder card
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
+                opacity: 0.3
+            }
+        }
+
+        // Right column: placeholder
+        ColumnLayout {
+            Layout.preferredWidth: Theme.scaled(350)
+            Layout.fillHeight: true
+            spacing: Theme.scaled(15)
+
+            // Placeholder card
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
+                opacity: 0.3
+            }
         }
 
         // Spacer

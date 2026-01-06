@@ -137,6 +137,9 @@ public slots:
     void setSteamFlowImmediate(int flow);
     void setSteamTimeoutImmediate(int timeout);
 
+    // Soft stop steam (sends 1-second timeout to trigger elapsed > target, no purge)
+    Q_INVOKABLE void softStopSteam();
+
     // Send steam temperature to machine without saving to settings (for enable/disable toggle)
     Q_INVOKABLE void sendSteamTemperature(double temp);
 

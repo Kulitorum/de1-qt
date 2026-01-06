@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(Decenza_DE1 VERSION 1.1.14 LANGUAGES CXX)
+project(Decenza_DE1 VERSION 1.1.15 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -271,6 +271,7 @@ set(QML_FILES
     qml/pages/ShotComparisonPage.qml
     qml/pages/settings/SettingsBluetoothTab.qml
     qml/pages/settings/SettingsPreferencesTab.qml
+    qml/pages/settings/SettingsOptionsTab.qml
     qml/pages/settings/SettingsScreensaverTab.qml
     qml/pages/settings/SettingsVisualizerTab.qml
     qml/pages/settings/SettingsAITab.qml
