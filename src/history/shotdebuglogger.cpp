@@ -40,6 +40,16 @@ void ShotDebugLogger::startCapture()
 {
     QMutexLocker locker(&m_mutex);
 
+    // If already capturing, reset for new shot (don't install handler again)
+    if (m_capturing) {
+        m_logLines.clear();
+        m_timer.start();
+        m_logLines << QString("[%1] START Shot capture restarted - %2")
+                          .arg(formatTime())
+                          .arg(QDateTime::currentDateTime().toString(Qt::ISODate));
+        return;
+    }
+
     m_logLines.clear();
     m_timer.start();
     m_capturing = true;
