@@ -138,6 +138,14 @@ public:
     Q_INVOKABLE QStringList getDistinctGrinders();
     Q_INVOKABLE QStringList getDistinctRoastLevels();
 
+    // Get filter options with cascading filter (for dependent dropdowns)
+    Q_INVOKABLE QStringList getDistinctProfilesFiltered(const QVariantMap& filter);
+    Q_INVOKABLE QStringList getDistinctBeanBrandsFiltered(const QVariantMap& filter);
+    Q_INVOKABLE QStringList getDistinctBeanTypesFiltered(const QVariantMap& filter);
+
+    // Get count of shots matching filter
+    Q_INVOKABLE int getFilteredShotCount(const QVariantMap& filter);
+
     // Export debug log for bug report
     Q_INVOKABLE QString exportShotData(qint64 shotId);
 
@@ -146,6 +154,13 @@ public:
 
     // Import database from file path (merge=true adds new entries, merge=false replaces all)
     Q_INVOKABLE bool importDatabase(const QString& filePath, bool merge);
+
+    // Import a shot record directly (for .shot file import)
+    // Returns: shot ID on success, 0 if duplicate (skipped), -1 on error
+    qint64 importShotRecord(const ShotRecord& record);
+
+    // Refresh the total shots count (call after bulk import)
+    Q_INVOKABLE void refreshTotalShots();
 
     // Get most recent shot ID (for linking after save)
     Q_INVOKABLE qint64 lastSavedShotId() const { return m_lastSavedShotId; }

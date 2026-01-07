@@ -916,6 +916,127 @@ QStringList ShotHistoryStorage::getDistinctRoastLevels()
     return results;
 }
 
+QStringList ShotHistoryStorage::getDistinctProfilesFiltered(const QVariantMap& filter)
+{
+    QStringList results;
+    if (!m_ready) return results;
+
+    QString sql = "SELECT DISTINCT profile_name FROM shots WHERE profile_name IS NOT NULL AND profile_name != ''";
+    QVariantList bindValues;
+
+    if (filter.contains("beanBrand") && !filter.value("beanBrand").toString().isEmpty()) {
+        sql += " AND bean_brand = ?";
+        bindValues << filter.value("beanBrand").toString();
+    }
+    if (filter.contains("beanType") && !filter.value("beanType").toString().isEmpty()) {
+        sql += " AND bean_type = ?";
+        bindValues << filter.value("beanType").toString();
+    }
+
+    sql += " ORDER BY profile_name";
+
+    QSqlQuery query(m_db);
+    query.prepare(sql);
+    for (int i = 0; i < bindValues.size(); ++i) {
+        query.bindValue(i, bindValues[i]);
+    }
+    query.exec();
+
+    while (query.next()) {
+        QString name = query.value(0).toString();
+        if (!name.isEmpty()) {
+            results << name;
+        }
+    }
+    return results;
+}
+
+QStringList ShotHistoryStorage::getDistinctBeanBrandsFiltered(const QVariantMap& filter)
+{
+    QStringList results;
+    if (!m_ready) return results;
+
+    QString sql = "SELECT DISTINCT bean_brand FROM shots WHERE bean_brand IS NOT NULL AND bean_brand != ''";
+    QVariantList bindValues;
+
+    if (filter.contains("profileName") && !filter.value("profileName").toString().isEmpty()) {
+        sql += " AND profile_name = ?";
+        bindValues << filter.value("profileName").toString();
+    }
+    if (filter.contains("beanType") && !filter.value("beanType").toString().isEmpty()) {
+        sql += " AND bean_type = ?";
+        bindValues << filter.value("beanType").toString();
+    }
+
+    sql += " ORDER BY bean_brand";
+
+    QSqlQuery query(m_db);
+    query.prepare(sql);
+    for (int i = 0; i < bindValues.size(); ++i) {
+        query.bindValue(i, bindValues[i]);
+    }
+    query.exec();
+
+    while (query.next()) {
+        results << query.value(0).toString();
+    }
+    return results;
+}
+
+QStringList ShotHistoryStorage::getDistinctBeanTypesFiltered(const QVariantMap& filter)
+{
+    QStringList results;
+    if (!m_ready) return results;
+
+    QString sql = "SELECT DISTINCT bean_type FROM shots WHERE bean_type IS NOT NULL AND bean_type != ''";
+    QVariantList bindValues;
+
+    if (filter.contains("profileName") && !filter.value("profileName").toString().isEmpty()) {
+        sql += " AND profile_name = ?";
+        bindValues << filter.value("profileName").toString();
+    }
+    if (filter.contains("beanBrand") && !filter.value("beanBrand").toString().isEmpty()) {
+        sql += " AND bean_brand = ?";
+        bindValues << filter.value("beanBrand").toString();
+    }
+
+    sql += " ORDER BY bean_type";
+
+    QSqlQuery query(m_db);
+    query.prepare(sql);
+    for (int i = 0; i < bindValues.size(); ++i) {
+        query.bindValue(i, bindValues[i]);
+    }
+    query.exec();
+
+    while (query.next()) {
+        results << query.value(0).toString();
+    }
+    return results;
+}
+
+int ShotHistoryStorage::getFilteredShotCount(const QVariantMap& filterMap)
+{
+    if (!m_ready) return 0;
+
+    ShotFilter filter = parseFilterMap(filterMap);
+    QVariantList bindValues;
+    QString whereClause = buildFilterQuery(filter, bindValues);
+
+    QString sql = "SELECT COUNT(*) FROM shots" + whereClause;
+
+    QSqlQuery query(m_db);
+    query.prepare(sql);
+    for (int i = 0; i < bindValues.size(); ++i) {
+        query.bindValue(i, bindValues[i]);
+    }
+
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+    return 0;
+}
+
 QString ShotHistoryStorage::exportShotData(qint64 shotId)
 {
     ShotRecord record = getShotRecord(shotId);
@@ -1274,4 +1395,140 @@ bool ShotHistoryStorage::importDatabase(const QString& filePath, bool merge)
 
     qDebug() << "ShotHistoryStorage: Import complete -" << imported << "imported," << skipped << "skipped";
     return true;
+}
+
+qint64 ShotHistoryStorage::importShotRecord(const ShotRecord& record)
+{
+    if (!m_ready) {
+        qWarning() << "ShotHistoryStorage: Cannot import - not ready";
+        return -1;
+    }
+
+    // Check for duplicate by UUID
+    QSqlQuery query(m_db);
+    query.prepare("SELECT id FROM shots WHERE uuid = ?");
+    query.bindValue(0, record.summary.uuid);
+    if (query.exec() && query.next()) {
+        // Duplicate found
+        return 0;
+    }
+
+    // Also check by timestamp (within 5 seconds) and profile to catch near-duplicates
+    query.prepare("SELECT id FROM shots WHERE ABS(timestamp - ?) < 5 AND profile_name = ?");
+    query.bindValue(0, record.summary.timestamp);
+    query.bindValue(1, record.summary.profileName);
+    if (query.exec() && query.next()) {
+        // Near-duplicate found
+        return 0;
+    }
+
+    // Begin transaction
+    m_db.transaction();
+
+    // Insert main shot record
+    query.prepare(R"(
+        INSERT INTO shots (
+            uuid, timestamp, profile_name, profile_json,
+            duration_seconds, final_weight, dose_weight,
+            bean_brand, bean_type, roast_date, roast_level,
+            grinder_model, grinder_setting,
+            drink_tds, drink_ey, enjoyment, espresso_notes, barista,
+            debug_log
+        ) VALUES (
+            :uuid, :timestamp, :profile_name, :profile_json,
+            :duration, :final_weight, :dose_weight,
+            :bean_brand, :bean_type, :roast_date, :roast_level,
+            :grinder_model, :grinder_setting,
+            :drink_tds, :drink_ey, :enjoyment, :espresso_notes, :barista,
+            :debug_log
+        )
+    )");
+
+    query.bindValue(":uuid", record.summary.uuid);
+    query.bindValue(":timestamp", record.summary.timestamp);
+    query.bindValue(":profile_name", record.summary.profileName);
+    query.bindValue(":profile_json", record.profileJson);
+    query.bindValue(":duration", record.summary.duration);
+    query.bindValue(":final_weight", record.summary.finalWeight);
+    query.bindValue(":dose_weight", record.summary.doseWeight);
+    query.bindValue(":bean_brand", record.summary.beanBrand);
+    query.bindValue(":bean_type", record.summary.beanType);
+    query.bindValue(":roast_date", record.roastDate);
+    query.bindValue(":roast_level", record.roastLevel);
+    query.bindValue(":grinder_model", record.grinderModel);
+    query.bindValue(":grinder_setting", record.grinderSetting);
+    query.bindValue(":drink_tds", record.drinkTds);
+    query.bindValue(":drink_ey", record.drinkEy);
+    query.bindValue(":enjoyment", record.summary.enjoyment);
+    query.bindValue(":espresso_notes", record.espressoNotes);
+    query.bindValue(":barista", record.barista);
+    query.bindValue(":debug_log", QString());  // No debug log for imported shots
+
+    if (!query.exec()) {
+        qWarning() << "ShotHistoryStorage: Failed to import shot:" << query.lastError().text();
+        m_db.rollback();
+        return -1;
+    }
+
+    qint64 shotId = query.lastInsertId().toLongLong();
+
+    // Compress and insert sample data
+    auto pointsToJsonObj = [](const QVector<QPointF>& points) {
+        QJsonArray timeArr, valueArr;
+        for (const auto& pt : points) {
+            timeArr.append(pt.x());
+            valueArr.append(pt.y());
+        }
+        QJsonObject obj;
+        obj["t"] = timeArr;
+        obj["v"] = valueArr;
+        return obj;
+    };
+
+    QJsonObject root;
+    root["pressure"] = pointsToJsonObj(record.pressure);
+    root["flow"] = pointsToJsonObj(record.flow);
+    root["temperature"] = pointsToJsonObj(record.temperature);
+    root["pressureGoal"] = pointsToJsonObj(record.pressureGoal);
+    root["flowGoal"] = pointsToJsonObj(record.flowGoal);
+    root["temperatureGoal"] = pointsToJsonObj(record.temperatureGoal);
+    root["weight"] = pointsToJsonObj(record.weight);
+
+    QByteArray json = QJsonDocument(root).toJson(QJsonDocument::Compact);
+    QByteArray compressedData = qCompress(json, 9);
+    int sampleCount = record.pressure.size();
+
+    query.prepare("INSERT INTO shot_samples (shot_id, sample_count, data_blob) VALUES (:id, :count, :blob)");
+    query.bindValue(":id", shotId);
+    query.bindValue(":count", sampleCount);
+    query.bindValue(":blob", compressedData);
+
+    if (!query.exec()) {
+        qWarning() << "ShotHistoryStorage: Failed to insert imported samples:" << query.lastError().text();
+        m_db.rollback();
+        return -1;
+    }
+
+    // Insert phase markers
+    for (const auto& marker : record.phases) {
+        query.prepare(R"(
+            INSERT INTO shot_phases (shot_id, time_offset, label, frame_number, is_flow_mode)
+            VALUES (:shot_id, :time, :label, :frame, :flow_mode)
+        )");
+        query.bindValue(":shot_id", shotId);
+        query.bindValue(":time", marker.time);
+        query.bindValue(":label", marker.label);
+        query.bindValue(":frame", marker.frameNumber);
+        query.bindValue(":flow_mode", marker.isFlowMode ? 1 : 0);
+        query.exec();  // Non-critical if markers fail
+    }
+
+    m_db.commit();
+
+    return shotId;
+}
+
+void ShotHistoryStorage::refreshTotalShots()
+{
+    updateTotalShots();
 }

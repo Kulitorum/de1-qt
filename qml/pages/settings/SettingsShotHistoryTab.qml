@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Dialogs
 import DecenzaDE1
 import "../../components"
 
@@ -11,7 +12,7 @@ Item {
         anchors.fill: parent
         spacing: Theme.scaled(15)
 
-        // Left column: Shot History stats
+        // Left column: Shot History stats and import
         Rectangle {
             Layout.preferredWidth: Theme.scaled(300)
             Layout.fillHeight: true
@@ -40,33 +41,31 @@ Item {
                     wrapMode: Text.WordWrap
                 }
 
-                Item { height: 10 }
-
                 // Stats
                 Rectangle {
                     Layout.fillWidth: true
-                    height: Theme.scaled(80)
+                    height: Theme.scaled(70)
                     color: Theme.backgroundColor
                     radius: Theme.scaled(8)
 
                     RowLayout {
                         anchors.fill: parent
-                        anchors.margins: Theme.scaled(15)
+                        anchors.margins: Theme.scaled(12)
 
                         ColumnLayout {
-                            spacing: Theme.scaled(4)
+                            spacing: Theme.scaled(2)
 
                             Tr {
                                 key: "settings.history.totalshots"
                                 fallback: "Total Shots"
                                 color: Theme.textSecondaryColor
-                                font.pixelSize: Theme.scaled(12)
+                                font.pixelSize: Theme.scaled(11)
                             }
 
                             Text {
                                 text: MainController.shotHistory ? MainController.shotHistory.totalShots : "0"
                                 color: Theme.primaryColor
-                                font.pixelSize: Theme.scaled(32)
+                                font.pixelSize: Theme.scaled(28)
                                 font.bold: true
                             }
                         }
@@ -75,7 +74,210 @@ Item {
                     }
                 }
 
+                // Divider
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Theme.borderColor
+                }
+
+                // Import section
+                Text {
+                    text: "Import from DE1 App"
+                    color: Theme.textColor
+                    font.pixelSize: Theme.scaled(14)
+                    font.bold: true
+                }
+
+                // Progress bar (visible during import)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(4)
+                    visible: MainController.shotImporter && MainController.shotImporter.isImporting
+
+                    Text {
+                        text: MainController.shotImporter ? MainController.shotImporter.statusMessage : ""
+                        color: Theme.primaryColor
+                        font.pixelSize: Theme.scaled(11)
+                    }
+
+                    ProgressBar {
+                        Layout.fillWidth: true
+                        from: 0
+                        to: MainController.shotImporter ? MainController.shotImporter.totalFiles : 1
+                        value: MainController.shotImporter ? MainController.shotImporter.processedFiles : 0
+
+                        background: Rectangle {
+                            implicitHeight: Theme.scaled(6)
+                            color: Theme.backgroundColor
+                            radius: Theme.scaled(3)
+                        }
+
+                        contentItem: Item {
+                            implicitHeight: Theme.scaled(6)
+                            Rectangle {
+                                width: parent.width * (MainController.shotImporter && MainController.shotImporter.totalFiles > 0 ?
+                                       MainController.shotImporter.processedFiles / MainController.shotImporter.totalFiles : 0)
+                                height: parent.height
+                                radius: Theme.scaled(3)
+                                color: Theme.primaryColor
+                            }
+                        }
+                    }
+
+                    AccessibleButton {
+                        text: "Cancel"
+                        accessibleName: "Cancel import"
+                        Layout.alignment: Qt.AlignRight
+                        onClicked: {
+                            if (MainController.shotImporter) {
+                                MainController.shotImporter.cancel()
+                            }
+                        }
+                    }
+                }
+
+                // Import buttons (visible when not importing)
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(8)
+                    visible: !MainController.shotImporter || !MainController.shotImporter.isImporting
+
+                    // DE1 App detection info
+                    Text {
+                        id: de1AppStatus
+                        Layout.fillWidth: true
+                        property string detectedPath: MainController.shotImporter ? MainController.shotImporter.detectDE1AppHistoryPath() : ""
+                        text: detectedPath ? ("Found: " + detectedPath) : "DE1 app not found on device"
+                        color: detectedPath ? Theme.successColor : Theme.textSecondaryColor
+                        font.pixelSize: Theme.scaled(10)
+                        wrapMode: Text.Wrap
+                    }
+
+                    AccessibleButton {
+                        Layout.fillWidth: true
+                        text: "Import from DE1 App"
+                        accessibleName: "Auto-detect and import from DE1 tablet app"
+                        visible: de1AppStatus.detectedPath !== ""
+                        onClicked: {
+                            if (MainController.shotImporter) {
+                                MainController.shotImporter.importFromDE1App()
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(8)
+
+                        AccessibleButton {
+                            Layout.fillWidth: true
+                            text: "ZIP..."
+                            accessibleName: "Import shot history from ZIP archive"
+                            onClicked: shotZipDialog.open()
+                        }
+
+                        AccessibleButton {
+                            Layout.fillWidth: true
+                            text: "Folder..."
+                            accessibleName: "Import shot history from folder"
+                            onClicked: shotFolderDialog.open()
+                        }
+                    }
+                }
+
                 Item { Layout.fillHeight: true }
+            }
+        }
+
+        // File dialogs for shot import
+        FileDialog {
+            id: shotZipDialog
+            title: "Select shot history ZIP archive"
+            nameFilters: ["ZIP archives (*.zip)", "All files (*)"]
+
+            onAccepted: {
+                if (MainController.shotImporter) {
+                    MainController.shotImporter.importFromZip(selectedFile)
+                }
+            }
+        }
+
+        FolderDialog {
+            id: shotFolderDialog
+            title: "Select folder containing .shot files"
+
+            onAccepted: {
+                if (MainController.shotImporter) {
+                    MainController.shotImporter.importFromDirectory(selectedFolder)
+                }
+            }
+        }
+
+        // Import result feedback dialog
+        Popup {
+            id: importResultDialog
+            modal: true
+            dim: true
+            anchors.centerIn: Overlay.overlay
+            padding: Theme.scaled(24)
+
+            property string title: ""
+            property string message: ""
+            property bool isError: false
+
+            background: Rectangle {
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
+                border.width: 2
+                border.color: importResultDialog.isError ? Theme.dangerColor : Theme.primaryColor
+            }
+
+            contentItem: Column {
+                spacing: Theme.spacingMedium
+                width: Theme.scaled(300)
+
+                Text {
+                    text: importResultDialog.title
+                    font: Theme.subtitleFont
+                    color: importResultDialog.isError ? Theme.dangerColor : Theme.textColor
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
+                Text {
+                    text: importResultDialog.message
+                    wrapMode: Text.Wrap
+                    width: parent.width
+                    font: Theme.bodyFont
+                    color: Theme.textColor
+                }
+
+                AccessibleButton {
+                    text: "OK"
+                    accessibleName: "Dismiss dialog"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    onClicked: importResultDialog.close()
+                }
+            }
+        }
+
+        // Shot import result handling
+        Connections {
+            target: MainController.shotImporter
+            function onImportComplete(imported, skipped, failed) {
+                importResultDialog.title = "Import Complete"
+                importResultDialog.message = "Imported: " + imported + " shots\n" +
+                                             "Skipped (duplicates): " + skipped + "\n" +
+                                             "Failed: " + failed + "\n\n" +
+                                             "Total shots: " + (MainController.shotHistory ? MainController.shotHistory.totalShots : "?")
+                importResultDialog.isError = failed > 0 && imported === 0
+                importResultDialog.open()
+            }
+            function onImportError(message) {
+                importResultDialog.title = "Import Failed"
+                importResultDialog.message = message
+                importResultDialog.isError = true
+                importResultDialog.open()
             }
         }
 

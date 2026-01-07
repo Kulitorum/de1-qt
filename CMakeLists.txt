@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(Decenza_DE1 VERSION 1.1.16 LANGUAGES CXX)
+project(Decenza_DE1 VERSION 1.1.17 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -120,6 +120,8 @@ set(SOURCES
     src/ai/shotsummarizer.cpp
     src/history/shothistorystorage.cpp
     src/history/shotdebuglogger.cpp
+    src/history/shotfileparser.cpp
+    src/history/shotimporter.cpp
     src/models/shotcomparisonmodel.cpp
     src/network/shotserver.cpp
     src/network/webdebuglogger.cpp
@@ -188,6 +190,8 @@ set(HEADERS
     src/ai/shotsummarizer.h
     src/history/shothistorystorage.h
     src/history/shotdebuglogger.h
+    src/history/shotfileparser.h
+    src/history/shotimporter.h
     src/models/shotcomparisonmodel.h
     src/network/shotserver.h
     src/network/webdebuglogger.h

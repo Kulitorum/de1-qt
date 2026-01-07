@@ -7,6 +7,31 @@ ComboBox {
 
     implicitHeight: Theme.scaled(36)
 
+    // Calculate max width of all items for popup auto-sizing
+    property real popupContentWidth: control.width
+
+    function updatePopupWidth() {
+        var maxWidth = control.width
+        var padding = Theme.scaled(30)  // Left + right padding
+        for (var i = 0; i < count; i++) {
+            var item = model[i]
+            if (typeof item === 'object' && textRole)
+                item = item[textRole]
+            textMetrics.text = item || ""
+            maxWidth = Math.max(maxWidth, textMetrics.width + padding)
+        }
+        popupContentWidth = maxWidth
+    }
+
+    onModelChanged: Qt.callLater(updatePopupWidth)
+    onCountChanged: Qt.callLater(updatePopupWidth)
+    Component.onCompleted: Qt.callLater(updatePopupWidth)
+
+    TextMetrics {
+        id: textMetrics
+        font: Theme.bodyFont
+    }
+
     contentItem: Text {
         text: control.displayText
         font: Theme.bodyFont
@@ -35,7 +60,7 @@ ComboBox {
 
     popup: Popup {
         y: control.height
-        width: control.width
+        width: control.popupContentWidth
         padding: 1
 
         contentItem: ListView {
@@ -54,7 +79,7 @@ ComboBox {
     }
 
     delegate: ItemDelegate {
-        width: control.width
+        width: control.popupContentWidth
         height: Theme.scaled(36)
 
         contentItem: Text {

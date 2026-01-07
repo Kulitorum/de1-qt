@@ -10,6 +10,7 @@
 #include "../ai/aimanager.h"
 #include "../models/shotdatamodel.h"
 #include "../history/shothistorystorage.h"
+#include "../history/shotimporter.h"
 #include "../models/shotcomparisonmodel.h"
 #include "../network/shotserver.h"
 #include "../core/updatechecker.h"
@@ -62,6 +63,7 @@ class MainController : public QObject {
     Q_PROPERTY(bool calibrationMode READ isCalibrationMode NOTIFY calibrationModeChanged)
     Q_PROPERTY(QString currentFrameName READ currentFrameName NOTIFY frameChanged)
     Q_PROPERTY(ShotHistoryStorage* shotHistory READ shotHistory CONSTANT)
+    Q_PROPERTY(ShotImporter* shotImporter READ shotImporter CONSTANT)
     Q_PROPERTY(ShotComparisonModel* shotComparison READ shotComparison CONSTANT)
     Q_PROPERTY(ShotServer* shotServer READ shotServer CONSTANT)
     Q_PROPERTY(UpdateChecker* updateChecker READ updateChecker CONSTANT)
@@ -101,6 +103,7 @@ public:
     QString currentFrameName() const { return m_currentFrameName; }
     bool isCurrentProfileRecipe() const { return m_currentProfile.isRecipeMode(); }
     ShotHistoryStorage* shotHistory() const { return m_shotHistory; }
+    ShotImporter* shotImporter() const { return m_shotImporter; }
     ShotComparisonModel* shotComparison() const { return m_shotComparison; }
     ShotServer* shotServer() const { return m_shotServer; }
     UpdateChecker* updateChecker() const { return m_updateChecker; }
@@ -226,6 +229,7 @@ private:
 
     // Shot history and comparison
     ShotHistoryStorage* m_shotHistory = nullptr;
+    ShotImporter* m_shotImporter = nullptr;
     ShotDebugLogger* m_shotDebugLogger = nullptr;
     ShotComparisonModel* m_shotComparison = nullptr;
     ShotServer* m_shotServer = nullptr;

@@ -11,6 +11,11 @@ Page {
 
     property var selectedShots: []
     property int maxSelections: 3
+    property int currentOffset: 0
+    property int pageSize: 50
+    property bool hasMoreShots: true
+    property bool isLoadingMore: false
+    property int filteredTotalCount: 0
 
     Component.onCompleted: {
         root.currentPageTitle = TranslationManager.translate("shothistory.title", "Shot History")
@@ -25,32 +30,118 @@ Page {
     }
 
     function loadShots() {
+        currentOffset = 0
+        hasMoreShots = true
         var filter = buildFilter()
-        var shots = MainController.shotHistory.getShotsFiltered(filter, 0, 100)
+        var shots = MainController.shotHistory.getShotsFiltered(filter, 0, pageSize)
         shotListModel.clear()
         for (var i = 0; i < shots.length; i++) {
             shotListModel.append(shots[i])
         }
+        currentOffset = shots.length
+        hasMoreShots = shots.length >= pageSize
+        // Get total count matching current filter
+        filteredTotalCount = MainController.shotHistory.getFilteredShotCount(filter)
+    }
+
+    function loadMoreShots() {
+        if (isLoadingMore || !hasMoreShots) return
+        isLoadingMore = true
+        var filter = buildFilter()
+        var shots = MainController.shotHistory.getShotsFiltered(filter, currentOffset, pageSize)
+        for (var i = 0; i < shots.length; i++) {
+            shotListModel.append(shots[i])
+        }
+        currentOffset += shots.length
+        hasMoreShots = shots.length >= pageSize
+        isLoadingMore = false
     }
 
     // Get filter values from the model arrays directly (more reliable than currentText)
     property var profileOptions: []
+    property var roasterOptions: []
     property var beanOptions: []
 
+    // Track current selections by value (not index) to preserve across option updates
+    property string selectedProfile: ""
+    property string selectedRoaster: ""
+    property string selectedBean: ""
+
     function refreshFilterOptions() {
+        // Initial load - get all options
         var profiles = MainController.shotHistory.getDistinctProfiles()
-        var beans = MainController.shotHistory.getDistinctBeanBrands()
+        var roasters = MainController.shotHistory.getDistinctBeanBrands()
+        var beans = MainController.shotHistory.getDistinctBeanTypes()
         profileOptions = [TranslationManager.translate("shothistory.allprofiles", "All Profiles")].concat(profiles)
+        roasterOptions = [TranslationManager.translate("shothistory.allroasters", "All Roasters")].concat(roasters)
         beanOptions = [TranslationManager.translate("shothistory.allbeans", "All Beans")].concat(beans)
+    }
+
+    function updateCascadingFilters(changedFilter) {
+        var filter = {}
+
+        // Build filter from current selections
+        if (selectedProfile) filter.profileName = selectedProfile
+        if (selectedRoaster) filter.beanBrand = selectedRoaster
+        if (selectedBean) filter.beanType = selectedBean
+
+        // Update options for filters OTHER than the one that changed
+        if (changedFilter !== "profile") {
+            var profiles = MainController.shotHistory.getDistinctProfilesFiltered(filter)
+            var allProfiles = [TranslationManager.translate("shothistory.allprofiles", "All Profiles")]
+            profileOptions = allProfiles.concat(profiles)
+            // Restore selection if still valid
+            var pIdx = selectedProfile ? profileOptions.indexOf(selectedProfile) : 0
+            profileFilter.currentIndex = pIdx >= 0 ? pIdx : 0
+        }
+
+        if (changedFilter !== "roaster") {
+            var roasters = MainController.shotHistory.getDistinctBeanBrandsFiltered(filter)
+            var allRoasters = [TranslationManager.translate("shothistory.allroasters", "All Roasters")]
+            roasterOptions = allRoasters.concat(roasters)
+            // Restore selection if still valid
+            var rIdx = selectedRoaster ? roasterOptions.indexOf(selectedRoaster) : 0
+            roasterFilter.currentIndex = rIdx >= 0 ? rIdx : 0
+        }
+
+        if (changedFilter !== "bean") {
+            var beans = MainController.shotHistory.getDistinctBeanTypesFiltered(filter)
+            var allBeans = [TranslationManager.translate("shothistory.allbeans", "All Beans")]
+            beanOptions = allBeans.concat(beans)
+            // Restore selection if still valid
+            var bIdx = selectedBean ? beanOptions.indexOf(selectedBean) : 0
+            beanFilter.currentIndex = bIdx >= 0 ? bIdx : 0
+        }
+    }
+
+    function onProfileChanged() {
+        selectedProfile = profileFilter.currentIndex > 0 ? profileOptions[profileFilter.currentIndex] : ""
+        updateCascadingFilters("profile")
+        loadShots()
+    }
+
+    function onRoasterChanged() {
+        selectedRoaster = roasterFilter.currentIndex > 0 ? roasterOptions[roasterFilter.currentIndex] : ""
+        updateCascadingFilters("roaster")
+        loadShots()
+    }
+
+    function onBeanChanged() {
+        selectedBean = beanFilter.currentIndex > 0 ? beanOptions[beanFilter.currentIndex] : ""
+        updateCascadingFilters("bean")
+        loadShots()
     }
 
     function buildFilter() {
         var filter = {}
-        if (profileFilter.currentIndex > 0 && profileFilter.currentIndex < profileOptions.length) {
-            filter.profileName = profileOptions[profileFilter.currentIndex]
+        if (selectedProfile) {
+            filter.profileName = selectedProfile
         }
-        if (beanFilter.currentIndex > 0 && beanFilter.currentIndex < beanOptions.length) {
-            filter.beanBrand = beanOptions[beanFilter.currentIndex]
+        if (selectedRoaster) {
+            filter.beanBrand = selectedRoaster
+        }
+        if (selectedBean) {
+            filter.beanType = selectedBean
         }
         if (searchField.text.length > 0) {
             filter.searchText = searchField.text
@@ -157,9 +248,9 @@ Page {
 
             StyledComboBox {
                 id: profileFilter
-                Layout.preferredWidth: Theme.scaled(150)
+                Layout.preferredWidth: Theme.scaled(140)
                 model: profileOptions
-                onCurrentIndexChanged: if (shotHistoryPage.visible) loadShots()
+                onActivated: if (shotHistoryPage.visible) onProfileChanged()
 
                 background: Rectangle {
                     color: Theme.surfaceColor
@@ -173,14 +264,37 @@ Page {
                     color: Theme.textColor
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: Theme.spacingSmall
+                    elide: Text.ElideRight
+                }
+            }
+
+            StyledComboBox {
+                id: roasterFilter
+                Layout.preferredWidth: Theme.scaled(140)
+                model: roasterOptions
+                onActivated: if (shotHistoryPage.visible) onRoasterChanged()
+
+                background: Rectangle {
+                    color: Theme.surfaceColor
+                    radius: Theme.buttonRadius
+                    border.color: Theme.borderColor
+                    border.width: 1
+                }
+                contentItem: Text {
+                    text: roasterFilter.displayText
+                    font: Theme.labelFont
+                    color: Theme.textColor
+                    verticalAlignment: Text.AlignVCenter
+                    leftPadding: Theme.spacingSmall
+                    elide: Text.ElideRight
                 }
             }
 
             StyledComboBox {
                 id: beanFilter
-                Layout.preferredWidth: Theme.scaled(150)
+                Layout.preferredWidth: Theme.scaled(140)
                 model: beanOptions
-                onCurrentIndexChanged: if (shotHistoryPage.visible) loadShots()
+                onActivated: if (shotHistoryPage.visible) onBeanChanged()
 
                 background: Rectangle {
                     color: Theme.surfaceColor
@@ -194,6 +308,7 @@ Page {
                     color: Theme.textColor
                     verticalAlignment: Text.AlignVCenter
                     leftPadding: Theme.spacingSmall
+                    elide: Text.ElideRight
                 }
             }
 
@@ -213,9 +328,19 @@ Page {
 
         // Shot count
         Text {
-            text: shotListModel.count + " " + TranslationManager.translate("shothistory.shots", "shots") +
-                  (MainController.shotHistory.totalShots > shotListModel.count ?
-                  " (" + TranslationManager.translate("shothistory.of", "of") + " " + MainController.shotHistory.totalShots + ")" : "")
+            text: {
+                var loaded = shotListModel.count
+                var filtered = filteredTotalCount
+                var total = MainController.shotHistory.totalShots
+                var countText = loaded + " " + TranslationManager.translate("shothistory.shots", "shots")
+                if (filtered > loaded) {
+                    countText += " (" + TranslationManager.translate("shothistory.of", "of") + " " + filtered + ")"
+                }
+                if (filtered < total) {
+                    countText += " [" + TranslationManager.translate("shothistory.filtered", "filtered") + "]"
+                }
+                return countText
+            }
             font: Theme.captionFont
             color: Theme.textSecondaryColor
         }
@@ -228,6 +353,16 @@ Page {
             clip: true
             spacing: Theme.spacingSmall
             model: shotListModel
+
+            // Infinite scroll - load more when near bottom
+            onContentYChanged: {
+                if (!isLoadingMore && hasMoreShots && contentHeight > 0) {
+                    var threshold = contentHeight - height - Theme.scaled(200)
+                    if (contentY > threshold) {
+                        loadMoreShots()
+                    }
+                }
+            }
 
             delegate: Rectangle {
                 id: shotDelegate
@@ -292,13 +427,6 @@ Page {
                                 Layout.fillWidth: true
                                 elide: Text.ElideRight
                             }
-
-                            // Rating percentage
-                            Text {
-                                text: shotDelegate.shotEnjoyment > 0 ? shotDelegate.shotEnjoyment + "%" : "-"
-                                font: Theme.labelFont
-                                color: Theme.warningColor
-                            }
                         }
 
                         RowLayout {
@@ -336,6 +464,17 @@ Page {
                                 visible: model.hasVisualizerUpload
                             }
                         }
+                    }
+
+                    // Rating percentage
+                    Text {
+                        text: shotDelegate.shotEnjoyment > 0 ? shotDelegate.shotEnjoyment + "%" : ""
+                        font.pixelSize: Theme.scaled(16)
+                        font.bold: true
+                        color: Theme.warningColor
+                        Layout.preferredWidth: Theme.scaled(45)
+                        horizontalAlignment: Text.AlignRight
+                        visible: shotDelegate.shotEnjoyment > 0
                     }
 
                     // Edit button (green circle with E)
@@ -392,6 +531,20 @@ Page {
                     onPressAndHold: {
                         pageStack.push(Qt.resolvedUrl("ShotDetailPage.qml"), { shotId: model.id })
                     }
+                }
+            }
+
+            // Loading indicator footer
+            footer: Item {
+                width: shotListView.width
+                height: isLoadingMore ? Theme.scaled(50) : 0
+                visible: isLoadingMore
+
+                Text {
+                    anchors.centerIn: parent
+                    text: TranslationManager.translate("shothistory.loading", "Loading more...")
+                    font: Theme.labelFont
+                    color: Theme.textSecondaryColor
                 }
             }
 

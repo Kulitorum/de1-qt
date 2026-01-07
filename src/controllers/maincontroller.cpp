@@ -10,6 +10,7 @@
 #include "../network/visualizerimporter.h"
 #include "../ai/aimanager.h"
 #include "../history/shothistorystorage.h"
+#include "../history/shotimporter.h"
 #include "../history/shotdebuglogger.h"
 #include "../network/shotserver.h"
 #include <QDir>
@@ -74,6 +75,9 @@ MainController::MainController(Settings* settings, DE1Device* device,
     // Create shot history storage and comparison model
     m_shotHistory = new ShotHistoryStorage(this);
     m_shotHistory->initialize();
+
+    // Create shot importer for importing .shot files from DE1 app
+    m_shotImporter = new ShotImporter(m_shotHistory, this);
 
     m_shotComparison = new ShotComparisonModel(this);
     m_shotComparison->setStorage(m_shotHistory);
