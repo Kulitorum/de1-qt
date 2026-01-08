@@ -383,6 +383,32 @@ void ShotServer::handleRequest(QTcpSocket* socket, const QByteArray& request)
             sendResponse(socket, 400, "text/plain", "Need at least 2 shot IDs to compare");
         }
     }
+    else if (path.startsWith("/shot/") && path.endsWith("/profile.json")) {
+        // /shot/123/profile.json - download profile JSON for a shot
+        QString idPart = path.mid(6);  // Remove "/shot/"
+        idPart = idPart.left(idPart.indexOf("/profile.json"));
+        bool ok;
+        qint64 shotId = idPart.toLongLong(&ok);
+        if (ok) {
+            QVariantMap shot = m_storage->getShot(shotId);
+            QString profileJson = shot["profileJson"].toString();
+            QString profileName = shot["profileName"].toString();
+            if (!profileJson.isEmpty()) {
+                // Pretty-print the JSON for readability
+                QJsonDocument doc = QJsonDocument::fromJson(profileJson.toUtf8());
+                QByteArray prettyJson = doc.toJson(QJsonDocument::Indented);
+                // Set Content-Disposition to suggest filename
+                QString filename = profileName.isEmpty() ? "profile" : profileName;
+                filename = filename.replace(QRegularExpression("[^a-zA-Z0-9_-]"), "_");
+                QByteArray headers = QString("Content-Disposition: attachment; filename=\"%1.json\"\r\n").arg(filename).toUtf8();
+                sendResponse(socket, 200, "application/json", prettyJson, headers);
+            } else {
+                sendResponse(socket, 404, "application/json", R"({"error":"No profile data for this shot"})");
+            }
+        } else {
+            sendResponse(socket, 400, "application/json", R"({"error":"Invalid shot ID"})");
+        }
+    }
     else if (path.startsWith("/shot/")) {
         bool ok;
         qint64 shotId = path.mid(6).split("?").first().toLongLong(&ok);
@@ -1842,9 +1868,39 @@ QString ShotServer::generateShotDetailPage(qint64 shotId) const
                 <p class="notes-text">%14</p>
             </div>
         </div>
+
+        <div class="actions-bar" style="margin-top:1.5rem;display:flex;gap:1rem;flex-wrap:wrap;">
+            <a href="#" onclick="downloadProfile(); return false;" class="action-btn" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);text-decoration:none;font-size:0.875rem;">
+                &#128196; Download Profile JSON
+            </a>
+            <a href="#" onclick="showDebugLog(); return false;" class="action-btn" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 1.25rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);text-decoration:none;font-size:0.875rem;">
+                &#128203; View Debug Log
+            </a>
+        </div>
+
+        <div id="debugLogContainer" style="display:none;margin-top:1rem;">
+            <div class="info-card">
+                <h3>Debug Log</h3>
+                <pre id="debugLogContent" style="background:var(--bg);padding:1rem;border-radius:8px;overflow-x:auto;font-size:0.75rem;line-height:1.4;white-space:pre-wrap;word-break:break-all;max-height:500px;overflow-y:auto;">%21</pre>
+                <button onclick="copyDebugLog()" style="margin-top:0.75rem;padding:0.5rem 1rem;background:var(--accent);border:none;border-radius:6px;color:#000;font-weight:500;cursor:pointer;">Copy to Clipboard</button>
+            </div>
+        </div>
     </main>
 
     <script>
+        function downloadProfile() {
+            window.location.href = window.location.pathname + '/profile.json';
+        }
+        function showDebugLog() {
+            var container = document.getElementById('debugLogContainer');
+            container.style.display = container.style.display === 'none' ? 'block' : 'none';
+        }
+        function copyDebugLog() {
+            var text = document.getElementById('debugLogContent').textContent;
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Debug log copied to clipboard!');
+            });
+        }
         const pressureData = %15;
         const flowData = %16;
         const weightData = %17;
@@ -2116,7 +2172,8 @@ QString ShotServer::generateShotDetailPage(qint64 shotId) const
     .arg(weightData)
     .arg(tempData)
     .arg(pressureGoalData)
-    .arg(flowGoalData);
+    .arg(flowGoalData)
+    .arg(shot["debugLog"].toString().isEmpty() ? "No debug log available" : shot["debugLog"].toString().toHtmlEscaped());
 }
 
 QString ShotServer::generateComparisonPage(const QList<qint64>& shotIds) const
