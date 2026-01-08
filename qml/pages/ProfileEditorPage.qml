@@ -151,7 +151,7 @@ Page {
 
             Button {
                 text: qsTr("Switch to D-Flow Editor")
-                onClicked: root.switchToRecipeEditor()
+                onClicked: switchToDFlowDialog.open()
                 background: Rectangle {
                     implicitWidth: Theme.scaled(180)
                     implicitHeight: Theme.scaled(32)
@@ -1481,6 +1481,50 @@ Page {
             nameField.text = profile ? profile.title : ""
             nameField.selectAll()
             nameField.forceActiveFocus()
+        }
+    }
+
+    // Switch to D-Flow confirmation dialog
+    Dialog {
+        id: switchToDFlowDialog
+        title: qsTr("Switch to D-Flow Editor")
+        anchors.centerIn: parent
+        width: Theme.scaled(450)
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Theme.scaled(12)
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("This will simplify the profile to fit the D-Flow format.")
+                font: Theme.bodyFont
+                color: Theme.textColor
+                wrapMode: Text.WordWrap
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("The converter will attempt to retain the main idea of your profile, but advanced settings like custom exit conditions, per-frame weight exits, and popup messages may be lost.")
+                font: Theme.captionFont
+                color: Theme.textSecondaryColor
+                wrapMode: Text.WordWrap
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("D-Flow profiles use a fixed structure: Fill → Bloom → Infuse → Ramp → Pour → Decline")
+                font: Theme.captionFont
+                color: Theme.warningColor
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        onAccepted: {
+            MainController.convertCurrentProfileToRecipe()
+            root.switchToRecipeEditor()
         }
     }
 

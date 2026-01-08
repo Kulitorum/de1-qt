@@ -204,7 +204,7 @@ Page {
 
             Button {
                 text: qsTr("Switch to Advanced Editor")
-                onClicked: root.switchToAdvancedEditor()
+                onClicked: switchToAdvancedDialog.open()
                 background: Rectangle {
                     implicitWidth: Theme.scaled(180)
                     implicitHeight: Theme.scaled(32)
@@ -221,6 +221,50 @@ Page {
                     verticalAlignment: Text.AlignVCenter
                 }
             }
+        }
+    }
+
+    // Switch to Advanced Editor confirmation dialog
+    Dialog {
+        id: switchToAdvancedDialog
+        title: qsTr("Switch to Advanced Editor")
+        anchors.centerIn: parent
+        width: Theme.scaled(450)
+        modal: true
+        standardButtons: Dialog.Ok | Dialog.Cancel
+
+        ColumnLayout {
+            width: parent.width
+            spacing: Theme.scaled(12)
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("This will convert the profile to Advanced mode with full frame-by-frame control.")
+                font: Theme.bodyFont
+                color: Theme.textColor
+                wrapMode: Text.WordWrap
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("You will gain access to advanced settings like custom exit conditions, per-frame limiters, popup messages, and arbitrary frame structures.")
+                font: Theme.captionFont
+                color: Theme.textSecondaryColor
+                wrapMode: Text.WordWrap
+            }
+
+            Text {
+                Layout.fillWidth: true
+                text: qsTr("Note: Once converted, this profile can no longer be edited in the D-Flow editor.")
+                font: Theme.captionFont
+                color: Theme.warningColor
+                wrapMode: Text.WordWrap
+            }
+        }
+
+        onAccepted: {
+            MainController.convertCurrentProfileToAdvanced()
+            root.switchToAdvancedEditor()
         }
     }
 
