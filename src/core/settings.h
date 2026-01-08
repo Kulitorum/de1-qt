@@ -111,6 +111,9 @@ class Settings : public QObject {
     Q_PROPERTY(QString shotServerHostname READ shotServerHostname WRITE setShotServerHostname NOTIFY shotServerHostnameChanged)
     Q_PROPERTY(int shotServerPort READ shotServerPort WRITE setShotServerPort NOTIFY shotServerPortChanged)
 
+    // Shot history settings
+    Q_PROPERTY(bool showHistoryButton READ showHistoryButton WRITE setShowHistoryButton NOTIFY showHistoryButtonChanged)
+
     // Auto-update settings
     Q_PROPERTY(bool autoCheckUpdates READ autoCheckUpdates WRITE setAutoCheckUpdates NOTIFY autoCheckUpdatesChanged)
 
@@ -361,6 +364,10 @@ public:
     int shotServerPort() const;
     void setShotServerPort(int port);
 
+    // Shot history settings
+    bool showHistoryButton() const;
+    void setShowHistoryButton(bool show);
+
     // Auto-update settings
     bool autoCheckUpdates() const;
     void setAutoCheckUpdates(bool enabled);
@@ -441,6 +448,7 @@ signals:
     void shotServerEnabledChanged();
     void shotServerHostnameChanged();
     void shotServerPortChanged();
+    void showHistoryButtonChanged();
     void autoCheckUpdatesChanged();
     void waterLevelDisplayUnitChanged();
     void developerTranslationUploadChanged();

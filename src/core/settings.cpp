@@ -1613,6 +1613,17 @@ void Settings::setShotServerPort(int port) {
     }
 }
 
+bool Settings::showHistoryButton() const {
+    return m_settings.value("shotHistory/showButton", false).toBool();
+}
+
+void Settings::setShowHistoryButton(bool show) {
+    if (showHistoryButton() != show) {
+        m_settings.setValue("shotHistory/showButton", show);
+        emit showHistoryButtonChanged();
+    }
+}
+
 bool Settings::autoCheckUpdates() const {
     return m_settings.value("updates/autoCheck", true).toBool();
 }

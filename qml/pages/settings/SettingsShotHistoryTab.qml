@@ -74,6 +74,24 @@ Item {
                     }
                 }
 
+                // Show on idle screen toggle
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(10)
+
+                    Text {
+                        text: "Show on Idle screen"
+                        color: Theme.textColor
+                        font.pixelSize: Theme.scaled(12)
+                        Layout.fillWidth: true
+                    }
+
+                    StyledSwitch {
+                        checked: Settings.showHistoryButton
+                        onToggled: Settings.showHistoryButton = checked
+                    }
+                }
+
                 // Divider
                 Rectangle {
                     Layout.fillWidth: true

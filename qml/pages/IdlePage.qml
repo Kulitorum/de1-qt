@@ -145,7 +145,7 @@ Page {
             color: "transparent"
 
             // Calculate button size to fit available width while maintaining aspect ratio
-            readonly property int buttonCount: 4 + (shotInfoButton.visible ? 1 : 0) + 1  // 4 main + shotInfo + history
+            readonly property int buttonCount: 4 + (shotInfoButton.visible ? 1 : 0) + (historyButton.visible ? 1 : 0)  // 4 main + shotInfo + history
             readonly property real availableWidth: width - Theme.scaled(20) - (buttonCount - 1) * Theme.scaled(10)
             readonly property real buttonWidth: Math.min(Theme.scaled(150), availableWidth / buttonCount)
             readonly property real buttonHeight: buttonWidth * 0.8  // Maintain 150:120 aspect ratio
@@ -232,7 +232,7 @@ Page {
                     onDoubleClicked: root.goToFlush()
 
                     KeyNavigation.left: hotWaterButton
-                    KeyNavigation.right: shotInfoButton.visible ? shotInfoButton : historyButton
+                    KeyNavigation.right: shotInfoButton.visible ? shotInfoButton : (historyButton.visible ? historyButton : null)
                     KeyNavigation.down: activePresetFunction === "flush" ? flushPresetRow : settingsButton
 
                     Accessible.description: TranslationManager.translate("idle.accessible.flush.description", "Flush the group head. Long-press to configure.")
@@ -252,7 +252,7 @@ Page {
                     onClicked: root.goToShotMetadata(false)
 
                     KeyNavigation.left: flushButton
-                    KeyNavigation.right: historyButton
+                    KeyNavigation.right: historyButton.visible ? historyButton : null
                     KeyNavigation.down: settingsButton
 
                     Accessible.description: TranslationManager.translate("idle.accessible.shotinfo.description", "Edit shot metadata for Visualizer uploads. Bean, grinder, and tasting notes.")
@@ -260,6 +260,7 @@ Page {
 
                 ActionButton {
                     id: historyButton
+                    visible: Settings.showHistoryButton
                     implicitWidth: mainButtonsCard.buttonWidth
                     implicitHeight: mainButtonsCard.buttonHeight
                     translationKey: "idle.button.history"
