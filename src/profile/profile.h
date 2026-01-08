@@ -81,6 +81,9 @@ public:
     void insertStep(int index, const ProfileFrame& step) { m_steps.insert(index, step); }
     void removeStep(int index) { m_steps.removeAt(index); }
     void moveStep(int from, int to);
+    void setStepAt(int index, const ProfileFrame& step) {
+        if (index >= 0 && index < m_steps.size()) m_steps[index] = step;
+    }
 
     int preinfuseFrameCount() const { return m_preinfuseFrameCount; }
     void setPreinfuseFrameCount(int count) { m_preinfuseFrameCount = count; }
@@ -115,6 +118,9 @@ public:
 
     // Import from de1app .tcl file
     static Profile loadFromTclFile(const QString& filePath);
+
+    // Import from DE1 app / Visualizer JSON format (different field names than native format)
+    static Profile loadFromDE1AppJson(const QString& jsonContent);
 
     // === BLE Data Generation ===
     // Generate profile header for upload (5 bytes)

@@ -1,13 +1,13 @@
 {
-    "author": "Decent",
-    "beverage_type": "espresso",
-    "espresso_temperature": 84,
+    "author": "Damian",
+    "beverage_type": "calibrate",
+    "espresso_temperature": 93,
     "is_recipe_mode": true,
-    "maximum_flow": 0,
-    "maximum_pressure": 0,
+    "maximum_flow": 6,
+    "maximum_pressure": 12,
     "minimum_pressure": 0,
     "mode": "frame_based",
-    "notes": "A very popular profile made with D-Flow, spun out as its own profile.  Optimized for medium-light beans. By Damian Brakel",
+    "notes": "THIS IS NOT AN EDITABLE PROFILE - Although it will run a copy of D-FLow Q.\n        It is a dummy profile to test the profile_editor framework, this profile has a variable 'profile_editor demo'.    By Damian Nov 2025",
     "preinfuse_frame_count": 1,
     "profile_type": "settings_2c",
     "recipe": {
@@ -90,10 +90,10 @@
     "target_volume": 36,
     "target_weight": 36,
     "temperature_presets": [
-        84,
-        84,
-        84,
-        84
+        88,
+        90,
+        93,
+        96
     ],
-    "title": "Damian's Q"
+    "title": "Test/profile_editor_demo"
 }

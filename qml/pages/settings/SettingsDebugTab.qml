@@ -157,6 +157,162 @@ Item {
                 }
             }
 
+            // Profile Converter section
+            Rectangle {
+                Layout.fillWidth: true
+                implicitHeight: profileConverterContent.implicitHeight + Theme.scaled(30)
+                color: Theme.surfaceColor
+                radius: Theme.cardRadius
+
+                ColumnLayout {
+                    id: profileConverterContent
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.margins: Theme.scaled(15)
+                    spacing: Theme.scaled(10)
+
+                    Text {
+                        text: "Profile Converter"
+                        color: Theme.textColor
+                        font.pixelSize: Theme.scaled(16)
+                        font.bold: true
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "Convert DE1 app TCL profiles to native JSON format. Preserves all fields including popup messages, per-frame weight, etc."
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: Theme.scaled(12)
+                        wrapMode: Text.Wrap
+                    }
+
+                    // Progress indicator when converting
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(5)
+                        visible: MainController.profileConverter && MainController.profileConverter.isConverting
+
+                        Text {
+                            text: MainController.profileConverter ? MainController.profileConverter.statusMessage : ""
+                            color: Theme.primaryColor
+                            font.pixelSize: Theme.scaled(12)
+                        }
+
+                        ProgressBar {
+                            Layout.fillWidth: true
+                            from: 0
+                            to: MainController.profileConverter ? MainController.profileConverter.totalFiles : 1
+                            value: MainController.profileConverter ? MainController.profileConverter.processedFiles : 0
+                        }
+
+                        Text {
+                            text: MainController.profileConverter ?
+                                  "Converting: " + MainController.profileConverter.currentFile : ""
+                            color: Theme.textSecondaryColor
+                            font.pixelSize: Theme.scaled(11)
+                            elide: Text.ElideMiddle
+                            Layout.fillWidth: true
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(15)
+
+                        property string de1AppPath: MainController.profileConverter ?
+                                                    MainController.profileConverter.detectDE1AppProfilesPath() : ""
+
+                        Text {
+                            text: parent.de1AppPath ? "DE1 app found" : "DE1 app not found"
+                            color: parent.de1AppPath ? Theme.primaryColor : Theme.textSecondaryColor
+                            font.pixelSize: Theme.scaled(12)
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        AccessibleButton {
+                            text: "Convert Profiles"
+                            accessibleName: "Convert DE1 app profiles to native format"
+                            enabled: MainController.profileConverter &&
+                                     !MainController.profileConverter.isConverting &&
+                                     parent.de1AppPath !== ""
+                            onClicked: {
+                                var sourcePath = parent.de1AppPath
+                                // For development, use the source directory
+                                var destPath = "C:/CODE/de1-qt/resources/profiles"
+                                MainController.profileConverter.convertProfiles(sourcePath, destPath)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Connections for profile converter
+            Connections {
+                target: MainController.profileConverter
+                function onConversionComplete(success, errors) {
+                    profileConvertResultDialog.title = errors > 0 ? "Conversion Complete (with errors)" : "Conversion Complete"
+                    profileConvertResultDialog.message = "Successfully converted: " + success + " profiles\n" +
+                                                         (errors > 0 ? "Errors: " + errors : "")
+                    profileConvertResultDialog.isError = errors > 0
+                    profileConvertResultDialog.open()
+                }
+                function onConversionError(message) {
+                    profileConvertResultDialog.title = "Conversion Failed"
+                    profileConvertResultDialog.message = message
+                    profileConvertResultDialog.isError = true
+                    profileConvertResultDialog.open()
+                }
+            }
+
+            // Profile conversion result dialog
+            Popup {
+                id: profileConvertResultDialog
+                modal: true
+                dim: true
+                anchors.centerIn: Overlay.overlay
+                padding: Theme.scaled(24)
+
+                property string title: ""
+                property string message: ""
+                property bool isError: false
+
+                background: Rectangle {
+                    color: Theme.surfaceColor
+                    radius: Theme.cardRadius
+                    border.width: 2
+                    border.color: profileConvertResultDialog.isError ? Theme.dangerColor : Theme.primaryColor
+                }
+
+                contentItem: Column {
+                    spacing: Theme.spacingMedium
+                    width: Theme.scaled(300)
+
+                    Text {
+                        text: profileConvertResultDialog.title
+                        font: Theme.subtitleFont
+                        color: profileConvertResultDialog.isError ? Theme.dangerColor : Theme.textColor
+                        anchors.horizontalCenter: parent.horizontalCenter
+                    }
+
+                    Text {
+                        text: profileConvertResultDialog.message
+                        wrapMode: Text.Wrap
+                        width: parent.width
+                        font: Theme.bodyFont
+                        color: Theme.textColor
+                    }
+
+                    AccessibleButton {
+                        text: "OK"
+                        accessibleName: "Dismiss dialog"
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        onClicked: profileConvertResultDialog.close()
+                    }
+                }
+            }
+
             // Spacer
             Item { Layout.fillHeight: true }
         }

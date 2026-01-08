@@ -217,7 +217,21 @@ void DirectController::onWeightChanged(double weight) {
 
     m_lastWeight = weight;
 
-    // Check global weight target
+    // Check per-frame weight exit condition
+    // NOTE: Weight exit is INDEPENDENT of exitIf - the "weight" property triggers
+    // app-side frame skip regardless of the machine-side exit_if flag
+    if (m_currentFrameIndex >= 0 && m_currentFrameIndex < m_profile.steps().size()) {
+        const ProfileFrame& frame = m_profile.steps()[m_currentFrameIndex];
+        if (frame.exitWeight > 0) {
+            if (weight >= frame.exitWeight) {
+                qDebug() << "DirectController: Frame weight exit reached:" << weight << "/" << frame.exitWeight;
+                advanceToNextFrame();
+                return;
+            }
+        }
+    }
+
+    // Check global weight target (stop entire shot)
     double targetWeight = m_profile.targetWeight();
     if (targetWeight > 0 && weight >= targetWeight) {
         qDebug() << "DirectController: Weight target reached:" << weight << "/" << targetWeight;

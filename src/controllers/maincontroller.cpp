@@ -79,6 +79,9 @@ MainController::MainController(Settings* settings, DE1Device* device,
     // Create shot importer for importing .shot files from DE1 app
     m_shotImporter = new ShotImporter(m_shotHistory, this);
 
+    // Create profile converter for batch converting DE1 app profiles
+    m_profileConverter = new ProfileConverter(this);
+
     m_shotComparison = new ShotComparisonModel(this);
     m_shotComparison->setStorage(m_shotHistory);
 
@@ -570,6 +573,47 @@ void MainController::loadProfile(const QString& profileName) {
     }
 }
 
+bool MainController::loadProfileFromJson(const QString& jsonContent) {
+    if (jsonContent.isEmpty()) {
+        qWarning() << "loadProfileFromJson: Empty JSON content";
+        return false;
+    }
+
+    // Try our native format first
+    m_currentProfile = Profile::loadFromJsonString(jsonContent);
+
+    // If native format didn't work (empty title or no steps), try DE1 app format
+    if (m_currentProfile.title().isEmpty() || m_currentProfile.steps().isEmpty()) {
+        qDebug() << "Native JSON format failed, trying DE1 app format...";
+        m_currentProfile = Profile::loadFromDE1AppJson(jsonContent);
+    }
+
+    if (m_currentProfile.title().isEmpty() || m_currentProfile.steps().isEmpty()) {
+        qWarning() << "loadProfileFromJson: Failed to parse profile JSON in any format";
+        return false;
+    }
+
+    // Use title as base name since this profile isn't from a file
+    m_baseProfileName = m_currentProfile.title();
+    m_profileModified = false;
+
+    if (m_machineState) {
+        m_machineState->setTargetWeight(m_currentProfile.targetWeight());
+    }
+
+    // Upload to machine if connected (for frame-based mode)
+    if (m_currentProfile.mode() == Profile::Mode::FrameBased) {
+        uploadCurrentProfile();
+    }
+
+    qDebug() << "Loaded profile from JSON:" << m_currentProfile.title()
+             << "with" << m_currentProfile.steps().size() << "steps";
+
+    emit currentProfileChanged();
+    emit targetWeightChanged();
+    return true;
+}
+
 void MainController::refreshProfiles() {
     m_availableProfiles.clear();
     m_profileTitles.clear();
@@ -917,6 +961,263 @@ void MainController::applyRecipePreset(const QString& presetName) {
     qDebug() << "Applied recipe preset:" << presetName;
 }
 
+// === D-Flow Frame Editor Methods ===
+
+void MainController::addFrame(int afterIndex) {
+    if (m_currentProfile.steps().size() >= Profile::MAX_FRAMES) {
+        qWarning() << "Cannot add frame: maximum" << Profile::MAX_FRAMES << "frames reached";
+        return;
+    }
+
+    // Create a new default frame
+    ProfileFrame newFrame;
+    newFrame.name = QString("Step %1").arg(m_currentProfile.steps().size() + 1);
+    newFrame.temperature = 93.0;
+    newFrame.sensor = "coffee";
+    newFrame.pump = "pressure";
+    newFrame.transition = "fast";
+    newFrame.pressure = 9.0;
+    newFrame.flow = 2.0;
+    newFrame.seconds = 30.0;
+    newFrame.volume = 0;
+    newFrame.exitIf = false;
+
+    if (afterIndex < 0 || afterIndex >= m_currentProfile.steps().size()) {
+        // Add at end
+        m_currentProfile.addStep(newFrame);
+    } else {
+        // Insert after specified index
+        m_currentProfile.insertStep(afterIndex + 1, newFrame);
+    }
+
+    // Disable recipe mode - we're now in frame editing mode
+    m_currentProfile.setRecipeMode(false);
+
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+
+    uploadCurrentProfile();
+    qDebug() << "Added frame at index" << (afterIndex + 1) << ", total frames:" << m_currentProfile.steps().size();
+}
+
+void MainController::deleteFrame(int index) {
+    if (index < 0 || index >= m_currentProfile.steps().size()) {
+        qWarning() << "Cannot delete frame: invalid index" << index;
+        return;
+    }
+
+    // Don't allow deleting the last frame
+    if (m_currentProfile.steps().size() <= 1) {
+        qWarning() << "Cannot delete the last frame";
+        return;
+    }
+
+    m_currentProfile.removeStep(index);
+    m_currentProfile.setRecipeMode(false);
+
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+
+    uploadCurrentProfile();
+    qDebug() << "Deleted frame at index" << index << ", total frames:" << m_currentProfile.steps().size();
+}
+
+void MainController::moveFrameUp(int index) {
+    if (index <= 0 || index >= m_currentProfile.steps().size()) {
+        return;  // Can't move up if already at top or invalid
+    }
+
+    m_currentProfile.moveStep(index, index - 1);
+    m_currentProfile.setRecipeMode(false);
+
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+
+    uploadCurrentProfile();
+    qDebug() << "Moved frame from" << index << "to" << (index - 1);
+}
+
+void MainController::moveFrameDown(int index) {
+    if (index < 0 || index >= m_currentProfile.steps().size() - 1) {
+        return;  // Can't move down if already at bottom or invalid
+    }
+
+    m_currentProfile.moveStep(index, index + 1);
+    m_currentProfile.setRecipeMode(false);
+
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+
+    uploadCurrentProfile();
+    qDebug() << "Moved frame from" << index << "to" << (index + 1);
+}
+
+void MainController::duplicateFrame(int index) {
+    if (index < 0 || index >= m_currentProfile.steps().size()) {
+        qWarning() << "Cannot duplicate frame: invalid index" << index;
+        return;
+    }
+
+    if (m_currentProfile.steps().size() >= Profile::MAX_FRAMES) {
+        qWarning() << "Cannot duplicate frame: maximum" << Profile::MAX_FRAMES << "frames reached";
+        return;
+    }
+
+    ProfileFrame copy = m_currentProfile.steps().at(index);
+    copy.name = copy.name + " (copy)";
+    m_currentProfile.insertStep(index + 1, copy);
+    m_currentProfile.setRecipeMode(false);
+
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+
+    uploadCurrentProfile();
+    qDebug() << "Duplicated frame at index" << index;
+}
+
+void MainController::setFrameProperty(int index, const QString& property, const QVariant& value) {
+    if (index < 0 || index >= m_currentProfile.steps().size()) {
+        qWarning() << "setFrameProperty: invalid index" << index;
+        return;
+    }
+
+    ProfileFrame frame = m_currentProfile.steps().at(index);
+
+    // Basic properties
+    if (property == "name") frame.name = value.toString();
+    else if (property == "temperature") frame.temperature = value.toDouble();
+    else if (property == "sensor") frame.sensor = value.toString();
+    else if (property == "pump") frame.pump = value.toString();
+    else if (property == "transition") frame.transition = value.toString();
+    else if (property == "pressure") frame.pressure = value.toDouble();
+    else if (property == "flow") frame.flow = value.toDouble();
+    else if (property == "seconds") frame.seconds = value.toDouble();
+    else if (property == "volume") frame.volume = value.toDouble();
+    // Exit conditions
+    else if (property == "exitIf") frame.exitIf = value.toBool();
+    else if (property == "exitType") frame.exitType = value.toString();
+    else if (property == "exitPressureOver") frame.exitPressureOver = value.toDouble();
+    else if (property == "exitPressureUnder") frame.exitPressureUnder = value.toDouble();
+    else if (property == "exitFlowOver") frame.exitFlowOver = value.toDouble();
+    else if (property == "exitFlowUnder") frame.exitFlowUnder = value.toDouble();
+    else if (property == "exitWeight") frame.exitWeight = value.toDouble();
+    // Limiter
+    else if (property == "maxFlowOrPressure") frame.maxFlowOrPressure = value.toDouble();
+    else if (property == "maxFlowOrPressureRange") frame.maxFlowOrPressureRange = value.toDouble();
+    // Popup message
+    else if (property == "popup") frame.popup = value.toString();
+    else {
+        qWarning() << "setFrameProperty: unknown property" << property;
+        return;
+    }
+
+    m_currentProfile.setStepAt(index, frame);
+    m_currentProfile.setRecipeMode(false);
+
+    if (!m_profileModified) {
+        m_profileModified = true;
+        emit profileModifiedChanged();
+    }
+    emit currentProfileChanged();
+
+    uploadCurrentProfile();
+}
+
+QVariantMap MainController::getFrameAt(int index) const {
+    if (index < 0 || index >= m_currentProfile.steps().size()) {
+        return QVariantMap();
+    }
+
+    const ProfileFrame& frame = m_currentProfile.steps().at(index);
+    QVariantMap map;
+
+    // Basic properties
+    map["name"] = frame.name;
+    map["temperature"] = frame.temperature;
+    map["sensor"] = frame.sensor;
+    map["pump"] = frame.pump;
+    map["transition"] = frame.transition;
+    map["pressure"] = frame.pressure;
+    map["flow"] = frame.flow;
+    map["seconds"] = frame.seconds;
+    map["volume"] = frame.volume;
+
+    // Exit conditions
+    map["exitIf"] = frame.exitIf;
+    map["exitType"] = frame.exitType;
+    map["exitPressureOver"] = frame.exitPressureOver;
+    map["exitPressureUnder"] = frame.exitPressureUnder;
+    map["exitFlowOver"] = frame.exitFlowOver;
+    map["exitFlowUnder"] = frame.exitFlowUnder;
+    map["exitWeight"] = frame.exitWeight;
+
+    // Limiter
+    map["maxFlowOrPressure"] = frame.maxFlowOrPressure;
+    map["maxFlowOrPressureRange"] = frame.maxFlowOrPressureRange;
+
+    // Popup
+    map["popup"] = frame.popup;
+
+    return map;
+}
+
+int MainController::frameCount() const {
+    return m_currentProfile.steps().size();
+}
+
+void MainController::createNewProfile(const QString& title) {
+    // Create a new profile with a single default frame
+    m_currentProfile = Profile();
+    m_currentProfile.setTitle(title);
+    m_currentProfile.setAuthor("");
+    m_currentProfile.setNotes("");
+    m_currentProfile.setBeverageType("espresso");
+    m_currentProfile.setProfileType("settings_2c");
+    m_currentProfile.setTargetWeight(36.0);
+    m_currentProfile.setTargetVolume(36.0);
+    m_currentProfile.setEspressoTemperature(93.0);
+    m_currentProfile.setRecipeMode(false);
+
+    // Add a single default extraction frame
+    ProfileFrame defaultFrame;
+    defaultFrame.name = "Extraction";
+    defaultFrame.temperature = 93.0;
+    defaultFrame.sensor = "coffee";
+    defaultFrame.pump = "pressure";
+    defaultFrame.transition = "fast";
+    defaultFrame.pressure = 9.0;
+    defaultFrame.flow = 2.0;
+    defaultFrame.seconds = 60.0;
+    defaultFrame.volume = 0;
+    defaultFrame.exitIf = false;
+    m_currentProfile.addStep(defaultFrame);
+
+    m_baseProfileName = "";
+    m_profileModified = true;
+
+    emit currentProfileChanged();
+    emit profileModifiedChanged();
+    emit targetWeightChanged();
+
+    uploadCurrentProfile();
+    qDebug() << "Created new blank profile:" << title;
+}
+
 bool MainController::saveProfileAs(const QString& filename, const QString& title) {
     // Remember old filename for favorite update
     QString oldFilename = m_baseProfileName;
@@ -1012,6 +1313,15 @@ QString MainController::titleToFilename(const QString& title) const {
     while (sanitized.endsWith('_')) sanitized.chop(1);
 
     return sanitized;
+}
+
+QString MainController::findProfileByTitle(const QString& title) const {
+    for (const ProfileInfo& info : m_allProfiles) {
+        if (info.title == title) {
+            return info.filename;
+        }
+    }
+    return QString();
 }
 
 bool MainController::profileExists(const QString& filename) const {
@@ -1311,6 +1621,7 @@ void MainController::onEspressoCycleStarted() {
     m_weightTimeOffset = 0;
     m_extractionStarted = false;
     m_lastFrameNumber = -1;
+    m_frameWeightSkipSent = -1;  // Reset per-frame weight skip tracking
     m_tareDone = true;  // We tare immediately now, not at frame 0
     if (m_shotDataModel) {
         m_shotDataModel->clear();
@@ -1702,6 +2013,27 @@ void MainController::onScaleWeightChanged(double weight) {
     if (time < 0) return;
 
     m_shotDataModel->addWeightSample(time, weight, 0);
+
+    // Per-frame weight exit check for frame-based profiles
+    // Skip to next frame when the current frame's weight exit condition is met
+    // Only send skip command once per frame (m_frameWeightSkipSent tracks this)
+    // NOTE: Weight exit is INDEPENDENT of exitIf - the "weight" property in de1app profiles
+    // triggers app-side frame skip regardless of the machine-side exit_if flag
+    if (m_lastFrameNumber >= 0 && m_device && m_lastFrameNumber != m_frameWeightSkipSent) {
+        const auto& steps = m_currentProfile.steps();
+        if (m_lastFrameNumber < steps.size()) {
+            const ProfileFrame& frame = steps[m_lastFrameNumber];
+            if (frame.exitWeight > 0) {
+                if (weight >= frame.exitWeight) {
+                    qDebug() << "MainController: Per-frame weight exit reached:"
+                             << weight << "/" << frame.exitWeight
+                             << "on frame" << m_lastFrameNumber << "(" << frame.name << ")";
+                    m_frameWeightSkipSent = m_lastFrameNumber;
+                    m_device->skipToNextFrame();
+                }
+            }
+        }
+    }
 }
 
 void MainController::loadDefaultProfile() {

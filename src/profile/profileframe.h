@@ -33,11 +33,15 @@ struct ProfileFrame {
     // === Exit Conditions (DoCompare flag) ===
     // When exitIf is true, frame exits early if the condition is met
     bool exitIf = false;
-    QString exitType;               // "pressure_over", "pressure_under", "flow_over", "flow_under"
+    QString exitType;               // "pressure_over", "pressure_under", "flow_over", "flow_under", "weight"
     double exitPressureOver = 0.0;  // Exit when pressure exceeds this (bar)
     double exitPressureUnder = 0.0; // Exit when pressure drops below this (bar)
     double exitFlowOver = 0.0;      // Exit when flow exceeds this (mL/s)
     double exitFlowUnder = 0.0;     // Exit when flow drops below this (mL/s)
+    double exitWeight = 0.0;        // Exit when weight reaches this (grams) - requires scale
+
+    // === User Notification ===
+    QString popup;                  // Message to show user during this frame (e.g., "Swirl now*", "$weight")
 
     // === Limiter (Extension Frame) ===
     // When in pressure mode, limits max flow; when in flow mode, limits max pressure

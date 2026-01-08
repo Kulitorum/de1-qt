@@ -264,7 +264,7 @@ Page {
                             Text {
                                 Layout.fillWidth: true
                                 Layout.alignment: Qt.AlignVCenter
-                                text: modelData.title + (modelData.isRecipeMode ? " (D-Flow)" : "")
+                                text: modelData.title
                                 color: Theme.textColor
                                 font: Theme.bodyFont
                                 elide: Text.ElideRight
@@ -464,8 +464,7 @@ Page {
                                          profileDelegate.isDownloaded ? TranslationManager.translate("profileselector.accessible.source_downloaded", "Downloaded") : TranslationManager.translate("profileselector.accessible.source_custom", "Custom")
                             var fav = profileDelegate.isFavorite ? ", " + TranslationManager.translate("profileselector.accessible.favorite", "favorite") : ""
                             var current = profileDelegate.isCurrentProfile ? ", " + TranslationManager.translate("profileselector.accessible.currently_selected", "currently selected") : ""
-                            var dflow = modelData.isRecipeMode ? ", D-Flow" : ""
-                            return source + " " + TranslationManager.translate("profileselector.accessible.profile_label", "profile:") + " " + modelData.title + dflow + fav + current
+                            return source + " " + TranslationManager.translate("profileselector.accessible.profile_label", "profile:") + " " + modelData.title + fav + current
                         }
                     }
                 }
@@ -513,7 +512,7 @@ Page {
 
                 // Empty state
                 Tr {
-                    visible: Settings.favoriteProfiles.length === 0
+                    visible: Settings.favoriteProfiles.length === 0 && Settings.selectedFavoriteProfile !== -1
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     key: "profileselector.favorites.empty"
@@ -523,6 +522,60 @@ Page {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.Wrap
+                }
+
+                // Non-favorite profile loaded from history (green pill)
+                Rectangle {
+                    id: nonFavoritePill
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.scaled(60)
+                    visible: Settings.selectedFavoriteProfile === -1
+                    radius: Theme.scaled(8)
+                    color: Theme.successColor
+                    border.color: Theme.successColor
+                    border.width: 2
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: Theme.scaled(10)
+                        spacing: Theme.scaled(8)
+
+                        // Profile name
+                        Text {
+                            Layout.fillWidth: true
+                            text: MainController.currentProfileName || "Loaded Profile"
+                            color: "white"
+                            font.family: Theme.bodyFont.family
+                            font.pixelSize: Theme.bodyFont.pixelSize
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+
+                        // Edit button - opens in profile editor
+                        RoundButton {
+                            Layout.preferredWidth: Theme.scaled(36)
+                            Layout.preferredHeight: Theme.scaled(36)
+                            flat: true
+                            icon.source: "qrc:/icons/edit.svg"
+                            icon.width: Theme.scaled(18)
+                            icon.height: Theme.scaled(18)
+                            icon.color: "white"
+
+                            onClicked: {
+                                // Profile is already loaded, just open editor
+                                root.goToProfileEditor()
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        z: -1
+                        onClicked: {
+                            // Already selected, open editor
+                            root.goToProfileEditor()
+                        }
+                    }
                 }
 
                 ListView {

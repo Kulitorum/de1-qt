@@ -109,6 +109,35 @@ Text {
 - Formats: JSON (native), TCL (de1app import)
 - Tare happens when frame 0 starts (after machine preheat)
 
+### Exit Conditions
+
+There are two types of exit conditions:
+
+1. **Machine-side exits** (pressure/flow): Controlled by `exit_if` flag and `exit_type`
+   - Encoded in BLE frame flags (DoCompare, DC_GT, DC_CompF)
+   - Machine autonomously checks and advances frames
+   - Types: `pressure_over`, `pressure_under`, `flow_over`, `flow_under`
+
+2. **App-side exits** (weight): Controlled by `exit_weight` field INDEPENDENTLY
+   - App monitors scale weight and sends `SkipToNext` (0x0E) command
+   - **CRITICAL**: Weight exit is independent of `exit_if` flag!
+   - A frame can have `exit_if: false` (no machine exit) with `exit_weight: 3.6` (app exit)
+   - Both can coexist: machine checks pressure/flow, app checks weight
+
+### Weight Exit Implementation
+
+```cpp
+// CORRECT - weight is independent of exitIf
+if (frame.exitWeight > 0) {
+    if (weight >= frame.exitWeight) {
+        m_device->skipToNextFrame();
+    }
+}
+
+// WRONG - don't require exitIf for weight!
+if (frame.exitIf && frame.exitType == "weight" ...) // BUG!
+```
+
 ## Visualizer Integration
 
 ### DYE (Describe Your Espresso) Metadata

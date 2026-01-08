@@ -116,10 +116,65 @@ Page {
         }
     }
 
-    // Main content area
-    Item {
+    // Editor mode header
+    Rectangle {
+        id: editorModeHeader
         anchors.top: parent.top
         anchors.topMargin: Theme.pageTopMargin
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Theme.standardMargin
+        anchors.rightMargin: Theme.standardMargin
+        height: Theme.scaled(50)
+        color: Theme.warningColor
+        radius: Theme.cardRadius
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Theme.scaled(15)
+            anchors.rightMargin: Theme.scaled(15)
+
+            Text {
+                text: qsTr("Advanced Editor")
+                font.family: Theme.titleFont.family
+                font.pixelSize: Theme.titleFont.pixelSize
+                font.bold: true
+                color: "white"
+            }
+
+            Text {
+                text: qsTr("Full frame-by-frame control • Click frames to edit")
+                font: Theme.captionFont
+                color: Qt.rgba(1, 1, 1, 0.8)
+                Layout.fillWidth: true
+            }
+
+            Button {
+                text: qsTr("Switch to D-Flow Editor")
+                onClicked: root.switchToRecipeEditor()
+                background: Rectangle {
+                    implicitWidth: Theme.scaled(180)
+                    implicitHeight: Theme.scaled(32)
+                    radius: Theme.scaled(6)
+                    color: Qt.rgba(1, 1, 1, 0.2)
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.5)
+                }
+                contentItem: Text {
+                    text: parent.text
+                    font: Theme.captionFont
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+    }
+
+    // Main content area
+    Item {
+        anchors.top: editorModeHeader.bottom
+        anchors.topMargin: Theme.scaled(10)
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: bottomBar.top
@@ -187,13 +242,35 @@ Page {
                             AccessibleButton {
                                 text: qsTr("Delete")
                                 accessibleName: qsTr("Delete selected frame")
-                                enabled: selectedStepIndex >= 0
+                                enabled: selectedStepIndex >= 0 && profile && profile.steps.length > 1
                                 onClicked: deleteStep(selectedStepIndex)
                                 background: Rectangle {
                                     implicitWidth: Theme.scaled(70)
                                     implicitHeight: Theme.scaled(26)
                                     radius: Theme.scaled(4)
                                     color: parent.down ? Qt.darker(Theme.errorColor, 1.2) : Theme.errorColor
+                                    opacity: parent.enabled ? 1.0 : 0.4
+                                }
+                                contentItem: Text {
+                                    text: parent.text
+                                    font: Theme.captionFont
+                                    color: "white"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    opacity: parent.enabled ? 1.0 : 0.5
+                                }
+                            }
+
+                            AccessibleButton {
+                                text: qsTr("Copy")
+                                accessibleName: qsTr("Duplicate selected frame")
+                                enabled: selectedStepIndex >= 0 && profile && profile.steps.length < 20
+                                onClicked: duplicateStep(selectedStepIndex)
+                                background: Rectangle {
+                                    implicitWidth: Theme.scaled(60)
+                                    implicitHeight: Theme.scaled(26)
+                                    radius: Theme.scaled(4)
+                                    color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
                                     opacity: parent.enabled ? 1.0 : 0.4
                                 }
                                 contentItem: Text {
@@ -570,8 +647,8 @@ Page {
         modal: true
         standardButtons: Dialog.Yes | Dialog.No
 
-        Tr {
-            width: parent.width
+        contentItem: Tr {
+            width: overwriteDialog.availableWidth
             key: "profileeditor.dialog.overwriteconfirm"
             fallback: "A profile with this name already exists.\nDo you want to overwrite it?"
             font: Theme.bodyFont
@@ -949,7 +1026,7 @@ Page {
                             id: exitTypeCombo
                             Layout.fillWidth: true
                             enabled: exitIfCheck.checked
-                            model: [qsTr("Pressure Over"), qsTr("Pressure Under"), qsTr("Flow Over"), qsTr("Flow Under")]
+                            model: [qsTr("Pressure Over"), qsTr("Pressure Under"), qsTr("Flow Over"), qsTr("Flow Under"), qsTr("Weight Over")]
                             contentItem: Text {
                                 text: exitTypeCombo.displayText
                                 font: Theme.bodyFont
@@ -996,12 +1073,13 @@ Page {
                                     case "pressure_under": return 1
                                     case "flow_over": return 2
                                     case "flow_under": return 3
+                                    case "weight": return 4
                                     default: return 0
                                 }
                             }
                             onActivated: function(index) {
                                 if (!profile || selectedStepIndex < 0) return
-                                var types = ["pressure_over", "pressure_under", "flow_over", "flow_under"]
+                                var types = ["pressure_over", "pressure_under", "flow_over", "flow_under", "weight"]
                                 profile.steps[selectedStepIndex].exit_type = types[index]
                                 uploadProfile()
                             }
@@ -1012,7 +1090,18 @@ Page {
                             Layout.fillWidth: true
                             enabled: exitIfCheck.checked
                             from: 0
-                            to: step && (step.exit_type === "flow_over" || step.exit_type === "flow_under") ? 8 : 12
+                            to: {
+                                if (!step) return 12
+                                switch (step.exit_type) {
+                                    case "flow_over":
+                                    case "flow_under":
+                                        return 8
+                                    case "weight":
+                                        return 100
+                                    default:
+                                        return 12
+                                }
+                            }
                             value: {
                                 if (!step) return 0
                                 switch (step.exit_type) {
@@ -1020,11 +1109,53 @@ Page {
                                     case "pressure_under": return step.exit_pressure_under || 0
                                     case "flow_over": return step.exit_flow_over || 0
                                     case "flow_under": return step.exit_flow_under || 0
+                                    case "weight": return step.exit_weight || 0
                                     default: return 0
                                 }
                             }
-                            stepSize: 0.1
-                            suffix: step && (step.exit_type === "flow_over" || step.exit_type === "flow_under") ? " mL/s" : " bar"
+                            stepSize: step && step.exit_type === "weight" ? 0.5 : 0.1
+                            suffix: {
+                                if (!step) return " bar"
+                                switch (step.exit_type) {
+                                    case "flow_over":
+                                    case "flow_under":
+                                        return " mL/s"
+                                    case "weight":
+                                        return " g"
+                                    default:
+                                        return " bar"
+                                }
+                            }
+                            valueColor: {
+                                if (!step) return undefined
+                                switch (step.exit_type) {
+                                    case "flow_over":
+                                    case "flow_under":
+                                        return Theme.flowColor
+                                    case "weight":
+                                        return Theme.weightColor
+                                    case "pressure_over":
+                                    case "pressure_under":
+                                        return Theme.pressureColor
+                                    default:
+                                        return undefined
+                                }
+                            }
+                            accentColor: {
+                                if (!step) return undefined
+                                switch (step.exit_type) {
+                                    case "flow_over":
+                                    case "flow_under":
+                                        return Theme.flowGoalColor
+                                    case "weight":
+                                        return Theme.weightColor
+                                    case "pressure_over":
+                                    case "pressure_under":
+                                        return Theme.pressureGoalColor
+                                    default:
+                                        return undefined
+                                }
+                            }
                             onValueModified: function(newValue) {
                                 if (!profile || selectedStepIndex < 0) return
                                 var s = profile.steps[selectedStepIndex]
@@ -1033,6 +1164,7 @@ Page {
                                     case "pressure_under": profile.steps[selectedStepIndex].exit_pressure_under = newValue; break
                                     case "flow_over": profile.steps[selectedStepIndex].exit_flow_over = newValue; break
                                     case "flow_under": profile.steps[selectedStepIndex].exit_flow_under = newValue; break
+                                    case "weight": profile.steps[selectedStepIndex].exit_weight = newValue; break
                                 }
                                 uploadProfile()
                             }
@@ -1040,31 +1172,263 @@ Page {
                     }
                 }
 
-                // Limiter (max pressure when flow-controlled, or max flow when pressure-controlled)
-                RowLayout {
+                // Sensor selection (coffee/water)
+                GroupBox {
                     Layout.fillWidth: true
-                    spacing: Theme.scaled(12)
-
-                    Text {
-                        text: step && step.pump === "flow" ? qsTr("Max P") : qsTr("Max F")
+                    title: qsTr("Sensor")
+                    background: Rectangle {
+                        color: Qt.rgba(255, 255, 255, 0.05)
+                        radius: Theme.scaled(8)
+                        y: parent.topPadding - parent.padding
+                        width: parent.width
+                        height: parent.height - parent.topPadding + parent.padding
+                    }
+                    label: Text {
+                        text: parent.title
                         font: Theme.captionFont
                         color: Theme.textSecondaryColor
-                        Layout.preferredWidth: Theme.scaled(80)
                     }
 
-                    ValueInput {
-                        id: limiterInput
+                    RowLayout {
+                        anchors.fill: parent
+                        spacing: Theme.scaled(20)
+
+                        RadioButton {
+                            text: qsTr("Coffee")
+                            checked: step && step.sensor === "coffee"
+                            contentItem: Text {
+                                text: parent.text
+                                font: Theme.bodyFont
+                                color: Theme.textColor
+                                leftPadding: parent.indicator.width + parent.spacing
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onToggled: {
+                                if (checked && profile && selectedStepIndex >= 0) {
+                                    profile.steps[selectedStepIndex].sensor = "coffee"
+                                    uploadProfile()
+                                }
+                            }
+                        }
+
+                        RadioButton {
+                            text: qsTr("Water")
+                            checked: step && step.sensor === "water"
+                            contentItem: Text {
+                                text: parent.text
+                                font: Theme.bodyFont
+                                color: Theme.textColor
+                                leftPadding: parent.indicator.width + parent.spacing
+                                verticalAlignment: Text.AlignVCenter
+                            }
+                            onToggled: {
+                                if (checked && profile && selectedStepIndex >= 0) {
+                                    profile.steps[selectedStepIndex].sensor = "water"
+                                    uploadProfile()
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Maximum limits section
+                GroupBox {
+                    Layout.fillWidth: true
+                    title: qsTr("Maximum Limits")
+                    background: Rectangle {
+                        color: Qt.rgba(255, 255, 255, 0.05)
+                        radius: Theme.scaled(8)
+                        y: parent.topPadding - parent.padding
+                        width: parent.width
+                        height: parent.height - parent.topPadding + parent.padding
+                    }
+                    label: Text {
+                        text: parent.title
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: Theme.scaled(8)
+
+                        // Volume limit
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.scaled(8)
+
+                            Text {
+                                text: qsTr("Volume")
+                                font: Theme.captionFont
+                                color: Theme.textSecondaryColor
+                                Layout.preferredWidth: Theme.scaled(60)
+                            }
+
+                            ValueInput {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 500
+                                value: step ? (step.volume || 0) : 0
+                                stepSize: 1
+                                decimals: 0
+                                suffix: " mL"
+                                valueColor: value > 0 ? Theme.flowColor : Theme.textSecondaryColor
+                                accentColor: Theme.flowColor
+                                onValueModified: function(newValue) {
+                                    if (profile && selectedStepIndex >= 0) {
+                                        profile.steps[selectedStepIndex].volume = newValue
+                                        uploadProfile()
+                                    }
+                                }
+                            }
+                        }
+
+                        // Weight limit (for exit)
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.scaled(8)
+
+                            Text {
+                                text: qsTr("Weight")
+                                font: Theme.captionFont
+                                color: Theme.textSecondaryColor
+                                Layout.preferredWidth: Theme.scaled(60)
+                            }
+
+                            ValueInput {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: 100
+                                value: step ? (step.exit_weight || step.weight || 0) : 0
+                                stepSize: 0.5
+                                suffix: " g"
+                                valueColor: value > 0 ? Theme.weightColor : Theme.textSecondaryColor
+                                accentColor: Theme.weightColor
+                                onValueModified: function(newValue) {
+                                    if (profile && selectedStepIndex >= 0) {
+                                        profile.steps[selectedStepIndex].exit_weight = newValue
+                                        profile.steps[selectedStepIndex].weight = newValue
+                                        uploadProfile()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Limiter section
+                GroupBox {
+                    Layout.fillWidth: true
+                    title: step && step.pump === "flow" ? qsTr("Pressure Limit") : qsTr("Flow Limit")
+                    background: Rectangle {
+                        color: Qt.rgba(255, 255, 255, 0.05)
+                        radius: Theme.scaled(8)
+                        y: parent.topPadding - parent.padding
+                        width: parent.width
+                        height: parent.height - parent.topPadding + parent.padding
+                    }
+                    label: Text {
+                        text: parent.title
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
+                    }
+
+                    ColumnLayout {
+                        anchors.fill: parent
+                        spacing: Theme.scaled(8)
+
+                        // Limiter value
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.scaled(8)
+
+                            Text {
+                                text: qsTr("Limit")
+                                font: Theme.captionFont
+                                color: Theme.textSecondaryColor
+                                Layout.preferredWidth: Theme.scaled(60)
+                            }
+
+                            ValueInput {
+                                Layout.fillWidth: true
+                                from: 0
+                                to: step && step.pump === "flow" ? 12 : 8
+                                value: step ? (step.max_flow_or_pressure || 0) : 0
+                                stepSize: 0.1
+                                suffix: step && step.pump === "flow" ? " bar" : " mL/s"
+                                valueColor: value > 0 ? Theme.warningColor : Theme.textSecondaryColor
+                                accentColor: Theme.warningColor
+                                onValueModified: function(newValue) {
+                                    if (profile && selectedStepIndex >= 0) {
+                                        profile.steps[selectedStepIndex].max_flow_or_pressure = newValue
+                                        uploadProfile()
+                                    }
+                                }
+                            }
+                        }
+
+                        // Limiter range (P/I control)
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: Theme.scaled(8)
+
+                            Text {
+                                text: qsTr("Range")
+                                font: Theme.captionFont
+                                color: Theme.textSecondaryColor
+                                Layout.preferredWidth: Theme.scaled(60)
+                            }
+
+                            ValueInput {
+                                Layout.fillWidth: true
+                                from: 0.1
+                                to: 2.0
+                                value: step ? (step.max_flow_or_pressure_range || 0.6) : 0.6
+                                stepSize: 0.1
+                                suffix: step && step.pump === "flow" ? " bar" : " mL/s"
+                                valueColor: Theme.textSecondaryColor
+                                accentColor: Theme.warningColor
+                                onValueModified: function(newValue) {
+                                    if (profile && selectedStepIndex >= 0) {
+                                        profile.steps[selectedStepIndex].max_flow_or_pressure_range = newValue
+                                        uploadProfile()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Popup message
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(4)
+
+                    Text {
+                        text: qsTr("Popup Message")
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
+                    }
+
+                    TextField {
                         Layout.fillWidth: true
-                        from: 0
-                        to: step && step.pump === "flow" ? 12 : 8
-                        value: step ? step.max_flow_or_pressure : 0
-                        stepSize: 0.1
-                        suffix: step && step.pump === "flow" ? " bar" : " mL/s"
-                        valueColor: value > 0 ? Theme.warningColor : Theme.textSecondaryColor
-                        accentColor: Theme.warningColor
-                        onValueModified: function(newValue) {
+                        Layout.preferredHeight: Theme.scaled(40)
+                        text: step ? (step.popup || "") : ""
+                        font: Theme.bodyFont
+                        color: Theme.textColor
+                        placeholderText: qsTr("e.g., Swirl now, $weight")
+                        placeholderTextColor: Theme.textSecondaryColor
+                        leftPadding: Theme.scaled(12)
+                        rightPadding: Theme.scaled(12)
+                        topPadding: Theme.scaled(10)
+                        bottomPadding: Theme.scaled(10)
+                        background: Rectangle {
+                            color: Qt.rgba(255, 255, 255, 0.1)
+                            radius: Theme.scaled(4)
+                        }
+                        onEditingFinished: {
                             if (profile && selectedStepIndex >= 0) {
-                                profile.steps[selectedStepIndex].max_flow_or_pressure = newValue
+                                profile.steps[selectedStepIndex].popup = text
                                 uploadProfile()
                             }
                         }
@@ -1123,6 +1487,7 @@ Page {
     // Helper functions
     function addStep() {
         if (!profile) return
+        if (profile.steps.length >= 20) return  // DE1 max frames limit
 
         var newStep = {
             name: "Frame " + (profile.steps.length + 1),
@@ -1134,20 +1499,39 @@ Page {
             flow: 2.0,
             seconds: 30.0,
             volume: 0,
+            weight: 0,
             exit_if: false,
             exit_type: "pressure_over",
             exit_pressure_over: 0,
             exit_pressure_under: 0,
             exit_flow_over: 0,
             exit_flow_under: 0,
+            exit_weight: 0,
             max_flow_or_pressure: 0,
-            max_flow_or_pressure_range: 0.6
+            max_flow_or_pressure_range: 0.6,
+            popup: ""
         }
 
         // Insert after selected frame, or at end
         var insertIndex = selectedStepIndex >= 0 ? selectedStepIndex + 1 : profile.steps.length
         profile.steps.splice(insertIndex, 0, newStep)
         selectedStepIndex = insertIndex
+        // Force graph update by reassigning frames array
+        profileGraph.frames = []
+        profileGraph.frames = profile.steps
+        uploadProfile()
+    }
+
+    function duplicateStep(index) {
+        if (!profile || index < 0 || index >= profile.steps.length) return
+        if (profile.steps.length >= 20) return  // DE1 max frames limit
+
+        var original = profile.steps[index]
+        var copy = JSON.parse(JSON.stringify(original))  // Deep copy
+        copy.name = original.name + " (copy)"
+
+        profile.steps.splice(index + 1, 0, copy)
+        selectedStepIndex = index + 1
         // Force graph update by reassigning frames array
         profileGraph.frames = []
         profileGraph.frames = profile.steps

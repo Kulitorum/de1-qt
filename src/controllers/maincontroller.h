@@ -11,6 +11,7 @@
 #include "../models/shotdatamodel.h"
 #include "../history/shothistorystorage.h"
 #include "../history/shotimporter.h"
+#include "../profile/profileconverter.h"
 #include "../models/shotcomparisonmodel.h"
 #include "../network/shotserver.h"
 #include "../core/updatechecker.h"
@@ -64,6 +65,7 @@ class MainController : public QObject {
     Q_PROPERTY(QString currentFrameName READ currentFrameName NOTIFY frameChanged)
     Q_PROPERTY(ShotHistoryStorage* shotHistory READ shotHistory CONSTANT)
     Q_PROPERTY(ShotImporter* shotImporter READ shotImporter CONSTANT)
+    Q_PROPERTY(ProfileConverter* profileConverter READ profileConverter CONSTANT)
     Q_PROPERTY(ShotComparisonModel* shotComparison READ shotComparison CONSTANT)
     Q_PROPERTY(ShotServer* shotServer READ shotServer CONSTANT)
     Q_PROPERTY(UpdateChecker* updateChecker READ updateChecker CONSTANT)
@@ -104,6 +106,7 @@ public:
     bool isCurrentProfileRecipe() const { return m_currentProfile.isRecipeMode(); }
     ShotHistoryStorage* shotHistory() const { return m_shotHistory; }
     ShotImporter* shotImporter() const { return m_shotImporter; }
+    ProfileConverter* profileConverter() const { return m_profileConverter; }
     ShotComparisonModel* shotComparison() const { return m_shotComparison; }
     ShotServer* shotServer() const { return m_shotServer; }
     UpdateChecker* updateChecker() const { return m_updateChecker; }
@@ -117,17 +120,35 @@ public:
     Q_INVOKABLE QVariantMap getCurrentProfile() const;
     Q_INVOKABLE void markProfileClean();  // Called after save
     Q_INVOKABLE QString titleToFilename(const QString& title) const;
+    Q_INVOKABLE QString findProfileByTitle(const QString& title) const;  // Returns filename or empty string
     Q_INVOKABLE bool profileExists(const QString& filename) const;
     Q_INVOKABLE bool deleteProfile(const QString& filename);  // Delete user/downloaded profile
 
-    // Recipe Editor methods
+    // Recipe Editor methods (DEPRECATED - kept for backward compatibility)
     Q_INVOKABLE void uploadRecipeProfile(const QVariantMap& recipeParams);
     Q_INVOKABLE QVariantMap getCurrentRecipeParams() const;
     Q_INVOKABLE void createNewRecipe(const QString& title = "New Recipe");
     Q_INVOKABLE void applyRecipePreset(const QString& presetName);
 
+    // === D-Flow Frame Editor Methods ===
+    // Frame operations
+    Q_INVOKABLE void addFrame(int afterIndex = -1);       // Add new frame after index (-1 = at end)
+    Q_INVOKABLE void deleteFrame(int index);              // Delete frame at index
+    Q_INVOKABLE void moveFrameUp(int index);              // Move frame up (swap with previous)
+    Q_INVOKABLE void moveFrameDown(int index);            // Move frame down (swap with next)
+    Q_INVOKABLE void duplicateFrame(int index);           // Duplicate frame at index
+
+    // Frame property editing
+    Q_INVOKABLE void setFrameProperty(int index, const QString& property, const QVariant& value);
+    Q_INVOKABLE QVariantMap getFrameAt(int index) const;  // Get frame as QVariantMap for QML
+    Q_INVOKABLE int frameCount() const;                   // Number of frames in current profile
+
+    // New profile creation
+    Q_INVOKABLE void createNewProfile(const QString& title = "New Profile");
+
 public slots:
     void loadProfile(const QString& profileName);
+    Q_INVOKABLE bool loadProfileFromJson(const QString& jsonContent);  // Load profile from JSON string (e.g., from shot history)
     void refreshProfiles();
     void uploadCurrentProfile();
     Q_INVOKABLE void uploadProfile(const QVariantMap& profileData);
@@ -207,6 +228,7 @@ private:
     double m_weightTimeOffset = 0;  // Offset to sync weight time with shot sample time
     bool m_extractionStarted = false;
     int m_lastFrameNumber = -1;
+    int m_frameWeightSkipSent = -1;  // Frame number for which we've sent a weight-based skip command
     bool m_tareDone = false;  // Track if we've tared for this shot
 
     QString m_baseProfileName;
@@ -230,6 +252,7 @@ private:
     // Shot history and comparison
     ShotHistoryStorage* m_shotHistory = nullptr;
     ShotImporter* m_shotImporter = nullptr;
+    ProfileConverter* m_profileConverter = nullptr;
     ShotDebugLogger* m_shotDebugLogger = nullptr;
     ShotComparisonModel* m_shotComparison = nullptr;
     ShotServer* m_shotServer = nullptr;

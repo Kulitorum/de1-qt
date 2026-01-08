@@ -14,18 +14,27 @@ QJsonObject ProfileFrame::toJson() const {
     obj["seconds"] = seconds;
     obj["volume"] = volume;
 
-    if (exitIf) {
-        obj["exit_if"] = true;
+    // Always include exit condition fields - they may be used even without exit_if
+    // (e.g., weight can trigger exit independently via scale system)
+    obj["exit_if"] = exitIf;
+    if (!exitType.isEmpty()) {
         obj["exit_type"] = exitType;
-        obj["exit_pressure_over"] = exitPressureOver;
-        obj["exit_pressure_under"] = exitPressureUnder;
-        obj["exit_flow_over"] = exitFlowOver;
-        obj["exit_flow_under"] = exitFlowUnder;
     }
+    if (exitPressureOver > 0) obj["exit_pressure_over"] = exitPressureOver;
+    if (exitPressureUnder > 0) obj["exit_pressure_under"] = exitPressureUnder;
+    if (exitFlowOver > 0) obj["exit_flow_over"] = exitFlowOver;
+    if (exitFlowUnder > 0) obj["exit_flow_under"] = exitFlowUnder;
+    if (exitWeight > 0) obj["exit_weight"] = exitWeight;
 
+    // Limiter
     if (maxFlowOrPressure > 0) {
         obj["max_flow_or_pressure"] = maxFlowOrPressure;
         obj["max_flow_or_pressure_range"] = maxFlowOrPressureRange;
+    }
+
+    // User notification popup
+    if (!popup.isEmpty()) {
+        obj["popup"] = popup;
     }
 
     return obj;
@@ -49,9 +58,12 @@ ProfileFrame ProfileFrame::fromJson(const QJsonObject& json) {
     frame.exitPressureUnder = json["exit_pressure_under"].toDouble(0.0);
     frame.exitFlowOver = json["exit_flow_over"].toDouble(0.0);
     frame.exitFlowUnder = json["exit_flow_under"].toDouble(0.0);
+    frame.exitWeight = json["exit_weight"].toDouble(0.0);
 
     frame.maxFlowOrPressure = json["max_flow_or_pressure"].toDouble(0.0);
     frame.maxFlowOrPressureRange = json["max_flow_or_pressure_range"].toDouble(0.6);
+
+    frame.popup = json["popup"].toString();
 
     return frame;
 }
@@ -59,8 +71,8 @@ ProfileFrame ProfileFrame::fromJson(const QJsonObject& json) {
 ProfileFrame ProfileFrame::fromTclList(const QString& tclList) {
     // Parse de1app Tcl list format: {key value key value ...}
     // Example: {exit_if 1 flow 2.0 volume 100 transition fast exit_flow_under 0.0
-    //           temperature 93.0 name "preinfusion" pressure 1.0 sensor coffee
-    //           pump pressure exit_type pressure_over exit_pressure_over 1.5 seconds 10}
+    //           temperature 93.0 name {preinfusion} pressure 1.0 sensor coffee
+    //           pump pressure exit_type pressure_over popup {$weight} seconds 10}
 
     ProfileFrame frame;
     QString cleaned = tclList.trimmed();
@@ -71,15 +83,23 @@ ProfileFrame ProfileFrame::fromTclList(const QString& tclList) {
     }
 
     // Parse key-value pairs
-    // Handle quoted strings and regular values
-    // Pattern: word + whitespace + (quoted string OR non-whitespace)
-    QRegularExpression re("(\\w+)\\s+(?:\"([^\"]*)\"|([^\\s]+))");
+    // Handle braced values {content}, quoted strings "content", and simple words
+    // Pattern: word + whitespace + ({braced} OR "quoted" OR simple_word)
+    QRegularExpression re("(\\w+)\\s+(?:\\{([^}]*)\\}|\"([^\"]*)\"|([^\\s]+))");
     QRegularExpressionMatchIterator it = re.globalMatch(cleaned);
 
     while (it.hasNext()) {
         QRegularExpressionMatch match = it.next();
         QString key = match.captured(1);
-        QString value = match.captured(2).isEmpty() ? match.captured(3) : match.captured(2);
+        // Value is in capture group 2 (braced), 3 (quoted), or 4 (simple)
+        QString value;
+        if (!match.captured(2).isNull()) {
+            value = match.captured(2);  // Braced value (may be empty string)
+        } else if (!match.captured(3).isEmpty()) {
+            value = match.captured(3);  // Quoted value
+        } else {
+            value = match.captured(4);  // Simple value
+        }
 
         if (key == "name") {
             frame.name = value;
@@ -115,8 +135,22 @@ ProfileFrame ProfileFrame::fromTclList(const QString& tclList) {
             frame.maxFlowOrPressure = value.toDouble();
         } else if (key == "max_flow_or_pressure_range") {
             frame.maxFlowOrPressureRange = value.toDouble();
+        } else if (key == "weight") {
+            // Per-frame weight exit condition (requires scale)
+            // NOTE: Weight exit is INDEPENDENT of exitIf - in de1app, a frame can have
+            // exit_if 0 (no machine-side exit) with weight > 0 (app-side weight exit).
+            // The weight check is always done app-side regardless of exit_if.
+            double weightVal = value.toDouble();
+            if (weightVal > 0) {
+                frame.exitWeight = weightVal;
+                // Do NOT set exitIf or exitType here - weight is independent
+            }
+        } else if (key == "popup") {
+            // User notification message during this frame
+            if (!value.isEmpty()) {
+                frame.popup = value;
+            }
         }
-        // Note: "weight" key from de1app TCL is ignored - we use global target weight instead
     }
 
     return frame;

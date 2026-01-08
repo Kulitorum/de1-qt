@@ -20,6 +20,105 @@ Page {
     property bool recipeModified: false
     property string originalProfileName: MainController.baseProfileName
 
+    // Track selected frame for scroll synchronization
+    property int selectedFrameIndex: -1
+    property bool scrollingFromSelection: false  // Prevent feedback loop
+
+    // Map frame index to section name based on enabled phases
+    function frameToSection(frameIndex) {
+        if (!profile || !profile.steps || frameIndex < 0 || frameIndex >= profile.steps.length)
+            return "core"
+
+        var frame = profile.steps[frameIndex]
+        var name = (frame.name || "").toLowerCase()
+
+        // Match frame name to section
+        if (name.indexOf("fill") !== -1) return "fill"
+        if (name.indexOf("bloom") !== -1) return "bloom"
+        if (name.indexOf("infuse") !== -1 || name.indexOf("preinfuse") !== -1) return "infuse"
+        if (name.indexOf("ramp") !== -1 || name.indexOf("transition") !== -1) return "ramp"
+        if (name.indexOf("pour") !== -1 || name.indexOf("extraction") !== -1) return "pour"
+        if (name.indexOf("decline") !== -1 || name.indexOf("pressure decline") !== -1) return "decline"
+
+        // Fallback: use frame position heuristic
+        var totalFrames = profile.steps.length
+        if (frameIndex === 0) return "fill"
+        if (frameIndex === totalFrames - 1 && recipe.declineEnabled) return "decline"
+        if (frameIndex >= totalFrames - 2) return "pour"
+
+        return "infuse"  // Default middle frames to infuse
+    }
+
+    // Scroll to section when frame is selected
+    function scrollToSection(sectionName) {
+        var targetY = 0
+        switch (sectionName) {
+            case "core": targetY = coreSection.y; break
+            case "fill": targetY = fillSection.y; break
+            case "bloom": targetY = bloomSection.y; break
+            case "infuse": targetY = infuseSection.y; break
+            case "ramp": targetY = rampSection.y; break
+            case "pour": targetY = pourSection.y; break
+            case "decline": targetY = declineSection.y; break
+            default: return
+        }
+
+        scrollingFromSelection = true
+        // Center the section in the view
+        var scrollTarget = Math.max(0, targetY - recipeScrollView.height / 4)
+        recipeScrollView.contentItem.contentY = scrollTarget
+        scrollResetTimer.restart()
+    }
+
+    // Find which section is most centered in the scroll view
+    function findCenteredSection() {
+        var viewCenter = recipeScrollView.contentItem.contentY + recipeScrollView.height / 2
+        var sections = [
+            { name: "core", item: coreSection },
+            { name: "fill", item: fillSection },
+            { name: "bloom", item: bloomSection },
+            { name: "infuse", item: infuseSection },
+            { name: "ramp", item: rampSection },
+            { name: "pour", item: pourSection },
+            { name: "decline", item: declineSection }
+        ]
+
+        var closest = "fill"  // Default to fill if nothing found
+        var closestDist = 999999
+
+        for (var i = 0; i < sections.length; i++) {
+            var s = sections[i]
+            // Skip invisible or disabled sections
+            if (!s.item.visible || s.item.height === 0) continue
+
+            var sectionCenter = s.item.y + s.item.height / 2
+            var dist = Math.abs(viewCenter - sectionCenter)
+            if (dist < closestDist) {
+                closestDist = dist
+                closest = s.name
+            }
+        }
+
+        return closest
+    }
+
+    // Map section to first frame index
+    function sectionToFrame(sectionName) {
+        if (!profile || !profile.steps) return -1
+
+        for (var i = 0; i < profile.steps.length; i++) {
+            if (frameToSection(i) === sectionName) return i
+        }
+
+        return -1
+    }
+
+    Timer {
+        id: scrollResetTimer
+        interval: 300
+        onTriggered: scrollingFromSelection = false
+    }
+
     // Load profile data from MainController
     function loadCurrentProfile() {
         recipe = MainController.getCurrentRecipeParams()
@@ -70,10 +169,65 @@ Page {
         }
     }
 
-    // Main content area
-    Item {
+    // Editor mode header
+    Rectangle {
+        id: editorModeHeader
         anchors.top: parent.top
         anchors.topMargin: Theme.pageTopMargin
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Theme.standardMargin
+        anchors.rightMargin: Theme.standardMargin
+        height: Theme.scaled(50)
+        color: Theme.primaryColor
+        radius: Theme.cardRadius
+
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: Theme.scaled(15)
+            anchors.rightMargin: Theme.scaled(15)
+
+            Text {
+                text: qsTr("D-Flow Editor")
+                font.family: Theme.titleFont.family
+                font.pixelSize: Theme.titleFont.pixelSize
+                font.bold: true
+                color: "white"
+            }
+
+            Text {
+                text: qsTr("Simplified profile editing with Fill → Infuse → Pour phases")
+                font: Theme.captionFont
+                color: Qt.rgba(1, 1, 1, 0.8)
+                Layout.fillWidth: true
+            }
+
+            Button {
+                text: qsTr("Switch to Advanced Editor")
+                onClicked: root.switchToAdvancedEditor()
+                background: Rectangle {
+                    implicitWidth: Theme.scaled(180)
+                    implicitHeight: Theme.scaled(32)
+                    radius: Theme.scaled(6)
+                    color: Qt.rgba(1, 1, 1, 0.2)
+                    border.width: 1
+                    border.color: Qt.rgba(1, 1, 1, 0.5)
+                }
+                contentItem: Text {
+                    text: parent.text
+                    font: Theme.captionFont
+                    color: "white"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+        }
+    }
+
+    // Main content area
+    Item {
+        anchors.top: editorModeHeader.bottom
+        anchors.topMargin: Theme.scaled(10)
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: bottomBar.top
@@ -102,7 +256,13 @@ Page {
                         anchors.fill: parent
                         anchors.margins: Theme.scaled(10)
                         frames: []  // Loaded via loadCurrentProfile()
-                        selectedFrameIndex: -1
+                        selectedFrameIndex: recipeEditorPage.selectedFrameIndex
+
+                        onFrameSelected: function(index) {
+                            recipeEditorPage.selectedFrameIndex = index
+                            var section = frameToSection(index)
+                            scrollToSection(section)
+                        }
                     }
                 }
 
@@ -150,29 +310,6 @@ Page {
                         }
 
                         Item { Layout.fillWidth: true }
-
-                        // Switch to advanced editor
-                        Button {
-                            text: qsTr("Advanced")
-                            onClicked: {
-                                root.pageStack.replace("qml/pages/ProfileEditorPage.qml")
-                            }
-                            background: Rectangle {
-                                implicitWidth: Theme.scaled(80)
-                                implicitHeight: Theme.scaled(36)
-                                radius: Theme.scaled(8)
-                                color: "transparent"
-                                border.width: 1
-                                border.color: Theme.textSecondaryColor
-                            }
-                            contentItem: Text {
-                                text: parent.text
-                                font: Theme.captionFont
-                                color: Theme.textSecondaryColor
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-                        }
                     }
                 }
             }
@@ -185,17 +322,44 @@ Page {
                 radius: Theme.cardRadius
 
                 ScrollView {
+                    id: recipeScrollView
                     anchors.fill: parent
                     anchors.margins: Theme.scaled(15)
                     clip: true
                     contentWidth: availableWidth
 
+                    // Monitor scroll position to update selected frame
+                    Connections {
+                        target: recipeScrollView.contentItem
+                        function onContentYChanged() {
+                            if (!scrollingFromSelection) {
+                                scrollUpdateTimer.restart()
+                            }
+                        }
+                    }
+
+                    Timer {
+                        id: scrollUpdateTimer
+                        interval: 150  // Debounce scroll events
+                        onTriggered: {
+                            if (!scrollingFromSelection) {
+                                var section = findCenteredSection()
+                                var frameIdx = sectionToFrame(section)
+                                if (frameIdx >= 0 && frameIdx !== selectedFrameIndex) {
+                                    selectedFrameIndex = frameIdx
+                                }
+                            }
+                        }
+                    }
+
                     ColumnLayout {
+                        id: sectionsColumn
                         width: parent.width
                         spacing: Theme.scaled(18)
 
                         // === Core Settings ===
                         RecipeSection {
+                            id: coreSection
                             Layout.fillWidth: true
 
                             RecipeRow {
@@ -240,6 +404,7 @@ Page {
 
                         // === Fill Phase ===
                         RecipeSection {
+                            id: fillSection
                             title: qsTr("Fill")
                             Layout.fillWidth: true
 
@@ -469,6 +634,7 @@ Page {
 
                         // === Pour Phase ===
                         RecipeSection {
+                            id: pourSection
                             title: qsTr("Pour")
                             Layout.fillWidth: true
 

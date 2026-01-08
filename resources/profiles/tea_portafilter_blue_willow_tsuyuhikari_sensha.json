@@ -1,28 +1,28 @@
 {
     "author": "Decent",
     "beverage_type": "tea_portafilter",
-    "espresso_temperature": 105,
+    "espresso_temperature": 60,
     "is_recipe_mode": false,
     "maximum_flow": 0,
     "maximum_pressure": 0,
     "minimum_pressure": 0,
     "mode": "frame_based",
-    "notes": "This profile requires a specially designed tea portafilter that opens its valve at pressures of 3 bar or above.  Put a tea bag or loose leaf tea into the basket.  Makes about 230ml of tea in 3 minutes.  The 2 bar of pressure extract a stronger brew, with different flavors.  You can up the pressure during the infusion steps, if you tighten the screw on your tea portafilter.",
+    "notes": "This profile requires a specially the Decent Espresso tea portafilter and is optimized for the tea named \"Tsuyuhikari Sencha\" from Blue Willow Tea https://www.bluewillowtea.com/ - Taste wise, this profile created a similar taste to the mug made with a French press, with a 3 minute and 65C temperature water, though the end beverage quantity is less on the DE1 version. Three infusion steps were used, because we found the 4th infusion to be unpleasant.  We use a 4 gram dose of leaves for this profile.",
     "preinfuse_frame_count": 1,
     "profile_type": "settings_2c",
     "steps": [
         {
             "exit_flow_over": 6,
             "exit_if": true,
-            "exit_pressure_over": 2,
+            "exit_pressure_over": 3,
             "exit_type": "pressure_over",
-            "flow": 11,
+            "flow": 4,
             "name": "Fill",
             "pressure": 1,
             "pump": "flow",
             "seconds": 20,
             "sensor": "coffee",
-            "temperature": 105,
+            "temperature": 60,
             "transition": "fast",
             "volume": 500
         },
@@ -35,9 +35,9 @@
             "name": "Infuse",
             "pressure": 0.1,
             "pump": "pressure",
-            "seconds": 30,
+            "seconds": 20,
             "sensor": "coffee",
-            "temperature": 105,
+            "temperature": 60,
             "transition": "fast",
             "volume": 500
         },
@@ -50,11 +50,11 @@
             "name": "Flush",
             "pressure": 6,
             "pump": "flow",
-            "seconds": 12,
+            "seconds": 30,
             "sensor": "coffee",
-            "temperature": 105,
+            "temperature": 60,
             "transition": "fast",
-            "volume": 500
+            "volume": 80
         },
         {
             "exit_flow_over": 6,
@@ -65,9 +65,9 @@
             "name": "Infuse",
             "pressure": 0.1,
             "pump": "pressure",
-            "seconds": 40,
+            "seconds": 25,
             "sensor": "coffee",
-            "temperature": 105,
+            "temperature": 60,
             "transition": "fast",
             "volume": 500
         },
@@ -80,24 +80,24 @@
             "name": "Flush",
             "pressure": 0.5,
             "pump": "flow",
-            "seconds": 12,
+            "seconds": 30,
             "sensor": "coffee",
-            "temperature": 105,
+            "temperature": 60,
             "transition": "fast",
-            "volume": 500
+            "volume": 80
         },
         {
             "exit_flow_over": 6,
             "exit_if": false,
             "exit_pressure_over": 2,
             "exit_type": "pressure_over",
-            "flow": 6,
-            "name": "Infuse",
+            "flow": 11,
+            "name": "infuse",
             "pressure": 0.1,
             "pump": "pressure",
-            "seconds": 40,
+            "seconds": 30,
             "sensor": "coffee",
-            "temperature": 105,
+            "temperature": 60,
             "transition": "fast",
             "volume": 500
         },
@@ -110,29 +110,14 @@
             "name": "Flush",
             "pressure": 0.5,
             "pump": "flow",
-            "seconds": 11,
+            "seconds": 30,
             "sensor": "coffee",
-            "temperature": 105,
+            "temperature": 60,
             "transition": "fast",
-            "volume": 500
-        },
-        {
-            "exit_flow_over": 6,
-            "exit_if": false,
-            "exit_pressure_over": 2,
-            "exit_type": "pressure_over",
-            "flow": 11,
-            "name": "Flush cooler",
-            "pressure": 0.5,
-            "pump": "flow",
-            "seconds": 13,
-            "sensor": "coffee",
-            "temperature": 40,
-            "transition": "fast",
-            "volume": 500
+            "volume": 80
         }
     ],
-    "target_volume": 0,
+    "target_volume": 36,
     "target_weight": 0,
     "temperature_presets": [
         90,
@@ -140,5 +125,5 @@
         88,
         88
     ],
-    "title": "Tea portafilter/black tea"
+    "title": "Tea portafilter/Blue Willow: Tsuyuhikari Sensha"
 }

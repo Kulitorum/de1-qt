@@ -156,6 +156,22 @@ Bytes 6-7: MaxVol         - U10P0, max volume before exit (0 = no limit)
 | 5 | 0x20 | Interpolate | Ramp smoothly (else instant jump) |
 | 6 | 0x40 | IgnoreLimit | Ignore min pressure/max flow limits |
 
+### Exit Condition Types
+
+**Machine-side exits** (encoded in frame flags, DE1 checks autonomously):
+- `pressure_over`: DoCompare + DC_GT
+- `pressure_under`: DoCompare only
+- `flow_over`: DoCompare + DC_GT + DC_CompF
+- `flow_under`: DoCompare + DC_CompF
+
+**App-side exits** (NOT encoded in BLE, app must monitor and send SkipToNext):
+- `weight`: App monitors connected scale and sends `SkipToNext` (0x0E) when threshold reached
+
+**IMPORTANT**: Weight exits are independent of the `DoCompare` flag. A frame can have:
+- Machine exit disabled (`DoCompare = 0`) but weight exit active
+- Both machine exit AND weight exit active simultaneously
+- The DE1 has no knowledge of scale weight - only the app can trigger weight-based frame skips
+
 ### Extension Frames
 
 For additional limits (max flow during pressure mode, etc.), send extension frames with `FrameToWrite = original_frame_index + 32`:

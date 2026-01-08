@@ -139,15 +139,21 @@ Profile Profile::loadFromTclFile(const QString& filePath) {
     QString content = QTextStream(&file).readAll();
 
     // Helper to extract Tcl variable value
+    // Handles: varName {braced value} OR varName "quoted" OR varName simple_word
     auto extractValue = [&content](const QString& varName) -> QString {
-        // Match patterns like: profile_title {My Profile} or profile_title "My Profile"
-        // Pattern: varName + whitespace + {content} OR varName + whitespace + "content"
-        QRegularExpression re(varName + "\\s+\\{([^}]*)\\}|" + varName + "\\s+\"([^\"]*)\"");
-        QRegularExpressionMatch match = re.match(content);
+        // Try braced value first: varName {content}
+        QRegularExpression reBraced(varName + "\\s+\\{([^}]*)\\}");
+        QRegularExpressionMatch match = reBraced.match(content);
         if (match.hasMatch()) {
-            return match.captured(1).isEmpty() ? match.captured(2) : match.captured(1);
+            return match.captured(1);
         }
-        // Also try simple word value: profile_title MyProfile
+        // Try quoted value: varName "content"
+        QRegularExpression reQuoted(varName + "\\s+\"([^\"]*)\"");
+        match = reQuoted.match(content);
+        if (match.hasMatch()) {
+            return match.captured(1);
+        }
+        // Try simple word value: varName word
         QRegularExpression reSimple(varName + "\\s+(\\S+)");
         match = reSimple.match(content);
         return match.hasMatch() ? match.captured(1) : QString();
@@ -158,16 +164,46 @@ Profile Profile::loadFromTclFile(const QString& filePath) {
     profile.m_author = extractValue("author");
     profile.m_notes = extractValue("profile_notes");
     profile.m_profileType = extractValue("settings_profile_type");
+    profile.m_beverageType = extractValue("beverage_type");
+    if (profile.m_beverageType.isEmpty()) {
+        profile.m_beverageType = "espresso";
+    }
 
-    // Extract numeric values
-    QString val = extractValue("final_desired_shot_weight");
+    // Determine if this is an advanced profile (settings_2c or settings_2c2)
+    bool isAdvancedProfile = profile.m_profileType.startsWith("settings_2c");
+
+    // Extract target weight - use _advanced value for advanced profiles
+    QString val;
+    if (isAdvancedProfile) {
+        val = extractValue("final_desired_shot_weight_advanced");
+        if (val.isEmpty() || val.toDouble() == 0) {
+            val = extractValue("final_desired_shot_weight");
+        }
+    } else {
+        val = extractValue("final_desired_shot_weight");
+    }
     if (!val.isEmpty()) profile.m_targetWeight = val.toDouble();
 
-    val = extractValue("final_desired_shot_volume");
+    // Extract target volume - use _advanced value for advanced profiles
+    if (isAdvancedProfile) {
+        val = extractValue("final_desired_shot_volume_advanced");
+        if (val.isEmpty() || val.toDouble() == 0) {
+            val = extractValue("final_desired_shot_volume");
+        }
+    } else {
+        val = extractValue("final_desired_shot_volume");
+    }
     if (!val.isEmpty()) profile.m_targetVolume = val.toDouble();
 
     val = extractValue("espresso_temperature");
     if (!val.isEmpty()) profile.m_espressoTemperature = val.toDouble();
+
+    // Extract flow/pressure limits
+    val = extractValue("maximum_flow");
+    if (!val.isEmpty()) profile.m_maximumFlow = val.toDouble();
+
+    val = extractValue("maximum_pressure");
+    if (!val.isEmpty()) profile.m_maximumPressure = val.toDouble();
 
     // Extract temperature presets
     profile.m_temperaturePresets.clear();
@@ -232,11 +268,139 @@ Profile Profile::loadFromTclFile(const QString& filePath) {
     qDebug() << "Loaded Tcl profile:" << profile.m_title
              << "with" << profile.m_steps.size() << "steps";
 
-    // Try to convert to recipe mode if the frame pattern matches
-    if (RecipeAnalyzer::canConvertToRecipe(profile)) {
-        RecipeAnalyzer::convertToRecipeMode(profile);
-        qDebug() << "  → Converted to recipe mode";
+    // Always keep profiles as frame-based to preserve exact frame structure
+    // This ensures D-Flow profiles like LRv3 and A-Flow are preserved exactly as imported
+
+    return profile;
+}
+
+Profile Profile::loadFromDE1AppJson(const QString& jsonContent) {
+    // Parse DE1 app / Visualizer JSON format
+    // This format uses different field names and structures than our native format
+    QJsonDocument doc = QJsonDocument::fromJson(jsonContent.toUtf8());
+    if (doc.isNull() || !doc.isObject()) {
+        qWarning() << "loadFromDE1AppJson: Invalid JSON";
+        return Profile();
     }
+
+    QJsonObject json = doc.object();
+    Profile profile;
+
+    // Helper to convert value that may be string or number
+    auto toDouble = [](const QJsonValue& val, double defaultVal = 0.0) -> double {
+        if (val.isString()) {
+            return val.toString().toDouble();
+        }
+        return val.toDouble(defaultVal);
+    };
+
+    // Extract metadata
+    profile.m_title = json["title"].toString("Imported Profile");
+    profile.m_author = json["author"].toString();
+    profile.m_notes = json["notes"].toString();
+    profile.m_beverageType = json["beverage_type"].toString("espresso");
+
+    QString profileType = json["legacy_profile_type"].toString();
+    if (profileType.isEmpty()) {
+        profileType = json["profile_type"].toString("settings_2c");
+    }
+    profile.m_profileType = profileType;
+
+    profile.m_targetWeight = toDouble(json["target_weight"], 36.0);
+    profile.m_targetVolume = toDouble(json["target_volume"], 0.0);
+
+    // Parse steps array
+    QJsonArray stepsArray = json["steps"].toArray();
+    for (const auto& stepVal : stepsArray) {
+        QJsonObject stepJson = stepVal.toObject();
+        ProfileFrame frame;
+
+        frame.name = stepJson["name"].toString();
+        frame.temperature = toDouble(stepJson["temperature"], 93.0);
+        frame.sensor = stepJson["sensor"].toString("coffee");
+        frame.pump = stepJson["pump"].toString("flow");
+        frame.transition = stepJson["transition"].toString("fast");
+        frame.pressure = toDouble(stepJson["pressure"], 0.0);
+        frame.flow = toDouble(stepJson["flow"], 0.0);
+        frame.seconds = toDouble(stepJson["seconds"], 0.0);
+        frame.volume = toDouble(stepJson["volume"], 0.0);
+
+        // Parse exit condition
+        QJsonObject exitObj = stepJson["exit"].toObject();
+        if (!exitObj.isEmpty()) {
+            frame.exitIf = true;
+            QString exitType = exitObj["type"].toString();
+            double exitValue = toDouble(exitObj["value"]);
+            QString exitCondition = exitObj["condition"].toString("over");
+
+            // Handle specific exit types
+            if (exitType == "pressure") {
+                if (exitCondition == "over") {
+                    frame.exitType = "pressure_over";
+                    frame.exitPressureOver = exitValue;
+                } else {
+                    frame.exitType = "pressure_under";
+                    frame.exitPressureUnder = exitValue;
+                }
+            } else if (exitType == "flow") {
+                if (exitCondition == "over") {
+                    frame.exitType = "flow_over";
+                    frame.exitFlowOver = exitValue;
+                } else {
+                    frame.exitType = "flow_under";
+                    frame.exitFlowUnder = exitValue;
+                }
+            } else if (exitType == "weight") {
+                frame.exitType = "weight";
+                frame.exitWeight = exitValue;
+            }
+        }
+
+        // Also check for standalone weight and exit_weight fields
+        // NOTE: Weight exit is INDEPENDENT of exitIf - a frame can have machine-side
+        // exit (pressure/flow) via exit_if + exit_type, AND app-side weight exit via
+        // the standalone "weight" or "exit_weight" property. Both can coexist on the same frame.
+        double weightExit = toDouble(stepJson["weight"], 0.0);
+        if (weightExit <= 0) {
+            // Also check exit_weight (our native format field name)
+            weightExit = toDouble(stepJson["exit_weight"], 0.0);
+        }
+        if (weightExit > 0) {
+            frame.exitWeight = weightExit;
+            // Only set exitIf/exitType if no machine-side exit is defined
+            if (frame.exitType.isEmpty()) {
+                frame.exitIf = true;
+                frame.exitType = "weight";
+            }
+        }
+
+        // Parse limiter
+        QJsonObject limiterObj = stepJson["limiter"].toObject();
+        if (!limiterObj.isEmpty()) {
+            frame.maxFlowOrPressure = toDouble(limiterObj["value"]);
+            frame.maxFlowOrPressureRange = toDouble(limiterObj["range"], 0.6);
+        }
+
+        profile.m_steps.append(frame);
+    }
+
+    // Set espresso temperature from first step
+    if (!profile.m_steps.isEmpty()) {
+        profile.m_espressoTemperature = profile.m_steps.first().temperature;
+    }
+
+    // Count preinfusion frames
+    profile.m_preinfuseFrameCount = 0;
+    for (const auto& step : profile.m_steps) {
+        if (step.exitIf) {
+            profile.m_preinfuseFrameCount++;
+        } else {
+            break;
+        }
+    }
+
+    qDebug() << "Loaded DE1 app profile:" << profile.m_title
+             << "with" << profile.m_steps.size() << "steps";
 
     return profile;
 }

@@ -103,10 +103,38 @@ final_desired_shot_weight_advanced 45.0
 | `exit_flow_under` | `exit_flow_under` | |
 
 ### Exit Types
+
+**Machine-side exits** (checked by DE1, controlled by `exit_if` flag):
 - `pressure_over` - Exit when pressure exceeds threshold
 - `pressure_under` - Exit when pressure drops below threshold
 - `flow_over` - Exit when flow exceeds threshold
 - `flow_under` - Exit when flow drops below threshold
+
+**App-side exits** (checked by app, INDEPENDENT of `exit_if`):
+- `weight` - Exit when scale weight reaches threshold
+
+### Weight Exit (IMPORTANT)
+
+The `weight` field (Tcl) or `exit_weight` field (JSON) is **independent** of the `exit_if` flag:
+
+```tcl
+# Tcl example - exit_if 0 but weight 3.6 still triggers app-side exit
+{exit_if 0 exit_type pressure_over weight 3.6 name Infuse ...}
+```
+
+```json
+// JSON - both machine and app exits can coexist
+{
+    "exit_if": true,
+    "exit_type": "pressure_over",
+    "exit_pressure_over": 4.0,
+    "exit_weight": 3.6
+}
+```
+
+| Tcl Field | JSON Field | Notes |
+|-----------|------------|-------|
+| `weight` | `exit_weight` | Per-frame weight exit (app-side, independent of exit_if) |
 
 ## Parsing Tips
 

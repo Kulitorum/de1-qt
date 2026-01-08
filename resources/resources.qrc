@@ -23,7 +23,7 @@
         <!-- About page -->
         <file alias="qrcode.png">../logo/qrcode.png</file>
         <!-- Profiles (filenames match profile titles) -->
-        <file>profiles/7g_basket.json</file>
+<file>profiles/7g_basket.json</file>
         <file>profiles/80_s_espresso.json</file>
         <file>profiles/a_flow_default_dark.json</file>
         <file>profiles/a_flow_default_like_dflow.json</file>
@@ -33,19 +33,21 @@
         <file>profiles/advanced_spring_lever.json</file>
         <file>profiles/best_overall_pressure_profile.json</file>
         <file>profiles/best_practice_light_roast.json</file>
+        <file>profiles/blooming_allong.json</file>
         <file>profiles/blooming_allonge.json</file>
         <file>profiles/blooming_espresso.json</file>
         <file>profiles/classic_italian_espresso.json</file>
         <file>profiles/cleaning_forward_flush.json</file>
         <file>profiles/cleaning_forward_flush_x5.json</file>
         <file>profiles/cleaning_weber_spring_clean.json</file>
-        <file>profiles/descale_wizard.json</file>
         <file>profiles/cremina_lever_machine.json</file>
         <file>profiles/damian_s_lm_leva.json</file>
         <file>profiles/damian_s_lrv2.json</file>
         <file>profiles/damian_s_lrv3.json</file>
         <file>profiles/damian_s_q.json</file>
+        <file>profiles/default.json</file>
         <file>profiles/default_espresso.json</file>
+        <file>profiles/descale_wizard.json</file>
         <file>profiles/e61_classic_gently_up_to_10_bar.json</file>
         <file>profiles/e61_espresso_machine.json</file>
         <file>profiles/e61_rocketing_up_to_10_bar.json</file>
@@ -54,11 +56,13 @@
         <file>profiles/espresso_forge_dark.json</file>
         <file>profiles/espresso_forge_light.json</file>
         <file>profiles/extractamundo_dos.json</file>
+        <file>profiles/filter3.json</file>
         <file>profiles/filter_2_0.json</file>
         <file>profiles/filter_2_1.json</file>
-        <file>profiles/filter3.json</file>
         <file>profiles/flow_profile_for_milky_drinks.json</file>
         <file>profiles/flow_profile_for_straight_espresso.json</file>
+        <file>profiles/gagn_adaptive_allong_94c_v1_0.json</file>
+        <file>profiles/gagn_adaptive_shot_92c_v1_0.json</file>
         <file>profiles/gagne_adaptive_allonge_94c_v1_0.json</file>
         <file>profiles/gagne_adaptive_shot_92c_v1_0.json</file>
         <file>profiles/gentle_and_sweet.json</file>
@@ -80,10 +84,12 @@
         <file>profiles/pour_over_basket_v60_20g_in_340g_out.json</file>
         <file>profiles/pour_over_basket_v60_22g_in_375g_out.json</file>
         <file>profiles/preinfuse_then_45ml_of_water.json</file>
+        <file>profiles/rao_allong.json</file>
         <file>profiles/rao_allonge.json</file>
         <file>profiles/steam_only.json</file>
         <file>profiles/tea_in_a_basket.json</file>
         <file>profiles/tea_portafilter_black_tea.json</file>
+        <file>profiles/tea_portafilter_blue_willow_tsuyuhikari_sensha.json</file>
         <file>profiles/tea_portafilter_bug_bite_oolong.json</file>
         <file>profiles/tea_portafilter_chinese_green.json</file>
         <file>profiles/tea_portafilter_japanese_green.json</file>
@@ -102,6 +108,7 @@
         <file>profiles/test_leakage_stress_test.json</file>
         <file>profiles/test_low_pressure_leak.json</file>
         <file>profiles/test_pressure_calibration.json</file>
+        <file>profiles/test_profile_editor_demo.json</file>
         <file>profiles/test_temperature_accuracy.json</file>
         <file>profiles/test_temperature_calibration.json</file>
         <file>profiles/traditional_lever_machine.json</file>

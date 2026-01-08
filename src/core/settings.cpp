@@ -496,6 +496,19 @@ bool Settings::isFavoriteProfile(const QString& filename) const {
     return false;
 }
 
+int Settings::findFavoriteIndexByFilename(const QString& filename) const {
+    QByteArray data = m_settings.value("profile/favorites").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+
+    for (int i = 0; i < arr.size(); ++i) {
+        if (arr[i].toObject()["filename"].toString() == filename) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 bool Settings::updateFavoriteProfile(const QString& oldFilename, const QString& newFilename, const QString& newTitle) {
     QByteArray data = m_settings.value("profile/favorites").toByteArray();
     QJsonDocument doc = QJsonDocument::fromJson(data);

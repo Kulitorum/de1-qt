@@ -104,6 +104,7 @@ set(SOURCES
     src/machine/machinestate.cpp
     src/profile/profile.cpp
     src/profile/profileframe.cpp
+    src/profile/profileconverter.cpp
     src/profile/recipeparams.cpp
     src/profile/recipegenerator.cpp
     src/profile/recipeanalyzer.cpp
@@ -174,6 +175,7 @@ set(HEADERS
     src/machine/machinestate.h
     src/profile/profile.h
     src/profile/profileframe.h
+    src/profile/profileconverter.h
     src/profile/recipeparams.h
     src/profile/recipegenerator.h
     src/profile/recipeanalyzer.h

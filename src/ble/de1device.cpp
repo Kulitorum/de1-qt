@@ -789,6 +789,11 @@ void DE1Device::requestIdle() {
     requestState(DE1::State::Idle);
 }
 
+void DE1Device::skipToNextFrame() {
+    qDebug() << "DE1Device::skipToNextFrame - sending SkipToNext (0x0E) command";
+    requestState(DE1::State::SkipToNext);
+}
+
 void DE1Device::goToSleep() {
 #if defined(Q_OS_WIN) && defined(QT_DEBUG)
     // In simulation mode, relay to simulator

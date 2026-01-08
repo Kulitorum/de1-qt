@@ -163,6 +163,8 @@ Page {
                     translationFallback: "Espresso"
                     iconSource: "qrc:/icons/espresso.svg"
                     enabled: DE1Device.guiEnabled
+                    // Green when a non-favorite profile is loaded (selectedFavoriteProfile === -1)
+                    backgroundColor: Settings.selectedFavoriteProfile === -1 ? Theme.successColor : Theme.primaryColor
                     onClicked: {
                         activePresetFunction = (activePresetFunction === "espresso") ? "" : "espresso"
                     }
@@ -292,7 +294,7 @@ Page {
             property var activePresetRow: {
                 switch (activePresetFunction) {
                     case "steam": return steamPresetRow
-                    case "espresso": return espressoPresetRow
+                    case "espresso": return espressoColumn
                     case "hotwater": return hotWaterPresetRow
                     case "flush": return flushPresetRow
                     default: return steamPresetRow  // fallback
@@ -342,47 +344,87 @@ Page {
                 Behavior on opacity { NumberAnimation { duration: 150 } }
             }
 
-            PresetPillRow {
-                id: espressoPresetRow
+            // Espresso presets - column containing favorites + optional non-favorite pill
+            Column {
+                id: espressoColumn
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: activePresetFunction === "espresso"
                 opacity: visible ? 1.0 : 0.0
+                spacing: Theme.scaled(8)
 
-                presets: Settings.favoriteProfiles
-                selectedIndex: Settings.selectedFavoriteProfile
+                PresetPillRow {
+                    id: espressoPresetRow
+                    anchors.horizontalCenter: parent.horizontalCenter
 
-                KeyNavigation.up: espressoButton
-                KeyNavigation.down: sleepButton
+                    presets: Settings.favoriteProfiles
+                    selectedIndex: Settings.selectedFavoriteProfile
 
-                // Pre-load the selected profile when pills become visible
-                onVisibleChanged: {
-                    if (visible) {
-                        var preset = Settings.getFavoriteProfile(Settings.selectedFavoriteProfile)
-                        if (preset && preset.filename) {
-                            MainController.loadProfile(preset.filename)
+                    KeyNavigation.up: espressoButton
+                    KeyNavigation.down: sleepButton
+
+                    // Pre-load the selected profile when pills become visible
+                    onVisibleChanged: {
+                        if (visible && Settings.selectedFavoriteProfile >= 0) {
+                            var preset = Settings.getFavoriteProfile(Settings.selectedFavoriteProfile)
+                            if (preset && preset.filename) {
+                                MainController.loadProfile(preset.filename)
+                            }
+                        }
+                    }
+
+                    onPresetSelected: function(index) {
+                        var wasAlreadySelected = (index === Settings.selectedFavoriteProfile)
+                        console.log("[IdlePage] Espresso pill selected, index:", index, "wasAlreadySelected:", wasAlreadySelected, "isReady:", MachineState.isReady)
+                        Settings.selectedFavoriteProfile = index
+                        var preset = Settings.getFavoriteProfile(index)
+
+                        if (wasAlreadySelected) {
+                            // Tap on already-selected pill = start operation (profile already uploaded)
+                            if (MachineState.isReady) {
+                                console.log("[IdlePage] Starting espresso...")
+                                DE1Device.startEspresso()
+                            } else {
+                                console.log("[IdlePage] NOT starting espresso - MachineState.isReady is false, phase:", MachineState.phase)
+                            }
+                        } else {
+                            // Tap on different pill = select it and upload profile
+                            if (preset && preset.filename) {
+                                console.log("[IdlePage] Loading profile:", preset.filename)
+                                MainController.loadProfile(preset.filename)
+                            }
                         }
                     }
                 }
 
-                onPresetSelected: function(index) {
-                    var wasAlreadySelected = (index === Settings.selectedFavoriteProfile)
-                    console.log("[IdlePage] Espresso pill selected, index:", index, "wasAlreadySelected:", wasAlreadySelected, "isReady:", MachineState.isReady)
-                    Settings.selectedFavoriteProfile = index
-                    var preset = Settings.getFavoriteProfile(index)
+                // Green pill showing non-favorite profile name (when loaded from history)
+                Rectangle {
+                    id: nonFavoriteProfilePill
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: Settings.selectedFavoriteProfile === -1
+                    width: nonFavoriteProfileText.implicitWidth + Theme.scaled(40)
+                    height: Theme.scaled(50)
+                    radius: Theme.scaled(10)
+                    color: Theme.successColor
 
-                    if (wasAlreadySelected) {
-                        // Tap on already-selected pill = start operation (profile already uploaded)
-                        if (MachineState.isReady) {
-                            console.log("[IdlePage] Starting espresso...")
-                            DE1Device.startEspresso()
-                        } else {
-                            console.log("[IdlePage] NOT starting espresso - MachineState.isReady is false, phase:", MachineState.phase)
-                        }
-                    } else {
-                        // Tap on different pill = select it and upload profile
-                        if (preset && preset.filename) {
-                            console.log("[IdlePage] Loading profile:", preset.filename)
-                            MainController.loadProfile(preset.filename)
+                    Text {
+                        id: nonFavoriteProfileText
+                        anchors.centerIn: parent
+                        text: MainController.currentProfileName || ""
+                        color: "white"
+                        font.pixelSize: Theme.scaled(16)
+                        font.bold: true
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            // Tap on loaded profile pill = start espresso
+                            if (MachineState.isReady) {
+                                console.log("[IdlePage] Starting espresso with non-favorite profile...")
+                                DE1Device.startEspresso()
+                            } else {
+                                console.log("[IdlePage] NOT starting espresso - MachineState.isReady is false, phase:", MachineState.phase)
+                            }
                         }
                     }
                 }

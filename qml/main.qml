@@ -1371,18 +1371,38 @@ ApplicationWindow {
     }
 
     function goToProfileEditor() {
-        // Check if profile is recipe-mode and redirect to Recipe Editor
+        // Route to D-Flow editor for recipe-mode profiles, Advanced editor for frame-based
         if (MainController.isCurrentProfileRecipe) {
-            goToRecipeEditor()
-            return
+            announceNavigation("D-Flow editor")
+            pageStack.push(recipeEditorPage)
+        } else {
+            announceNavigation("Advanced editor")
+            pageStack.push(profileEditorPage)
         }
-        announceNavigation("Profile editor")
-        pageStack.push(profileEditorPage)
     }
 
     function goToRecipeEditor() {
-        announceNavigation("Recipe editor")
+        // Explicitly go to D-Flow editor
+        announceNavigation("D-Flow editor")
         pageStack.push(recipeEditorPage)
+    }
+
+    function switchToRecipeEditor() {
+        // Replace current editor with D-Flow editor (for switching between editors)
+        announceNavigation("D-Flow editor")
+        pageStack.replace(recipeEditorPage)
+    }
+
+    function switchToAdvancedEditor() {
+        // Replace current editor with Advanced editor (for switching between editors)
+        announceNavigation("Advanced editor")
+        pageStack.replace(profileEditorPage)
+    }
+
+    function goToAdvancedEditor() {
+        // Explicitly go to Advanced editor
+        announceNavigation("Advanced editor")
+        pageStack.push(profileEditorPage)
     }
 
     function goToProfileSelector() {
