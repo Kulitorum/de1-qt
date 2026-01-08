@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(Decenza_DE1 VERSION 1.1.18 LANGUAGES CXX)
+project(Decenza_DE1 VERSION 1.1.19 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -40,6 +40,7 @@ find_package(Qt6 REQUIRED COMPONENTS
     TextToSpeech
     Network
     Sql
+    Positioning
 )
 
 # Silence Qt policy warnings
@@ -126,6 +127,8 @@ set(SOURCES
     src/models/shotcomparisonmodel.cpp
     src/network/shotserver.cpp
     src/network/webdebuglogger.cpp
+    src/network/locationprovider.cpp
+    src/network/shotreporter.cpp
 )
 
 # Simulator files - Windows Debug only
@@ -197,6 +200,8 @@ set(HEADERS
     src/models/shotcomparisonmodel.h
     src/network/shotserver.h
     src/network/webdebuglogger.h
+    src/network/locationprovider.h
+    src/network/shotreporter.h
 )
 
 # Simulator headers - Windows Debug only
@@ -241,6 +246,7 @@ target_link_libraries(Decenza_DE1 PRIVATE
     Qt6::TextToSpeech
     Qt6::Network
     Qt6::Sql
+    Qt6::Positioning
 )
 
 # Include directories
@@ -309,6 +315,7 @@ set(QML_FILES
     qml/components/ColorEditor.qml
     qml/components/ColorSwatch.qml
     qml/components/StyledTextField.qml
+    qml/components/AutocompleteTextField.qml
     qml/components/Tr.qml
     qml/components/RecipeSection.qml
     qml/components/RecipeRow.qml

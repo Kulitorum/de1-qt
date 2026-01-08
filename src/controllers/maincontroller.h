@@ -14,6 +14,7 @@
 #include "../profile/profileconverter.h"
 #include "../models/shotcomparisonmodel.h"
 #include "../network/shotserver.h"
+#include "../network/shotreporter.h"
 #include "../core/updatechecker.h"
 
 class Settings;
@@ -21,6 +22,7 @@ class DE1Device;
 class MachineState;
 class ProfileStorage;
 class ShotDebugLogger;
+class LocationProvider;
 struct ShotSample;
 
 // Profile source enumeration
@@ -69,6 +71,7 @@ class MainController : public QObject {
     Q_PROPERTY(ShotComparisonModel* shotComparison READ shotComparison CONSTANT)
     Q_PROPERTY(ShotServer* shotServer READ shotServer CONSTANT)
     Q_PROPERTY(UpdateChecker* updateChecker READ updateChecker CONSTANT)
+    Q_PROPERTY(ShotReporter* shotReporter READ shotReporter CONSTANT)
     Q_PROPERTY(bool isCurrentProfileRecipe READ isCurrentProfileRecipe NOTIFY currentProfileChanged)
 
 public:
@@ -110,6 +113,7 @@ public:
     ShotComparisonModel* shotComparison() const { return m_shotComparison; }
     ShotServer* shotServer() const { return m_shotServer; }
     UpdateChecker* updateChecker() const { return m_updateChecker; }
+    ShotReporter* shotReporter() const { return m_shotReporter; }
 
     const Profile& currentProfile() const { return m_currentProfile; }
     Profile currentProfileObject() const { return m_currentProfile; }
@@ -261,4 +265,6 @@ private:
     ShotComparisonModel* m_shotComparison = nullptr;
     ShotServer* m_shotServer = nullptr;
     UpdateChecker* m_updateChecker = nullptr;
+    LocationProvider* m_locationProvider = nullptr;
+    ShotReporter* m_shotReporter = nullptr;
 };

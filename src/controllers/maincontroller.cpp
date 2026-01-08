@@ -14,6 +14,7 @@
 #include "../history/shotimporter.h"
 #include "../history/shotdebuglogger.h"
 #include "../network/shotserver.h"
+#include "../network/locationprovider.h"
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
@@ -148,6 +149,15 @@ MainController::MainController(Settings* settings, DE1Device* device,
                 m_shotServer->start();
             }
         });
+    }
+
+    // Initialize location provider and shot reporter for decenza.coffee shot map
+    m_locationProvider = new LocationProvider(this);
+    m_shotReporter = new ShotReporter(m_settings, m_locationProvider, this);
+
+    // Request location update if shot reporting is enabled
+    if (m_settings && m_settings->value("shotmap/enabled", false).toBool()) {
+        m_locationProvider->requestUpdate();
     }
 
     // Initialize update checker
@@ -1826,6 +1836,11 @@ void MainController::onShotEnded() {
             duration, finalWeight, doseWeight,
             metadata, debugLog);
         qDebug() << "MainController: Shot saved to history with ID:" << shotId;
+    }
+
+    // Report shot to decenza.coffee shot map
+    if (m_shotReporter && m_shotReporter->isEnabled()) {
+        m_shotReporter->reportShot(m_currentProfile.title(), "Decent DE1");
     }
 
     // Log final shot state for debugging early exits
