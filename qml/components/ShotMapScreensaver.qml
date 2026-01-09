@@ -96,21 +96,19 @@ Item {
         return { x: x, y: y, visible: true }
     }
 
-    // Convert lat/lon to 3D sphere coordinates
+    // Convert lat/lon to 3D sphere coordinates (static, rotation handled by parent Node)
     function latLonTo3D(lat, lon, radius) {
-        var latRad = lat * Math.PI / 180
+        // Offset latitude to match texture position (empirical adjustment)
+        var adjustedLat = lat - 22
+        var latRad = adjustedLat * Math.PI / 180
         var lonRad = lon * Math.PI / 180
-        // Apply globe rotation
-        lonRad = lonRad + (globeRotation * Math.PI / 180)
 
+        // Standard spherical coordinates (Y-up)
         var x = radius * Math.cos(latRad) * Math.sin(lonRad)
         var y = radius * Math.sin(latRad)
         var z = radius * Math.cos(latRad) * Math.cos(lonRad)
 
-        // Check if point is on visible side (z > 0 means facing camera)
-        var visible = z > 0
-
-        return { x: x, y: y, z: z, visible: visible }
+        return { x: x, y: y, z: z }
     }
 
     // Calculate opacity based on age in hours (fade over 24 hours)
@@ -342,80 +340,85 @@ Item {
                 color: "#aabbcc"
             }
 
-            // Earth sphere
-            Model {
-                id: earthModel
-                source: "#Sphere"
-                scale: Qt.vector3d(globeRadius / 50, globeRadius / 50, globeRadius / 50)
+            // Rotating node containing earth and all markers
+            Node {
+                id: globeRoot
                 eulerRotation.y: -globeRotation
-                // Tilt the earth slightly to show more northern hemisphere
-                eulerRotation.x: 15
 
-                materials: DefaultMaterial {
-                    diffuseMap: Texture {
-                        source: getTextureSource()
-                    }
-                    specularAmount: 0.1
-                    specularRoughness: 0.8
-                }
-            }
-
-            // Shot markers on globe (3D spheres)
-            Repeater3D {
-                model: shots
-
+                // Earth sphere
                 Model {
-                    id: globeShotMarker
-                    property var pos3d: latLonTo3D(modelData.lat, modelData.lon, globeRadius + 3)
-                    property real ageHours: modelData.age || 0
-                    property real shotOpacity: getOpacityFromAge(ageHours)
-                    property bool isNew: ageHours < (1/60)
-
+                    id: earthModel
                     source: "#Sphere"
-                    position: Qt.vector3d(pos3d.x, pos3d.y, pos3d.z)
-                    scale: Qt.vector3d(0.08, 0.08, 0.08)
-                    visible: pos3d.visible
+                    scale: Qt.vector3d(globeRadius / 50, globeRadius / 50, globeRadius / 50)
 
                     materials: DefaultMaterial {
-                        diffuseColor: mapTexture === "bright" ? "#ff6b35" : "#4a9eff"
-                        opacity: shotOpacity
-                        specularAmount: 0.5
+                        diffuseMap: Texture {
+                            source: getTextureSource()
+                        }
+                        specularAmount: 0.1
+                        specularRoughness: 0.8
                     }
+                }
 
-                    // Glow sphere behind
-                    Model {
-                        source: "#Sphere"
-                        scale: Qt.vector3d(2.5, 2.5, 2.5)
-                        materials: DefaultMaterial {
-                            diffuseColor: mapTexture === "bright" ? "#ff6b35" : "#4a9eff"
-                            opacity: 0.3 * shotOpacity
+                // Shot markers on globe (3D spheres)
+                Repeater3D {
+                    model: shots
+
+                    Node {
+                        id: globeShotMarker
+                        property var pos3d: latLonTo3D(modelData.lat, modelData.lon, globeRadius + 3)
+                        property real ageHours: modelData.age || 0
+                        property real shotOpacity: getOpacityFromAge(ageHours)
+                        position: Qt.vector3d(pos3d.x, pos3d.y, pos3d.z)
+
+                        // Glow sphere
+                        Model {
+                            source: "#Sphere"
+                            scale: Qt.vector3d(0.2, 0.2, 0.2)
+                            materials: DefaultMaterial {
+                                diffuseColor: mapTexture === "bright" ? "#ff6b35" : "#4a9eff"
+                                opacity: 0.3 * globeShotMarker.shotOpacity
+                            }
+                        }
+
+                        // Inner marker
+                        Model {
+                            source: "#Sphere"
+                            scale: Qt.vector3d(0.08, 0.08, 0.08)
+                            materials: DefaultMaterial {
+                                diffuseColor: mapTexture === "bright" ? "#ff6b35" : "#4a9eff"
+                                opacity: globeShotMarker.shotOpacity
+                                specularAmount: 0.5
+                            }
                         }
                     }
                 }
-            }
 
-            // Test marker on globe
-            Model {
-                id: globeTestMarker
-                visible: testMode && testLatitude !== 0 && testLongitude !== 0
-                property var pos3d: latLonTo3D(testLatitude, testLongitude, globeRadius + 5)
+                // Test marker on globe
+                Node {
+                    id: globeTestMarker
+                    visible: testMode && testLatitude !== 0 && testLongitude !== 0
+                    property var pos3d: latLonTo3D(testLatitude, testLongitude, globeRadius + 5)
+                    position: Qt.vector3d(pos3d.x, pos3d.y, pos3d.z)
 
-                source: "#Sphere"
-                position: Qt.vector3d(pos3d.x, pos3d.y, pos3d.z)
-                scale: Qt.vector3d(0.15, 0.15, 0.15)
+                    // Outer glow
+                    Model {
+                        source: "#Sphere"
+                        scale: Qt.vector3d(0.3, 0.3, 0.3)
+                        materials: DefaultMaterial {
+                            diffuseColor: "#ff6b35"
+                            opacity: 0.4
+                        }
+                    }
 
-                materials: DefaultMaterial {
-                    diffuseColor: "#ff6b35"
-                    specularAmount: 0.6
-                }
-
-                // Outer glow
-                Model {
-                    source: "#Sphere"
-                    scale: Qt.vector3d(2, 2, 2)
-                    materials: DefaultMaterial {
-                        diffuseColor: "#ff6b35"
-                        opacity: 0.4
+                    // Inner marker
+                    Model {
+                        source: "#Sphere"
+                        scale: Qt.vector3d(0.15, 0.15, 0.15)
+                        materials: DefaultMaterial {
+                            diffuseColor: "#ff6b35"
+                            specularAmount: 0.6
+                        }
                     }
                 }
             }

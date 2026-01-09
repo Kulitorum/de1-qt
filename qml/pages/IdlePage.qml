@@ -347,6 +347,7 @@ Page {
             // Espresso presets - column containing favorites + optional non-favorite pill
             Column {
                 id: espressoColumn
+                width: parent.width
                 anchors.horizontalCenter: parent.horizontalCenter
                 visible: activePresetFunction === "espresso"
                 opacity: visible ? 1.0 : 0.0
