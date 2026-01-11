@@ -22,9 +22,15 @@ MachineState::MachineState(DE1Device* device, QObject* parent)
 }
 
 bool MachineState::isFlowing() const {
+    // For steam, only count as flowing if actually steaming (not purging/ending)
+    if (m_phase == Phase::Steaming && m_device) {
+        DE1::SubState subState = m_device->subState();
+        return subState == DE1::SubState::Steaming ||
+               subState == DE1::SubState::Pouring;
+    }
+
     return m_phase == Phase::Preinfusion ||
            m_phase == Phase::Pouring ||
-           m_phase == Phase::Steaming ||
            m_phase == Phase::HotWater ||
            m_phase == Phase::Flushing ||
            m_phase == Phase::Descaling ||
@@ -144,8 +150,13 @@ void MachineState::updatePhase() {
             break;
 
         case DE1::State::Steam:
+            // Map all active steam substates to Steaming phase
+            // This keeps the live view visible during purge (Puffing) and ending
+            // Only show Heating for pre-steam warmup (Heating/FinalHeating substates)
             if (subState == DE1::SubState::Steaming ||
-                subState == DE1::SubState::Pouring) {
+                subState == DE1::SubState::Pouring ||
+                subState == DE1::SubState::Puffing ||
+                subState == DE1::SubState::Ending) {
                 m_phase = Phase::Steaming;
             } else {
                 m_phase = Phase::Heating;
@@ -351,24 +362,24 @@ void MachineState::updateShotTimer() {
     m_shotTime = elapsed / 1000.0;
     emit shotTimeChanged();
 
-    // Note: Steam and Flush timeout is handled by the machine internally
-    // via steamTimeout in ShotSettings and flushSeconds via MMR 0x803848.
-    // Headless machines have a visible stop button that calls stopOperation().
+    // Check if we've reached the target time for steam/flush
+    // Real machines handle this in firmware, but this provides
+    // support for the simulator and a fallback for real devices
+    checkStopAtTime();
 }
 
 void MachineState::checkStopAtTime() {
     if (m_stopAtTimeTriggered) return;
     if (!m_settings) return;
 
-    double target = 0;
-    if (m_phase == Phase::Steaming) {
-        target = m_settings->steamTimeout();
-    } else if (m_phase == Phase::Flushing) {
-        target = m_settings->flushSeconds();
-    } else {
-        return;  // Only Steam and Flush use time-based stop
+    // Only Flush uses app-side time-based stop
+    // Steam timeout is handled by DE1 firmware via ShotSettings.steamTimeout
+    // (machine stops flow but stays in Steam state until GHC stop is pressed)
+    if (m_phase != Phase::Flushing) {
+        return;
     }
 
+    double target = m_settings->flushSeconds();
     if (target <= 0) return;
 
     if (m_shotTime >= target) {

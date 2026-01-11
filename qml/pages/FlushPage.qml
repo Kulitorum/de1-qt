@@ -22,6 +22,13 @@ Page {
     property bool isFlushing: MachineState.phase === MachineStateType.Phase.Flushing || root.debugLiveView
     property int editingPresetIndex: -1
 
+    onIsFlushingChanged: {
+        console.log("FlushPage: isFlushing changed to", isFlushing, "phase=", MachineState.phase)
+        if (!isFlushing) {
+            console.log("FlushPage: Settings view now visible (isFlushing=false)")
+        }
+    }
+
     // Get current preset values
     function getCurrentPresetFlow() {
         var preset = Settings.getFlushPreset(Settings.selectedFlushPreset)

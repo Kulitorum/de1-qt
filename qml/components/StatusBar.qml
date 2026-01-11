@@ -73,7 +73,8 @@ Rectangle {
         Text {
             property bool showMl: Settings.waterLevelDisplayUnit === "ml"
             text: showMl ? DE1Device.waterLevelMl + " ml" : DE1Device.waterLevel.toFixed(0) + "%"
-            color: DE1Device.waterLevel > 20 ? Theme.primaryColor : Theme.warningColor
+            color: DE1Device.waterLevelMl < 200 ? Theme.errorColor :
+                   DE1Device.waterLevelMl < 400 ? Theme.warningColor : Theme.primaryColor
             font: Theme.bodyFont
 
             Accessible.role: Accessible.StaticText

@@ -963,6 +963,8 @@ ApplicationWindow {
         }
 
         Behavior on opacity {
+            // Only animate fade-out, not fade-in (instant show prevents settings flash)
+            enabled: completionOverlay.opacity > 0
             NumberAnimation { duration: 200 }
         }
     }
@@ -971,15 +973,17 @@ ApplicationWindow {
         id: completionTimer
         interval: 3000
         onTriggered: {
+            console.log("completionTimer: triggered, navigating to idlePage")
             completionOverlay.opacity = 0
             pageStack.replace(idlePage)
         }
     }
 
     function showCompletion(message, type) {
+        console.log("showCompletion: message='" + message + "' type='" + type + "' currentPage=" + (pageStack.currentItem ? pageStack.currentItem.objectName : "null"))
         completionMessage = message
         completionType = type
-        completionOverlay.opacity = 1
+        completionOverlay.opacity = 1  // Instant (Behavior disabled when opacity is 0)
         completionTimer.start()
     }
 
@@ -1342,6 +1346,7 @@ ApplicationWindow {
             } else if (phase === MachineStateType.Phase.Idle || phase === MachineStateType.Phase.Ready) {
                 // DE1 went to idle - if we're on an operation page, show completion
                 // Note: Don't check pageStack.busy here - completion must always be handled
+                console.log("Phase Idle/Ready: currentPage=" + currentPage + " completionOverlay.opacity=" + completionOverlay.opacity)
 
                 if (currentPage === "steamPage") {
                     showCompletion(trSteamComplete.text, "steam")
@@ -1349,6 +1354,8 @@ ApplicationWindow {
                     showCompletion(trHotWaterComplete.text, "hotwater")
                 } else if (currentPage === "flushPage") {
                     showCompletion(trFlushComplete.text, "flush")
+                } else {
+                    console.log("Phase Idle/Ready: NOT on operation page, no completion shown")
                 }
 
                 // Pre-load all operation settings when machine is Ready

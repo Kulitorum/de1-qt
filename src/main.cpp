@@ -47,6 +47,11 @@ using namespace Qt::StringLiterals;
 
 int main(int argc, char *argv[])
 {
+    // Set simple message pattern for desktop (Android uses its own format)
+#ifndef Q_OS_ANDROID
+    qSetMessagePattern("%{message}");
+#endif
+
     // Install web debug logger early to capture all output
     WebDebugLogger::install();
 

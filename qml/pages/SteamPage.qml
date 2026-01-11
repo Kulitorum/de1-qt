@@ -24,8 +24,29 @@ Page {
     property int editingPitcherIndex: -1  // For the edit popup
     property bool steamSoftStopped: false  // For two-stage stop on headless machines
 
+    // Debug logging for steam phase issues
+    Connections {
+        target: MachineState
+        function onPhaseChanged() {
+            console.log("SteamPage: MachineState.phase changed to", MachineState.phase, "isSteaming=", isSteaming)
+        }
+    }
+    Connections {
+        target: DE1Device
+        function onStateChanged() {
+            console.log("SteamPage: DE1Device.state changed to", DE1Device.stateString, "(", DE1Device.state, ")")
+        }
+        function onSubStateChanged() {
+            console.log("SteamPage: DE1Device.subState changed to", DE1Device.subStateString)
+        }
+    }
+
     // Reset state when steaming starts
     onIsSteamingChanged: {
+        console.log("SteamPage: isSteaming changed to", isSteaming, "phase=", MachineState.phase, "steamSoftStopped=", steamSoftStopped)
+        if (!isSteaming) {
+            console.log("SteamPage: Settings view now visible (isSteaming=false)")
+        }
         if (isSteaming) {
             steamSoftStopped = false
             // Reset to preset value (discard any +5s/-5s adjustments from previous session)

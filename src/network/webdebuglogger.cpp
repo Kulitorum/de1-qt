@@ -1,6 +1,7 @@
 #include "webdebuglogger.h"
 
 #include <QDebug>
+#include <QTime>
 
 WebDebugLogger* WebDebugLogger::s_instance = nullptr;
 QtMessageHandler WebDebugLogger::s_previousHandler = nullptr;
@@ -27,12 +28,13 @@ WebDebugLogger::WebDebugLogger(QObject* parent)
 
 void WebDebugLogger::messageHandler(QtMsgType type, const QMessageLogContext& context, const QString& msg)
 {
-    // Forward to previous handler (console output)
+    // Forward to previous handler (console output) with [LOG] prefix and timestamp for easy filtering
     if (s_previousHandler) {
-        s_previousHandler(type, context, msg);
+        QString timestamp = QTime::currentTime().toString(QStringLiteral("HH:mm:ss.zzz"));
+        s_previousHandler(type, context, QStringLiteral("[LOG %1] ").arg(timestamp) + msg);
     }
 
-    // Capture to our buffer
+    // Capture to our buffer (without prefix - internal use)
     if (s_instance) {
         s_instance->handleMessage(type, msg);
     }
