@@ -149,13 +149,12 @@ void UpdateChecker::parseReleaseInfo(const QByteArray& data)
         }
     }
 
-    // Check if update is available using build numbers (version codes)
-    int currentCode = currentVersionCode();
+    // Check if update is available using display version comparison
     bool wasAvailable = m_updateAvailable;
-    m_updateAvailable = (m_latestBuildNumber > currentCode) && !m_downloadUrl.isEmpty();
+    m_updateAvailable = isNewerVersion(m_latestVersion, currentVersion()) && !m_downloadUrl.isEmpty();
 
-    qDebug() << "UpdateChecker: Current version:" << currentVersion() << "(build" << currentCode << ")"
-             << "Latest version:" << m_latestVersion << "(build" << m_latestBuildNumber << ")"
+    qDebug() << "UpdateChecker: Current version:" << currentVersion()
+             << "Latest version:" << m_latestVersion
              << "Update available:" << m_updateAvailable;
 
     if (m_updateAvailable != wasAvailable) {
