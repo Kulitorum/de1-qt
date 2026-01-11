@@ -38,13 +38,21 @@ AcaiaScale::AcaiaScale(ScaleBleTransport* transport, QObject* parent)
 
     m_heartbeatTimer = new QTimer(this);
     connect(m_heartbeatTimer, &QTimer::timeout, this, &AcaiaScale::sendHeartbeat);
+
+    m_initTimer = new QTimer(this);
+    connect(m_initTimer, &QTimer::timeout, this, &AcaiaScale::onInitTimer);
 }
 
 AcaiaScale::~AcaiaScale() {
-    m_heartbeatTimer->stop();
+    stopAllTimers();
     if (m_transport) {
         m_transport->disconnectFromDevice();
     }
+}
+
+void AcaiaScale::stopAllTimers() {
+    m_heartbeatTimer->stop();
+    m_initTimer->stop();
 }
 
 void AcaiaScale::connectToDevice(const QBluetoothDeviceInfo& device) {
@@ -53,6 +61,15 @@ void AcaiaScale::connectToDevice(const QBluetoothDeviceInfo& device) {
         return;
     }
 
+    // Prevent duplicate connection attempts
+    if (m_isConnecting) {
+        ACAIA_LOG("Already connecting, ignoring duplicate request");
+        return;
+    }
+
+    // Stop any pending timers from previous connection
+    stopAllTimers();
+
     // Reset state for new connection
     m_isPyxis = false;
     m_pyxisServiceFound = false;
@@ -60,6 +77,8 @@ void AcaiaScale::connectToDevice(const QBluetoothDeviceInfo& device) {
     m_characteristicsReady = false;
     m_receivingNotifications = false;
     m_weightReceived = false;
+    m_isConnecting = true;
+    m_identRetryCount = 0;
     m_buffer.clear();
 
     m_name = device.name();
@@ -73,15 +92,17 @@ void AcaiaScale::onTransportConnected() {
 
 void AcaiaScale::onTransportDisconnected() {
     ACAIA_LOG("Transport disconnected");
-    m_heartbeatTimer->stop();
+    stopAllTimers();
     m_weightReceived = false;
     m_characteristicsReady = false;
+    m_isConnecting = false;
     setConnected(false);
 }
 
 void AcaiaScale::onTransportError(const QString& message) {
     ACAIA_LOG(QString("Transport error: %1").arg(message));
-    m_heartbeatTimer->stop();
+    stopAllTimers();
+    m_isConnecting = false;
     emit errorOccurred("Acaia scale connection error");
     setConnected(false);
 }
@@ -135,19 +156,15 @@ void AcaiaScale::onCharacteristicsDiscoveryFinished(const QBluetoothUuid& servic
     ACAIA_LOG(QString("Characteristics discovered, protocol: %1").arg(m_isPyxis ? "Pyxis" : "IPS"));
 
     m_characteristicsReady = true;
-
-    // Start the initialization sequence with proper timing from de1app
-    // Pyxis: notifications @ 500ms, ident @ 1000ms
-    // IPS: notifications @ 100ms, ident @ 500ms
     m_receivingNotifications = false;
 
-    if (m_isPyxis) {
-        QTimer::singleShot(500, this, &AcaiaScale::enableNotifications);
-        QTimer::singleShot(1000, this, &AcaiaScale::sendIdent);
-    } else {
-        QTimer::singleShot(100, this, &AcaiaScale::enableNotifications);
-        QTimer::singleShot(500, this, &AcaiaScale::sendIdent);
-    }
+    // Start the initialization sequence
+    // Pyxis: notifications @ 500ms, then start init timer
+    // IPS: notifications @ 100ms, then start init timer
+    int notifyDelay = m_isPyxis ? 500 : 100;
+
+    QTimer::singleShot(notifyDelay, this, &AcaiaScale::enableNotifications);
+    QTimer::singleShot(notifyDelay + 500, this, &AcaiaScale::startInitSequence);
 }
 
 void AcaiaScale::enableNotifications() {
@@ -160,6 +177,58 @@ void AcaiaScale::enableNotifications() {
     } else {
         m_transport->enableNotifications(Scale::AcaiaIPS::SERVICE, Scale::AcaiaIPS::CHARACTERISTIC);
     }
+}
+
+void AcaiaScale::startInitSequence() {
+    if (!m_transport || !m_characteristicsReady) return;
+
+    ACAIA_LOG("Starting init sequence");
+    m_identRetryCount = 0;
+
+    // Start recurring timer that sends ident + config
+    m_initTimer->start(INIT_TIMER_INTERVAL_MS);
+
+    // Send first ident immediately
+    onInitTimer();
+}
+
+void AcaiaScale::onInitTimer() {
+    // Check if we're receiving notifications (scale responded)
+    if (m_receivingNotifications) {
+        ACAIA_LOG("Scale responded, stopping init sequence and starting heartbeat");
+        m_initTimer->stop();
+        m_isConnecting = false;
+
+        // Start heartbeat sequence
+        sendConfig();
+        QTimer::singleShot(1000, this, [this]() {
+            if (m_transport && m_characteristicsReady) {
+                sendHeartbeat();
+            }
+        });
+        return;
+    }
+
+    // Check retry limit
+    if (m_identRetryCount >= MAX_IDENT_RETRIES) {
+        ACAIA_LOG(QString("Init sequence failed after %1 retries").arg(MAX_IDENT_RETRIES));
+        m_initTimer->stop();
+        m_isConnecting = false;
+        emit errorOccurred("Scale not responding to ident");
+        return;
+    }
+
+    // Send ident and config
+    sendIdent();
+    // Config is sent after a short delay
+    QTimer::singleShot(200, this, [this]() {
+        if (m_transport && m_characteristicsReady && !m_receivingNotifications) {
+            sendConfig();
+        }
+    });
+
+    m_identRetryCount++;
+    ACAIA_LOG(QString("Init attempt %1/%2").arg(m_identRetryCount).arg(MAX_IDENT_RETRIES));
 }
 
 void AcaiaScale::onCharacteristicChanged(const QBluetoothUuid& characteristicUuid, const QByteArray& value) {
@@ -187,15 +256,7 @@ void AcaiaScale::sendIdent() {
     QByteArray payload = QByteArray::fromHex("3031323334353637383930313233349A6D");
     QByteArray packet = encodePacket(0x0B, payload);
     sendCommand(packet);
-
-    if (!m_receivingNotifications) {
-        // Retry ident and then send config (matching de1app timing)
-        QTimer::singleShot(400, this, &AcaiaScale::sendIdent);
-        QTimer::singleShot(1000, this, &AcaiaScale::sendConfig);
-    } else {
-        QTimer::singleShot(400, this, &AcaiaScale::sendConfig);
-        QTimer::singleShot(1500, this, &AcaiaScale::sendHeartbeat);
-    }
+    // Note: Timer scheduling is handled by onInitTimer(), not here
 }
 
 void AcaiaScale::sendConfig() {

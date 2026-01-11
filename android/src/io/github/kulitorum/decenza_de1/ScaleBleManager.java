@@ -81,7 +81,7 @@ public class ScaleBleManager extends BleManager {
             return;
         }
 
-        Log.d(TAG, "Connecting to: " + address + " device=" + device.getName() + " type=" + device.getType());
+        Log.d(TAG, "Connecting to: " + address + " device=" + device.getName() + " type=" + device.getType() + " bondState=" + device.getBondState());
 
         try {
             connect(device)

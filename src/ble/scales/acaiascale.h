@@ -34,12 +34,15 @@ private slots:
     void sendIdent();
     void sendConfig();
     void enableNotifications();
+    void onInitTimer();  // Handles ident/config retry sequence
 
 private:
     void parseResponse(const QByteArray& data);
     void decodeWeight(const QByteArray& payload, int payloadOffset);
     QByteArray encodePacket(uint8_t msgType, const QByteArray& payload);
     void sendCommand(const QByteArray& command);
+    void startInitSequence();
+    void stopAllTimers();
 
     ScaleBleTransport* m_transport = nullptr;
     QString m_name = "Acaia";
@@ -49,9 +52,18 @@ private:
     bool m_characteristicsReady = false;
     bool m_receivingNotifications = false;
     bool m_weightReceived = false;  // Track if we've received weight data
+    bool m_isConnecting = false;  // Track if connection is in progress
+
+    // Timers
     QTimer* m_heartbeatTimer = nullptr;
+    QTimer* m_initTimer = nullptr;  // Recurring timer for ident/config sequence
+    int m_identRetryCount = 0;
 
     // Message parsing state
     QByteArray m_buffer;
+
+    // Constants
     static constexpr int ACAIA_METADATA_LEN = 5;
+    static constexpr int MAX_IDENT_RETRIES = 10;  // Same as de1app
+    static constexpr int INIT_TIMER_INTERVAL_MS = 500;  // Ident + config every 500ms
 };

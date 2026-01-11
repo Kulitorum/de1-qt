@@ -105,6 +105,10 @@ private:
     // Simulator mode - disable all BLE operations
     bool m_disabled = false;
 
+    // Direct connect state - prevents duplicate connections from scan
+    bool m_directConnectInProgress = false;
+    QString m_directConnectAddress;
+
     // Scale debug log
     QStringList m_scaleLogMessages;
     QString m_scaleLogFilePath;

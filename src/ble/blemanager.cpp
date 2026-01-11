@@ -241,6 +241,17 @@ void BLEManager::onDeviceDiscovered(const QBluetoothDeviceInfo& device) {
         m_scales.append({device, scaleType});
         emit scalesChanged();
         appendScaleLog(QString("Found %1: %2 (%3)").arg(scaleType).arg(device.name()).arg(device.address().toString()));
+
+        // If we're doing a direct wake and this is our saved scale found via scan,
+        // log it and clear the direct connect state. The scan-discovered device has
+        // proper BLE metadata which may help with connection.
+        if (m_directConnectInProgress && device.address().toString().compare(m_directConnectAddress, Qt::CaseInsensitive) == 0) {
+            appendScaleLog("Direct wake: found saved scale in scan, using scanned device");
+            m_directConnectInProgress = false;
+            m_directConnectAddress.clear();
+        }
+
+        // Always emit - main.cpp checks if already connected before attempting connection
         emit scaleDiscovered(device, scaleType);
     }
 }
@@ -331,8 +342,10 @@ void BLEManager::setScaleDevice(ScaleDevice* scale) {
 
 void BLEManager::onScaleConnectedChanged() {
     if (m_scaleDevice && m_scaleDevice->isConnected()) {
-        // Scale connected - stop timeout timer, clear failure flag
+        // Scale connected - stop timeout timer, clear failure flag, clear direct connect state
         m_scaleConnectionTimer->stop();
+        m_directConnectInProgress = false;
+        m_directConnectAddress.clear();
         if (m_scaleConnectionFailed) {
             m_scaleConnectionFailed = false;
             emit scaleConnectionFailedChanged();
@@ -341,6 +354,10 @@ void BLEManager::onScaleConnectedChanged() {
 }
 
 void BLEManager::onScaleConnectionTimeout() {
+    // Clear direct connect state on timeout
+    m_directConnectInProgress = false;
+    m_directConnectAddress.clear();
+
     if (!m_scaleDevice || !m_scaleDevice->isConnected()) {
         qWarning() << "Scale connection timeout - scale not responding";
         m_scaleConnectionFailed = true;
@@ -401,25 +418,35 @@ void BLEManager::tryDirectConnectToScale() {
         return;
     }
 
-    // Create a QBluetoothDeviceInfo from just the address - this allows us to
-    // connect directly to a sleeping scale without scanning. The BLE connection
-    // request itself will wake the scale (this is how the official de1app works).
-    QBluetoothAddress address(m_savedScaleAddress);
+    // Direct wake strategy:
+    // 1. Try direct connection to saved address (may wake sleeping scales that respond to connect requests)
+    // 2. Also start scanning in parallel (finds scales that are actively advertising)
+    // 3. Whichever succeeds first wins - we don't skip scan results even if direct connect is in progress
+    //
+    // de1app does both: ble connect + scanning, and calls ble_connect_to_scale again when
+    // the device appears in scan results (bluetooth.tcl lines 2032 and 2252-2256)
+
+    QString upperAddress = m_savedScaleAddress.toUpper();
+    QBluetoothAddress address(upperAddress);
     QString deviceName = m_savedScaleName.isEmpty() ? m_savedScaleType : m_savedScaleName;
     QBluetoothDeviceInfo deviceInfo(address, deviceName, QBluetoothDeviceInfo::LowEnergyCoreConfiguration);
 
-    qDebug() << "BLEManager: Attempting direct connect to scale" << deviceName << "at" << m_savedScaleAddress;
+    qDebug() << "BLEManager: Direct wake - connecting to" << deviceName << "at" << upperAddress;
     appendScaleLog(QString("Direct wake: connecting to %1 at %2").arg(deviceName, m_savedScaleAddress));
+
+    // Mark that we're doing a direct connect - but we won't skip scan results
+    // Instead, onDeviceDiscovered will check if scale is already connected
+    m_directConnectInProgress = true;
+    m_directConnectAddress = upperAddress;
 
     // Start timeout timer
     m_scaleConnectionTimer->start();
 
-    // Emit scaleDiscovered to trigger connection via main.cpp handler
-    // The direct BLE connect request will wake the sleeping scale
+    // Try direct connection - this may wake the scale
     emit scaleDiscovered(deviceInfo, m_savedScaleType);
 
-    // Also start scanning as fallback - if direct connect fails, we might find
-    // the scale through regular discovery (e.g., if it woke up from button press)
+    // Also start scanning in parallel - if the scale is advertising, we'll find it
+    // and connect via the scan path (which has a real QBluetoothDeviceInfo)
     m_scanningForScales = true;
     if (!m_scanning) {
         startScan();
