@@ -333,6 +333,8 @@ set(QML_FILES
     qml/components/StyledSwitch.qml
     qml/components/StyledComboBox.qml
     qml/components/StyledButton.qml
+    qml/components/StyledIconButton.qml
+    qml/components/StyledTabButton.qml
     qml/components/PipesScreensaver.qml
     qml/components/FlipClockScreensaver.qml
     qml/components/StrangeAttractorScreensaver.qml

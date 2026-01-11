@@ -149,24 +149,10 @@ Page {
                 Layout.fillWidth: true
             }
 
-            Button {
+            StyledButton {
                 text: qsTr("Switch to D-Flow Editor")
+                subtle: true
                 onClicked: switchToDFlowDialog.open()
-                background: Rectangle {
-                    implicitWidth: Theme.scaled(180)
-                    implicitHeight: Theme.scaled(32)
-                    radius: Theme.scaled(6)
-                    color: Qt.rgba(1, 1, 1, 0.2)
-                    border.width: 1
-                    border.color: Qt.rgba(1, 1, 1, 0.5)
-                }
-                contentItem: Text {
-                    text: parent.text
-                    font: Theme.captionFont
-                    color: "white"
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
             }
         }
     }

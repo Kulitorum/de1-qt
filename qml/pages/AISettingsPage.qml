@@ -57,7 +57,8 @@ Page {
 
                 delegate: Rectangle {
                     Layout.fillWidth: true
-                    height: Theme.scaled(60)
+                    Layout.maximumWidth: Theme.scaled(500)
+                    height: Theme.scaled(70)
                     radius: Theme.buttonRadius
                     color: Settings.aiProvider === modelData.id ? Theme.primaryColor : Theme.surfaceColor
                     border.color: Settings.aiProvider === modelData.id ? Theme.primaryColor : Theme.borderColor

@@ -64,218 +64,67 @@ Page {
             color: "transparent"
         }
 
-        TabButton {
+        StyledTabButton {
             id: bluetoothTab
             text: TranslationManager.translate("settings.tab.bluetooth", "Bluetooth")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 0
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 0 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 0 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.bluetooth", "Bluetooth") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 0 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: bluetoothTab
-                onAccessibleClicked: tabBar.currentIndex = 0
-            }
+            tabLabel: TranslationManager.translate("settings.tab.bluetooth", "Bluetooth")
         }
 
-        TabButton {
+        StyledTabButton {
             id: preferencesTabButton
             text: TranslationManager.translate("settings.tab.preferences", "Preferences")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 1
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 1 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 1 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.preferences", "Preferences") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 1 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: preferencesTabButton
-                onAccessibleClicked: tabBar.currentIndex = 1
-            }
+            tabLabel: TranslationManager.translate("settings.tab.preferences", "Preferences")
         }
 
-        TabButton {
+        StyledTabButton {
             id: optionsTabButton
             text: TranslationManager.translate("settings.tab.options", "Options")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 2
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 2 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 2 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.options", "Options") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 2 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: optionsTabButton
-                onAccessibleClicked: tabBar.currentIndex = 2
-            }
+            tabLabel: TranslationManager.translate("settings.tab.options", "Options")
         }
 
-        TabButton {
+        StyledTabButton {
             id: screensaverTab
             text: TranslationManager.translate("settings.tab.screensaver", "Screensaver")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 3
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 3 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 3 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.screensaver", "Screensaver") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 3 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: screensaverTab
-                onAccessibleClicked: tabBar.currentIndex = 3
-            }
+            tabLabel: TranslationManager.translate("settings.tab.screensaver", "Screensaver")
         }
 
-        TabButton {
+        StyledTabButton {
             id: visualizerTabButton
             text: TranslationManager.translate("settings.tab.visualizer", "Visualizer")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 4
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 4 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 4 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.visualizer", "Visualizer") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 4 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: visualizerTabButton
-                onAccessibleClicked: tabBar.currentIndex = 4
-            }
+            tabLabel: TranslationManager.translate("settings.tab.visualizer", "Visualizer")
         }
 
-        TabButton {
+        StyledTabButton {
             id: aiTabButton
             text: TranslationManager.translate("settings.tab.ai", "AI")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 5
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 5 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 5 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.ai", "AI") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 5 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: aiTabButton
-                onAccessibleClicked: tabBar.currentIndex = 5
-            }
+            tabLabel: TranslationManager.translate("settings.tab.ai", "AI")
         }
 
-        TabButton {
+        StyledTabButton {
             id: accessibilityTabButton
             text: TranslationManager.translate("settings.tab.accessibility", "Access")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 6
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 6 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 6 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.accessibility.full", "Accessibility") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 6 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: accessibilityTabButton
-                onAccessibleClicked: tabBar.currentIndex = 6
-            }
+            tabLabel: TranslationManager.translate("settings.tab.accessibility.full", "Accessibility")
         }
 
-        TabButton {
+        StyledTabButton {
             id: themesTabButton
             text: TranslationManager.translate("settings.tab.themes", "Themes")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 7
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 7 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 7 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.themes", "Themes") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 7 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: themesTabButton
-                onAccessibleClicked: tabBar.currentIndex = 7
-            }
+            tabLabel: TranslationManager.translate("settings.tab.themes", "Themes")
         }
 
-        TabButton {
+        // Language tab with badge for untranslated strings
+        StyledTabButton {
             id: languageTabButton
             text: TranslationManager.translate("settings.tab.language", "Language")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 8
+            tabLabel: TranslationManager.translate("settings.tab.language", "Language")
+
+            // Override contentItem to add badge
             contentItem: Row {
                 spacing: Theme.scaled(4)
                 Text {
-                    text: parent.parent.text
-                    font: parent.parent.font
-                    color: tabBar.currentIndex === 8 ? Theme.textColor : Theme.textSecondaryColor
+                    text: languageTabButton.text
+                    font: languageTabButton.font
+                    color: languageTabButton.checked ? Theme.textColor : Theme.textSecondaryColor
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     anchors.verticalCenter: parent.verticalCenter
@@ -298,117 +147,32 @@ Page {
                     }
                 }
             }
-            background: Rectangle {
-                color: tabBar.currentIndex === 8 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.language", "Language") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 8 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: languageTabButton
-                onAccessibleClicked: tabBar.currentIndex = 8
-            }
         }
 
-        TabButton {
+        StyledTabButton {
             id: historyTabButton
             text: TranslationManager.translate("settings.tab.history", "History")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 9
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 9 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 9 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.history", "History") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 9 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: historyTabButton
-                onAccessibleClicked: tabBar.currentIndex = 9
-            }
+            tabLabel: TranslationManager.translate("settings.tab.history", "History")
         }
 
-        TabButton {
+        StyledTabButton {
             id: updateTabButton
             text: TranslationManager.translate("settings.tab.update", "Update")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 10
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 10 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 10 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.update", "Update") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 10 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: updateTabButton
-                onAccessibleClicked: tabBar.currentIndex = 10
-            }
+            tabLabel: TranslationManager.translate("settings.tab.update", "Update")
         }
 
-        TabButton {
+        StyledTabButton {
             id: aboutTabButton
             text: TranslationManager.translate("settings.tab.about", "About")
-            width: implicitWidth
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 11
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 11 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 11 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.about", "About") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 11 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: aboutTabButton
-                onAccessibleClicked: tabBar.currentIndex = 11
-            }
+            tabLabel: TranslationManager.translate("settings.tab.about", "About")
         }
 
-        TabButton {
+        StyledTabButton {
             id: debugTabButton
             visible: Settings.isDebugBuild
             text: TranslationManager.translate("settings.tab.debug", "Debug")
+            tabLabel: TranslationManager.translate("settings.tab.debug", "Debug")
             width: visible ? implicitWidth : 0
-            font.pixelSize: Theme.scaled(14)
-            font.bold: tabBar.currentIndex === 12
-            contentItem: Text {
-                text: parent.text
-                font: parent.font
-                color: tabBar.currentIndex === 12 ? Theme.textColor : Theme.textSecondaryColor
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-            background: Rectangle {
-                color: tabBar.currentIndex === 12 ? Theme.surfaceColor : "transparent"
-                radius: Theme.scaled(6)
-            }
-            AccessibleMouseArea {
-                anchors.fill: parent
-                accessibleName: TranslationManager.translate("settings.tab.debug", "Debug") + " " + TranslationManager.translate("common.tab", "tab") + (tabBar.currentIndex === 12 ? ", " + TranslationManager.translate("common.selected", "selected") : "")
-                accessibleItem: debugTabButton
-                onAccessibleClicked: tabBar.currentIndex = 12
-            }
         }
     }
 

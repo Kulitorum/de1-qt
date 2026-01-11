@@ -15,6 +15,8 @@ Qt/C++ cross-platform controller for the Decent Espresso DE1 machine with BLE co
 
 ## Command Line Build (for Claude sessions)
 
+**IMPORTANT**: Don't build automatically - let the user build in Qt Creator, which is ~50x faster than command-line builds. Only use these commands if the user explicitly asks for a CLI build.
+
 MSVC environment variables (INCLUDE, LIB) are set permanently. Use Visual Studio generator (Ninja not in PATH).
 
 **Configure Release:**

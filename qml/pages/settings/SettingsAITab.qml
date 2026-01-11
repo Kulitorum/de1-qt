@@ -22,121 +22,130 @@ KeyboardAwareContainer {
         }
     }
 
-    ColumnLayout {
-        id: aiTabContent
+    // Full-width card
+    Rectangle {
         anchors.fill: parent
-        spacing: Theme.scaled(10)
+        anchors.margins: Theme.scaled(8)
+        color: Theme.surfaceColor
+        radius: Theme.cardRadius
 
-        // Provider selection - horizontal row
-        Rectangle {
-            Layout.fillWidth: true
-            height: Theme.scaled(70)
-            color: Theme.surfaceColor
-            radius: Theme.cardRadius
+        Flickable {
+            anchors.fill: parent
+            anchors.margins: Theme.scaled(16)
+            contentHeight: aiTabContent.implicitHeight
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: Theme.scaled(8)
-                spacing: Theme.scaled(6)
+            ColumnLayout {
+                id: aiTabContent
+                width: parent.width
+                spacing: Theme.scaled(16)
 
-                Repeater {
-                    model: [
-                        { id: "openai", name: "OpenAI", desc: "GPT-4o" },
-                        { id: "anthropic", name: "Anthropic", desc: "Claude" },
-                        { id: "gemini", name: "Gemini", desc: "Flash" },
-                        { id: "ollama", name: "Ollama", desc: "Local" }
-                    ]
+                // Provider selection - centered row of fixed-size buttons
+                Item {
+                    Layout.fillWidth: true
+                    implicitHeight: providerRow.height
 
-                    delegate: Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: Theme.scaled(6)
+                    Row {
+                        id: providerRow
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: Theme.scaled(8)
 
-                        property bool isSelected: Settings.aiProvider === modelData.id
-                        property bool hasKey: aiTab.isProviderConfigured(modelData.id)
+                        Repeater {
+                            model: [
+                                { id: "openai", name: "OpenAI", desc: "GPT-4o" },
+                                { id: "anthropic", name: "Anthropic", desc: "Claude" },
+                                { id: "gemini", name: "Gemini", desc: "Flash" },
+                                { id: "ollama", name: "Ollama", desc: "Local" }
+                            ]
 
-                        color: {
-                            if (isSelected) return Theme.primaryColor
-                            if (hasKey) return Qt.rgba(0.2, 0.7, 0.3, 0.25)
-                            return Qt.darker(Theme.surfaceColor, 1.15)
-                        }
-                        border.color: {
-                            if (isSelected) return Theme.primaryColor
-                            if (hasKey) return Qt.rgba(0.2, 0.7, 0.3, 0.5)
-                            return "transparent"
-                        }
-                        border.width: isSelected ? 2 : 1
+                            delegate: Rectangle {
+                                width: Theme.scaled(90)
+                                height: Theme.scaled(56)
+                                radius: Theme.scaled(8)
 
-                        Column {
-                            anchors.centerIn: parent
-                            spacing: Theme.scaled(2)
+                                property bool isSelected: Settings.aiProvider === modelData.id
+                                property bool hasKey: aiTab.isProviderConfigured(modelData.id)
 
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: modelData.name
-                                font.pixelSize: Theme.scaled(12)
-                                font.bold: isSelected
-                                color: isSelected ? "white" : Theme.textColor
+                                color: {
+                                    if (isSelected) return Theme.primaryColor
+                                    if (hasKey) return Qt.rgba(0.2, 0.7, 0.3, 0.25)
+                                    return Theme.backgroundColor
+                                }
+                                border.color: {
+                                    if (isSelected) return Theme.primaryColor
+                                    if (hasKey) return Qt.rgba(0.2, 0.7, 0.3, 0.5)
+                                    return Theme.borderColor
+                                }
+                                border.width: 1
+
+                                Column {
+                                    anchors.centerIn: parent
+                                    spacing: Theme.scaled(2)
+
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: modelData.name
+                                        font.pixelSize: Theme.scaled(13)
+                                        font.bold: isSelected
+                                        color: isSelected ? "white" : Theme.textColor
+                                    }
+                                    Text {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        text: modelData.desc
+                                        font.pixelSize: Theme.scaled(11)
+                                        color: isSelected ? Qt.rgba(1,1,1,0.8) : Theme.textSecondaryColor
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: Settings.aiProvider = modelData.id
+                                }
                             }
-                            Text {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: modelData.desc
-                                font.pixelSize: Theme.scaled(10)
-                                color: isSelected ? Qt.rgba(1,1,1,0.8) : Theme.textSecondaryColor
-                            }
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: Settings.aiProvider = modelData.id
                         }
                     }
                 }
-            }
-        }
 
-        // Claude recommendation note
-        Rectangle {
-            Layout.fillWidth: true
-            color: Qt.rgba(Theme.primaryColor.r, Theme.primaryColor.g, Theme.primaryColor.b, 0.15)
-            radius: Theme.cardRadius
-            height: recommendationText.implicitHeight + 16
+                // Divider
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Theme.borderColor
+                }
 
-            Tr {
-                id: recommendationText
-                anchors.fill: parent
-                anchors.margins: Theme.scaled(8)
-                key: "settings.ai.recommendation"
-                fallback: "For shot analysis, we recommend Claude (Anthropic). In our testing, Claude better understands espresso extraction dynamics and gives more accurate dial-in advice. Other providers work for translation and general tasks."
-                wrapMode: Text.WordWrap
-                color: Theme.textSecondaryColor
-                font.pixelSize: Theme.scaled(11)
-            }
-        }
+                // Claude recommendation note
+                Rectangle {
+                    Layout.fillWidth: true
+                    color: Qt.rgba(Theme.primaryColor.r, Theme.primaryColor.g, Theme.primaryColor.b, 0.15)
+                    radius: Theme.scaled(6)
+                    implicitHeight: recommendationText.implicitHeight + Theme.scaled(16)
 
-        // API Key / Ollama settings
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: Theme.surfaceColor
-            radius: Theme.cardRadius
+                    Tr {
+                        id: recommendationText
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: Theme.scaled(12)
+                        key: "settings.ai.recommendation"
+                        fallback: "For shot analysis, we recommend Claude (Anthropic). In our testing, Claude better understands espresso extraction dynamics and gives more accurate dial-in advice. Other providers work for translation and general tasks."
+                        wrapMode: Text.WordWrap
+                        color: Theme.textSecondaryColor
+                        font.pixelSize: Theme.scaled(12)
+                    }
+                }
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: Theme.scaled(12)
-                spacing: Theme.scaled(8)
-
-                // Cloud provider API key
+                // API Key section (cloud providers)
                 ColumnLayout {
                     visible: Settings.aiProvider !== "ollama"
                     Layout.fillWidth: true
-                    spacing: Theme.scaled(6)
+                    spacing: Theme.scaled(8)
 
                     Tr {
                         key: "settings.ai.apiKey"
                         fallback: "API Key"
                         color: Theme.textColor
-                        font.pixelSize: Theme.scaled(13)
+                        font.pixelSize: Theme.scaled(14)
                         font.bold: true
                     }
 
@@ -181,28 +190,23 @@ KeyboardAwareContainer {
                 ColumnLayout {
                     visible: Settings.aiProvider === "ollama"
                     Layout.fillWidth: true
-                    spacing: Theme.scaled(6)
+                    spacing: Theme.scaled(8)
 
                     Tr {
                         key: "settings.ai.ollamaSettings"
                         fallback: "Ollama Settings"
                         color: Theme.textColor
-                        font.pixelSize: Theme.scaled(13)
+                        font.pixelSize: Theme.scaled(14)
                         font.bold: true
                     }
 
-                    RowLayout {
+                    StyledTextField {
+                        id: ollamaEndpointField
                         Layout.fillWidth: true
-                        spacing: Theme.scaled(8)
-
-                        StyledTextField {
-                            id: ollamaEndpointField
-                            Layout.fillWidth: true
-                            placeholderText: "http://localhost:11434"
-                            text: Settings.ollamaEndpoint
-                            inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase | Qt.ImhUrlCharactersOnly
-                            onTextChanged: Settings.ollamaEndpoint = text
-                        }
+                        placeholderText: "http://localhost:11434"
+                        text: Settings.ollamaEndpoint
+                        inputMethodHints: Qt.ImhNoPredictiveText | Qt.ImhNoAutoUppercase | Qt.ImhUrlCharactersOnly
+                        onTextChanged: Settings.ollamaEndpoint = text
                     }
 
                     RowLayout {
@@ -214,73 +218,40 @@ KeyboardAwareContainer {
                             model: MainController.aiManager ? MainController.aiManager.ollamaModels : []
                             currentIndex: model ? model.indexOf(Settings.ollamaModel) : -1
                             onCurrentTextChanged: if (currentText) Settings.ollamaModel = currentText
-                            background: Rectangle {
-                                implicitHeight: Theme.scaled(36)
-                                color: Theme.surfaceColor
-                                border.color: Theme.borderColor
-                                radius: Theme.scaled(6)
-                            }
                         }
 
-                        Rectangle {
-                            width: Theme.scaled(70)
-                            height: Theme.scaled(36)
-                            radius: Theme.scaled(6)
-                            color: Theme.surfaceColor
-                            border.color: Theme.borderColor
-
-                            Tr {
-                                anchors.centerIn: parent
-                                key: "settings.ai.refresh"
-                                fallback: "Refresh"
-                                color: Theme.textColor
-                                font.pixelSize: Theme.scaled(12)
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: MainController.aiManager?.refreshOllamaModels()
-                            }
+                        StyledButton {
+                            text: TranslationManager.translate("settings.ai.refresh", "Refresh")
+                            onClicked: MainController.aiManager?.refreshOllamaModels()
                         }
                     }
 
-                    Tr {
-                        key: "settings.ai.ollamainstall"
-                        fallback: "Install: ollama.ai -> run: ollama pull llama3.2"
+                    Text {
+                        text: TranslationManager.translate("settings.ai.ollamainstall", "Install: ollama.ai -> run: ollama pull llama3.2")
                         color: Theme.textSecondaryColor
                         font.pixelSize: Theme.scaled(11)
                     }
                 }
 
-                Item { Layout.fillHeight: true }
+                // Divider
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 1
+                    color: Theme.borderColor
+                }
 
-                // Test connection + cost in a row
+                // Test connection row
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: Theme.scaled(10)
+                    spacing: Theme.scaled(12)
 
-                    Rectangle {
-                        width: Theme.scaled(110)
-                        height: Theme.scaled(36)
-                        radius: Theme.scaled(6)
-                        color: MainController.aiManager?.isConfigured ? Theme.primaryColor : Theme.surfaceColor
-                        border.color: MainController.aiManager?.isConfigured ? Theme.primaryColor : Theme.borderColor
-
-                        Tr {
-                            anchors.centerIn: parent
-                            key: "settings.ai.testconnection"
-                            fallback: "Test Connection"
-                            color: MainController.aiManager?.isConfigured ? "white" : Theme.textSecondaryColor
-                            font.pixelSize: Theme.scaled(12)
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: MainController.aiManager?.isConfigured
-                            onClicked: {
-                                aiTab.testResultMessage = TranslationManager.translate("settings.ai.testing", "Testing...")
-                                MainController.aiManager.testConnection()
-                            }
+                    StyledButton {
+                        primary: MainController.aiManager?.isConfigured ?? false
+                        enabled: MainController.aiManager?.isConfigured ?? false
+                        text: TranslationManager.translate("settings.ai.testconnection", "Test Connection")
+                        onClicked: {
+                            aiTab.testResultMessage = TranslationManager.translate("settings.ai.testing", "Testing...")
+                            MainController.aiManager.testConnection()
                         }
                     }
 
@@ -288,7 +259,7 @@ KeyboardAwareContainer {
                         visible: aiTab.testResultMessage.length > 0
                         text: aiTab.testResultMessage
                         color: aiTab.testResultSuccess ? Theme.successColor : Theme.errorColor
-                        font.pixelSize: Theme.scaled(11)
+                        font.pixelSize: Theme.scaled(12)
                         Layout.fillWidth: true
                         elide: Text.ElideRight
                     }
@@ -305,44 +276,29 @@ KeyboardAwareContainer {
                             }
                         }
                         color: Theme.textSecondaryColor
-                        font.pixelSize: Theme.scaled(11)
+                        font.pixelSize: Theme.scaled(12)
                     }
 
                     Item { Layout.fillWidth: true }
 
-                    // Continue Conversation button
-                    Rectangle {
+                    StyledButton {
                         id: continueConversationBtn
                         property bool hasConversation: MainController.aiManager && MainController.aiManager.conversation &&
                                                        MainController.aiManager.conversation.hasSavedConversation
                         visible: MainController.aiManager && MainController.aiManager.isConfigured
-                        width: Math.max(Theme.scaled(100), continueText.implicitWidth + Theme.scaled(24))
-                        height: Theme.scaled(36)
-                        radius: Theme.scaled(6)
-                        color: Theme.surfaceColor
-                        border.color: continueConversationBtn.hasConversation ? Theme.primaryColor : Theme.borderColor
-                        opacity: continueConversationBtn.hasConversation ? 1.0 : 0.5
-
-                        Text {
-                            id: continueText
-                            anchors.centerIn: parent
-                            text: continueConversationBtn.hasConversation
-                                  ? TranslationManager.translate("settings.ai.continueconversation", "Continue Chat")
-                                  : TranslationManager.translate("settings.ai.noconversation", "No Chat")
-                            font.pixelSize: Theme.scaled(12)
-                            color: continueConversationBtn.hasConversation ? Theme.primaryColor : Theme.textSecondaryColor
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: continueConversationBtn.hasConversation
-                            onClicked: {
-                                MainController.aiManager.conversation.loadFromStorage()
-                                conversationOverlay.visible = true
-                            }
+                        enabled: hasConversation
+                        text: hasConversation
+                              ? TranslationManager.translate("settings.ai.continueconversation", "Continue Chat")
+                              : TranslationManager.translate("settings.ai.noconversation", "No Chat")
+                        onClicked: {
+                            MainController.aiManager.conversation.loadFromStorage()
+                            conversationOverlay.visible = true
                         }
                     }
                 }
+
+                // Spacer to push content up
+                Item { Layout.fillHeight: true }
             }
         }
     }
@@ -387,51 +343,35 @@ KeyboardAwareContainer {
 
                     Item { Layout.fillWidth: true }
 
-                    Rectangle {
-                        width: clearBtnText.width + Theme.scaled(16)
-                        height: Theme.scaled(28)
-                        radius: Theme.scaled(4)
-                        color: Theme.errorColor
-
-                        Text {
-                            id: clearBtnText
-                            anchors.centerIn: parent
-                            text: TranslationManager.translate("settings.ai.conversation.clear", "Clear")
+                    StyledButton {
+                        text: TranslationManager.translate("settings.ai.conversation.clear", "Clear")
+                        onClicked: {
+                            MainController.aiManager?.conversation?.clearHistory()
+                            MainController.aiManager?.conversation?.saveToStorage()
+                            conversationOverlay.visible = false
+                        }
+                        background: Rectangle {
+                            implicitHeight: Theme.scaled(28)
+                            color: Theme.errorColor
+                            radius: Theme.scaled(4)
+                        }
+                        contentItem: Text {
+                            text: parent.text
                             font.pixelSize: Theme.scaled(11)
                             color: "white"
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                MainController.aiManager?.conversation?.clearHistory()
-                                MainController.aiManager?.conversation?.saveToStorage()
-                                conversationOverlay.visible = false
-                            }
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
                         }
                     }
 
-                    Item { width: Theme.scaled(12) }
+                    Item { width: Theme.scaled(8) }
 
-                    Rectangle {
-                        width: Theme.scaled(28)
-                        height: Theme.scaled(28)
-                        radius: Theme.scaled(14)
-                        color: Theme.backgroundColor
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "\u00D7"
-                            font.pixelSize: Theme.scaled(18)
-                            color: Theme.textColor
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                MainController.aiManager?.conversation?.saveToStorage()
-                                conversationOverlay.visible = false
-                            }
+                    StyledIconButton {
+                        text: "\u00D7"
+                        accessibleName: TranslationManager.translate("common.close", "Close")
+                        onClicked: {
+                            MainController.aiManager?.conversation?.saveToStorage()
+                            conversationOverlay.visible = false
                         }
                     }
                 }
@@ -496,25 +436,11 @@ KeyboardAwareContainer {
                         }
                     }
 
-                    Rectangle {
-                        width: Theme.scaled(50)
-                        height: Theme.scaled(36)
-                        radius: Theme.scaled(6)
-                        color: conversationInput.text.length > 0 ? Theme.primaryColor : Theme.surfaceColor
-                        border.color: conversationInput.text.length > 0 ? Theme.primaryColor : Theme.borderColor
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: TranslationManager.translate("settings.ai.conversation.send", "Send")
-                            font.pixelSize: Theme.scaled(12)
-                            color: conversationInput.text.length > 0 ? "white" : Theme.textSecondaryColor
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            enabled: conversationInput.text.length > 0 && !(MainController.aiManager?.conversation?.busy ?? true)
-                            onClicked: conversationInput.sendMsg()
-                        }
+                    StyledButton {
+                        primary: conversationInput.text.length > 0
+                        enabled: conversationInput.text.length > 0 && !(MainController.aiManager?.conversation?.busy ?? true)
+                        text: TranslationManager.translate("settings.ai.conversation.send", "Send")
+                        onClicked: conversationInput.sendMsg()
                     }
                 }
             }

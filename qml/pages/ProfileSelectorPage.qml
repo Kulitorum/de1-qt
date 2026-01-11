@@ -291,13 +291,15 @@ Page {
                             }
 
                             // === "Decent Built-in" view: Select/Unselect toggle ===
-                            RoundButton {
+                            StyledIconButton {
                                 id: selectToggleButton
                                 visible: viewFilter.currentIndex === 2  // Only in "Decent Built-in"
                                 Layout.preferredWidth: Theme.scaled(40)
                                 Layout.preferredHeight: Theme.scaled(40)
                                 Layout.alignment: Qt.AlignVCenter
-                                flat: true
+                                text: profileDelegate.isSelected ? "\u2605" : "\u2606"
+                                active: profileDelegate.isSelected
+                                accessibleName: profileDelegate.isSelected ? TranslationManager.translate("profileselector.accessible.remove_from_selected", "Remove from selected") : TranslationManager.translate("profileselector.accessible.add_to_selected", "Add to selected")
 
                                 onClicked: {
                                     if (profileDelegate.isSelected) {
@@ -306,32 +308,19 @@ Page {
                                         Settings.addSelectedBuiltInProfile(modelData.name)
                                     }
                                 }
-
-                                contentItem: Text {
-                                    text: profileDelegate.isSelected ? "\u2605" : "\u2606"
-                                    font.pixelSize: Theme.scaled(20)
-                                    color: profileDelegate.isSelected ? Theme.primaryColor : Theme.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle {
-                                    radius: width / 2
-                                    color: "transparent"
-                                }
-
-                                Accessible.role: Accessible.Button
-                                Accessible.name: profileDelegate.isSelected ? TranslationManager.translate("profileselector.accessible.remove_from_selected", "Remove from selected") : TranslationManager.translate("profileselector.accessible.add_to_selected", "Add to selected")
                             }
 
                             // === "Selected" view: Favorite toggle button (hollow/filled star) ===
-                            RoundButton {
+                            StyledIconButton {
                                 id: favoriteToggleButton
                                 visible: viewFilter.currentIndex === 0  // Only in "Selected" view
                                 Layout.preferredWidth: Theme.scaled(40)
                                 Layout.preferredHeight: Theme.scaled(40)
                                 Layout.alignment: Qt.AlignVCenter
-                                flat: true
                                 enabled: profileDelegate.isFavorite || Settings.favoriteProfiles.length < 50
+                                text: profileDelegate.isFavorite ? "\u2605" : "\u2606"
+                                active: profileDelegate.isFavorite
+                                accessibleName: profileDelegate.isFavorite ? TranslationManager.translate("profileselector.accessible.remove_from_favorites", "Remove from favorites") : TranslationManager.translate("profileselector.accessible.add_to_favorites", "Add to favorites")
 
                                 onClicked: {
                                     if (profileDelegate.isFavorite) {
@@ -347,31 +336,19 @@ Page {
                                         Settings.addFavoriteProfile(modelData.title, modelData.name)
                                     }
                                 }
-
-                                contentItem: Text {
-                                    text: profileDelegate.isFavorite ? "\u2605" : "\u2606"  // Filled or hollow star
-                                    font.pixelSize: Theme.scaled(20)
-                                    color: profileDelegate.isFavorite ? Theme.primaryColor : Theme.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle {
-                                    radius: width / 2
-                                    color: favoriteToggleButton.pressed ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-                                }
-
-                                Accessible.role: Accessible.Button
-                                Accessible.name: profileDelegate.isFavorite ? TranslationManager.translate("profileselector.accessible.remove_from_favorites", "Remove from favorites") : TranslationManager.translate("profileselector.accessible.add_to_favorites", "Add to favorites")
                             }
 
                             // === "Selected" view: Overflow menu button ===
-                            RoundButton {
+                            StyledIconButton {
                                 id: overflowButton
                                 visible: viewFilter.currentIndex === 0  // Only in "Selected" view
                                 Layout.preferredWidth: Theme.scaled(40)
                                 Layout.preferredHeight: Theme.scaled(40)
                                 Layout.alignment: Qt.AlignVCenter
-                                flat: true
+                                text: "\u22EE"  // Vertical ellipsis ⋮
+                                font.pixelSize: Theme.scaled(24)
+                                inactiveColor: Theme.textColor
+                                accessibleName: TranslationManager.translate("profileselector.accessible.more_options", "More options for") + " " + modelData.title
 
                                 onClicked: {
                                     var pos = mapToItem(profileDelegate, 0, height)
@@ -379,21 +356,6 @@ Page {
                                     overflowMenu.y = pos.y
                                     overflowMenu.open()
                                 }
-
-                                contentItem: Text {
-                                    text: "\u22EE"  // Vertical ellipsis ⋮
-                                    font.pixelSize: Theme.scaled(24)
-                                    color: Theme.textColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-                                background: Rectangle {
-                                    radius: width / 2
-                                    color: overflowButton.pressed ? Qt.rgba(1, 1, 1, 0.1) : "transparent"
-                                }
-
-                                Accessible.role: Accessible.Button
-                                Accessible.name: TranslationManager.translate("profileselector.accessible.more_options", "More options for") + " " + modelData.title
                             }
                         }
 
@@ -572,14 +534,14 @@ Page {
                         }
 
                         // Edit button - opens in profile editor
-                        RoundButton {
+                        StyledIconButton {
                             Layout.preferredWidth: Theme.scaled(36)
                             Layout.preferredHeight: Theme.scaled(36)
-                            flat: true
                             icon.source: "qrc:/icons/edit.svg"
                             icon.width: Theme.scaled(18)
                             icon.height: Theme.scaled(18)
                             icon.color: "white"
+                            accessibleName: TranslationManager.translate("profileselector.accessible.edit_profile", "Edit profile")
 
                             onClicked: {
                                 // Profile is already loaded, just open editor
@@ -671,73 +633,41 @@ Page {
                                 }
 
                                 // Edit button
-                                RoundButton {
+                                StyledIconButton {
                                     id: editFavoriteButton
                                     Layout.preferredWidth: Theme.scaled(36)
                                     Layout.preferredHeight: Theme.scaled(36)
-                                    flat: true
                                     icon.source: "qrc:/icons/edit.svg"
                                     icon.width: Theme.scaled(18)
                                     icon.height: Theme.scaled(18)
-                                    icon.color: index === Settings.selectedFavoriteProfile ?
-                                               "white" : Theme.textColor
+                                    icon.color: index === Settings.selectedFavoriteProfile ? "white" : Theme.textColor
+                                    accessibleName: modelData ? (TranslationManager.translate("profileselector.accessible.edit", "Edit") + " " + root.cleanForSpeech(modelData.name)) : ""
 
-                                    function doEdit() {
+                                    onClicked: {
                                         if (!modelData) return
                                         Settings.selectedFavoriteProfile = index
                                         MainController.loadProfile(modelData.filename)
                                         root.goToProfileEditor()
                                     }
-
-                                    onClicked: doEdit()
-
-                                    // Using TapHandler for better touch responsiveness
-                                    AccessibleTapHandler {
-                                        anchors.fill: parent
-                                        accessibleName: modelData ? (TranslationManager.translate("profileselector.accessible.edit", "Edit") + " " + root.cleanForSpeech(modelData.name)) : ""
-                                        accessibleItem: editFavoriteButton
-                                        onAccessibleClicked: editFavoriteButton.doEdit()
-                                    }
                                 }
 
                                 // Remove button
-                                RoundButton {
+                                StyledIconButton {
                                     id: removeFavoriteButton
                                     Layout.preferredWidth: Theme.scaled(36)
                                     Layout.preferredHeight: Theme.scaled(36)
-                                    flat: true
                                     text: "\u00D7"  // × multiplication sign
                                     font.pixelSize: Theme.scaled(20)
+                                    inactiveColor: Theme.errorColor
+                                    accessibleName: modelData ? (TranslationManager.translate("profileselector.accessible.remove", "Remove") + " " + root.cleanForSpeech(modelData.name) + " " + TranslationManager.translate("profileselector.accessible.from_favorites", "from favorites")) : ""
 
-                                    function doRemove() {
+                                    onClicked: {
                                         if (!modelData) return
                                         var name = root.cleanForSpeech(modelData.name)
                                         Settings.removeFavoriteProfile(index)
                                         if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
                                             AccessibilityManager.announce(name + " " + TranslationManager.translate("profileselector.accessible.removed_from_favorites", "removed from favorites"))
                                         }
-                                    }
-
-                                    onClicked: doRemove()
-
-                                    contentItem: Text {
-                                        text: parent.text
-                                        font: parent.font
-                                        color: Theme.errorColor
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                    }
-                                    background: Rectangle {
-                                        radius: width / 2
-                                        color: "transparent"
-                                    }
-
-                                    // Using TapHandler for better touch responsiveness
-                                    AccessibleTapHandler {
-                                        anchors.fill: parent
-                                        accessibleName: modelData ? (TranslationManager.translate("profileselector.accessible.remove", "Remove") + " " + root.cleanForSpeech(modelData.name) + " " + TranslationManager.translate("profileselector.accessible.from_favorites", "from favorites")) : ""
-                                        accessibleItem: removeFavoriteButton
-                                        onAccessibleClicked: removeFavoriteButton.doRemove()
                                     }
                                 }
                             }

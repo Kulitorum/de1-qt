@@ -870,22 +870,11 @@ ApplicationWindow {
                         }
                         updateDialog.close()
                     }
-                    background: Rectangle {
-                        color: Theme.surfaceColor
-                        radius: Theme.buttonRadius
-                        border.color: Theme.borderColor
-                        border.width: 1
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: Theme.textColor
-                        font: Theme.labelFont
-                        horizontalAlignment: Text.AlignHCenter
-                    }
                 }
 
                 StyledButton {
                     text: TranslationManager.translate("update.updatenow", "Update Now")
+                    primary: true
                     onClicked: {
                         if (MainController.updateChecker) {
                             MainController.updateChecker.downloadAndInstall()
@@ -893,16 +882,6 @@ ApplicationWindow {
                         updateDialog.close()
                         // Navigate to settings update tab (index 9) to show progress
                         goToSettings(9)
-                    }
-                    background: Rectangle {
-                        color: Theme.primaryColor
-                        radius: Theme.buttonRadius
-                    }
-                    contentItem: Text {
-                        text: parent.text
-                        color: "white"
-                        font: Theme.labelFont
-                        horizontalAlignment: Text.AlignHCenter
                     }
                 }
             }
