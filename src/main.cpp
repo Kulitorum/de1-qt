@@ -481,7 +481,21 @@ int main(int argc, char *argv[])
     });
 
     // Cleanup on exit
-    QObject::connect(&app, &QCoreApplication::aboutToQuit, [&accessibilityManager, &batteryManager]() {
+    QObject::connect(&app, &QCoreApplication::aboutToQuit, [&accessibilityManager, &batteryManager, &de1Device, &physicalScale]() {
+        qDebug() << "Application exiting - shutting down devices";
+
+        // Put DE1 to sleep if connected (this is more reliable than QML onClosing on mobile)
+        if (de1Device.isConnected()) {
+            qDebug() << "Sending DE1 to sleep on app exit";
+            de1Device.goToSleep();
+        }
+
+        // Put scale to sleep if connected
+        if (physicalScale && physicalScale->isConnected()) {
+            qDebug() << "Sending physical scale to sleep on app exit";
+            physicalScale->sleep();
+        }
+
         // IMPORTANT: Ensure charger is ON before exiting
         // This matches de1app's app_exit behavior - always leave charger ON for safety
         batteryManager.ensureChargerOn();

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="io.github.kulitorum.decenza_de1"
-    android:versionCode="1791"
-    android:versionName="1.1.27">
+    android:versionCode="1796"
+    android:versionName="1.1.28">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
@@ -45,6 +45,12 @@
 
             <meta-data android:name="android.app.lib_name" android:value="Decenza_DE1" />
         </activity>
+
+        <!-- Service for handling device shutdown when app is swiped away -->
+        <service
+            android:name="io.github.kulitorum.decenza_de1.DeviceShutdownService"
+            android:stopWithTask="false"
+            android:exported="false" />
 
         <!-- FileProvider for APK installation -->
         <provider

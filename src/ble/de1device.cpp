@@ -13,6 +13,48 @@
 #include <QTextStream>
 #include <QStandardPaths>
 
+#ifdef Q_OS_ANDROID
+#include <QJniObject>
+#include <QCoreApplication>
+
+// Store DE1 address in Android SharedPreferences for shutdown service
+static void storeDE1AddressForShutdown(const QString& address) {
+    QJniObject context = QJniObject::callStaticObjectMethod(
+        "org/qtproject/qt/android/QtNative",
+        "getContext",
+        "()Landroid/content/Context;");
+
+    if (!context.isValid()) {
+        qWarning() << "DE1Device: Failed to get Android context for address storage";
+        return;
+    }
+
+    QJniObject::callStaticMethod<void>(
+        "io/github/kulitorum/decenza_de1/DeviceShutdownService",
+        "setDe1Address",
+        "(Landroid/content/Context;Ljava/lang/String;)V",
+        context.object(),
+        QJniObject::fromString(address).object<jstring>());
+}
+
+static void clearDE1AddressForShutdown() {
+    QJniObject context = QJniObject::callStaticObjectMethod(
+        "org/qtproject/qt/android/QtNative",
+        "getContext",
+        "()Landroid/content/Context;");
+
+    if (!context.isValid()) {
+        return;
+    }
+
+    QJniObject::callStaticMethod<void>(
+        "io/github/kulitorum/decenza_de1/DeviceShutdownService",
+        "clearDe1Address",
+        "(Landroid/content/Context;)V",
+        context.object());
+}
+#endif
+
 DE1Device::DE1Device(QObject* parent)
     : QObject(parent)
 {
@@ -237,6 +279,11 @@ void DE1Device::disconnect() {
         m_controller = nullptr;
     }
 
+#ifdef Q_OS_ANDROID
+    // Clear address from shutdown service
+    clearDE1AddressForShutdown();
+#endif
+
     m_characteristics.clear();
     m_connecting = false;
     emit connectingChanged();
@@ -249,6 +296,11 @@ void DE1Device::onControllerConnected() {
 }
 
 void DE1Device::onControllerDisconnected() {
+#ifdef Q_OS_ANDROID
+    // Clear address from shutdown service
+    clearDE1AddressForShutdown();
+#endif
+
     m_connecting = false;
     emit connectingChanged();
     emit connectedChanged();
@@ -374,6 +426,14 @@ void DE1Device::onServiceStateChanged(QLowEnergyService::ServiceState state) {
         subscribeToNotifications();
         m_connecting = false;
         qDebug() << "DE1Device: Connected";
+
+#ifdef Q_OS_ANDROID
+        // Store address for shutdown service (handles swipe-to-kill)
+        if (m_controller) {
+            storeDE1AddressForShutdown(m_controller->remoteAddress().toString());
+        }
+#endif
+
         emit connectingChanged();
         emit connectedChanged();
         emit guiEnabledChanged();
