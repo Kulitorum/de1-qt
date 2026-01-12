@@ -274,10 +274,13 @@ void AcaiaScale::sendHeartbeat() {
     QByteArray packet = encodePacket(0x00, payload);
     sendCommand(packet);
 
-    // Always resend config before next heartbeat (de1app: force_acaia_heartbeat)
-    // This is required for Pyxis and PROCH scales, and harmless for others
-    QTimer::singleShot(1000, this, &AcaiaScale::sendConfig);
-    m_heartbeatTimer->start(2000);  // Heartbeat every 2 seconds
+    // Only send config during init phase, before first weight received.
+    // Once connected and receiving weight, config has done its job.
+    if (!m_weightReceived) {
+        QTimer::singleShot(1000, this, &AcaiaScale::sendConfig);
+    }
+
+    m_heartbeatTimer->start(3000);  // Heartbeat every 3 seconds
 }
 
 void AcaiaScale::sendCommand(const QByteArray& command) {
