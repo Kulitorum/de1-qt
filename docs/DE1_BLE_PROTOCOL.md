@@ -297,10 +297,33 @@ Scales are separate BLE devices. Each brand has its own service/characteristic U
 - Read: `0000FFF4-...`
 - Write: `000036F5-...`
 
-### Acaia Pyxis
+### Acaia Pyxis/Lunar
 - Service: `49535343-FE7D-4AE5-8FA9-9FAFD205E455`
-- Status: `49535343-1E4D-4BD9-BA61-23C647249616`
-- Command: `49535343-8841-43F4-A8D4-ECBE34729BB3`
+- Status (notify): `49535343-1E4D-4BD9-BA61-23C647249616`
+- Command (write): `49535343-8841-43F4-A8D4-ECBE34729BB3`
+
+**Protocol Commands** (all prefixed with `EF DD`):
+| Type | Command | Payload | Description |
+|------|---------|---------|-------------|
+| `0x00` | Heartbeat | `02 00 02 00` | Keep-alive, send every 3s |
+| `0x04` | Tare | 17 zero bytes | Zero the scale |
+| `0x0B` | Ident | `30 31 32...` + checksum | Initial handshake |
+| `0x0C` | Config | `09 00 01 01 02 02 01 03 04 11 06` | Enable weight notifications |
+
+**Connection Sequence:**
+1. Connect and discover services
+2. Enable notifications on Status characteristic
+3. Send Ident command, retry until scale responds
+4. Send Config command once
+5. Wait for first weight notification → mark as connected
+6. Start heartbeat timer (3s interval)
+
+**Important:** Config is only sent during init. Once weight data is flowing, only heartbeats are needed to maintain connection.
+
+### Acaia IPS (older Lunar/Pearl)
+- Service: `00001820-0000-1000-8000-00805F9B34FB`
+- Characteristic: `00002A80-0000-1000-8000-00805F9B34FB`
+- Uses WriteWithoutResponse (unlike Pyxis which uses WriteWithResponse)
 
 ### Felicita
 - Service: `0000FFE0-0000-1000-8000-00805F9B34FB`
