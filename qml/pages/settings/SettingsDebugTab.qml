@@ -151,6 +151,7 @@ Item {
 
                         StyledSwitch {
                             checked: DE1Device.isHeadless
+                            accessibleName: "Headless machine"
                             onToggled: DE1Device.setIsHeadless(checked)
                         }
                     }
@@ -240,6 +241,7 @@ Item {
                         StyledSwitch {
                             id: overwriteSwitch
                             checked: false
+                            accessibleName: "Overwrite existing profiles"
                         }
 
                         AccessibleButton {
@@ -526,6 +528,7 @@ Item {
 
                         StyledSwitch {
                             checked: Settings.developerTranslationUpload
+                            accessibleName: TranslationManager.translate("settings.debug.enableUpload", "Enable translation upload")
                             onToggled: Settings.developerTranslationUpload = checked
                         }
                     }

@@ -121,6 +121,7 @@ Item {
 
                         StyledSwitch {
                             checked: preferencesTab.configurePageScaleEnabled
+                            accessibleName: TranslationManager.translate("settings.preferences.configureScale", "Configure scale per screen")
                             onClicked: {
                                 console.log("Switch clicked, checked =", checked)
                                 Settings.setValue("ui/configurePageScale", checked)
@@ -331,6 +332,7 @@ Item {
 
                         StyledSwitch {
                             checked: DE1Device.usbChargerOn
+                            accessibleName: TranslationManager.translate("settings.preferences.usbCharger", "USB Charger")
                             onClicked: DE1Device.setUsbChargerOn(checked)
                         }
                     }

@@ -88,6 +88,7 @@ Item {
 
                     StyledSwitch {
                         checked: Settings.showHistoryButton
+                        accessibleName: "Show on Idle screen"
                         onToggled: Settings.showHistoryButton = checked
                     }
                 }
@@ -122,6 +123,7 @@ Item {
                     StyledSwitch {
                         id: overwriteSwitch
                         checked: false
+                        accessibleName: "Overwrite existing"
                     }
                 }
 
@@ -440,6 +442,7 @@ Item {
                     StyledSwitch {
                         id: serverSwitch
                         checked: Settings.shotServerEnabled
+                        accessibleName: TranslationManager.translate("settings.history.remoteAccess", "Remote Access")
                         onToggled: Settings.shotServerEnabled = checked
                     }
                 }

@@ -65,6 +65,7 @@ KeyboardAwareContainer {
 
                         StyledSwitch {
                             checked: DE1Device.simulationMode
+                            accessibleName: TranslationManager.translate("settings.preferences.unlockGui", "Unlock GUI")
                             onToggled: {
                                 DE1Device.simulationMode = checked
                                 if (ScaleDevice) {
@@ -133,14 +134,11 @@ KeyboardAwareContainer {
                         StyledSwitch {
                             id: steamHeaterSwitch
                             checked: Settings.keepSteamHeaterOn
+                            accessibleName: TranslationManager.translate("settings.preferences.keepSteamHeaterOn", "Keep heater on when idle")
                             onClicked: {
                                 Settings.keepSteamHeaterOn = checked
                                 MainController.applySteamSettings()
                             }
-
-                            Accessible.role: Accessible.CheckBox
-                            Accessible.name: "Keep steam heater on when idle"
-                            Accessible.checked: checked
                         }
                     }
                 }
@@ -201,6 +199,7 @@ KeyboardAwareContainer {
 
                         StyledSwitch {
                             checked: Settings.waterLevelDisplayUnit === "ml"
+                            accessibleName: TranslationManager.translate("settings.options.showInMl", "Show in milliliters")
                             onToggled: {
                                 Settings.waterLevelDisplayUnit = checked ? "ml" : "percent"
                             }
@@ -248,6 +247,7 @@ KeyboardAwareContainer {
                         StyledSwitch {
                             id: headlessStopSwitch
                             checked: Settings.headlessSkipPurgeConfirm
+                            accessibleName: TranslationManager.translate("settings.options.singlePressStopPurge", "Single press to stop and purge")
                             onClicked: {
                                 Settings.headlessSkipPurgeConfirm = checked
                             }
@@ -302,6 +302,7 @@ KeyboardAwareContainer {
 
                         StyledSwitch {
                             checked: MainController.shotReporter ? MainController.shotReporter.enabled : false
+                            accessibleName: TranslationManager.translate("settings.shotmap.enable", "Enable Shot Map")
                             onCheckedChanged: {
                                 if (MainController.shotReporter) {
                                     MainController.shotReporter.enabled = checked

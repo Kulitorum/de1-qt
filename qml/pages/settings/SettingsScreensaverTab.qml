@@ -512,6 +512,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.pipesShowClock
+                            accessibleName: TranslationManager.translate("settings.screensaver.showClock", "Show Clock")
                             onCheckedChanged: ScreensaverManager.pipesShowClock = checked
                         }
                     }
@@ -537,6 +538,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.flipClockUse24Hour
+                            accessibleName: TranslationManager.translate("settings.screensaver.flipclock24Hour", "24-hour format")
                             onCheckedChanged: ScreensaverManager.flipClockUse24Hour = checked
                         }
                     }
@@ -553,6 +555,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.flipClockUse3D
+                            accessibleName: TranslationManager.translate("settings.screensaver.flipclock3D", "3D perspective")
                             onCheckedChanged: ScreensaverManager.flipClockUse3D = checked
                         }
                     }
@@ -578,6 +581,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.attractorShowClock
+                            accessibleName: TranslationManager.translate("settings.screensaver.showClock", "Show Clock")
                             onCheckedChanged: ScreensaverManager.attractorShowClock = checked
                         }
                     }
@@ -655,6 +659,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.shotMapShowClock
+                            accessibleName: TranslationManager.translate("settings.screensaver.showClock", "Clock")
                             onToggled: ScreensaverManager.shotMapShowClock = checked
                         }
                     }
@@ -671,6 +676,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.shotMapShowProfiles
+                            accessibleName: TranslationManager.translate("settings.screensaver.shotmap.profiles", "Profiles")
                             onToggled: ScreensaverManager.shotMapShowProfiles = checked
                         }
                     }
@@ -796,6 +802,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.cacheEnabled
+                            accessibleName: TranslationManager.translate("settings.screensaver.cacheVideos", "Cache Videos")
                             onCheckedChanged: ScreensaverManager.cacheEnabled = checked
                         }
                     }
@@ -813,6 +820,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.videosShowClock
+                            accessibleName: TranslationManager.translate("settings.screensaver.showClock", "Show Clock")
                             onCheckedChanged: ScreensaverManager.videosShowClock = checked
                         }
                     }
@@ -831,6 +839,7 @@ Item {
 
                         StyledSwitch {
                             checked: ScreensaverManager.showDateOnPersonal
+                            accessibleName: TranslationManager.translate("settings.screensaver.showDate", "Show Date")
                             onCheckedChanged: ScreensaverManager.showDateOnPersonal = checked
                         }
                     }

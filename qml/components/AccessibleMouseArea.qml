@@ -15,6 +15,18 @@ MouseArea {
     // The item to track for "tap again to activate" (defaults to parent)
     property var accessibleItem: parent
 
+    // Accessibility: Make this a proper button for screen readers
+    Accessible.role: Accessible.Button
+    Accessible.name: root.accessibleName
+    Accessible.focusable: true
+
+    // Handle TalkBack/VoiceOver activation via accessibility press action
+    // This is the proper way to receive screen reader activations (double-tap in TalkBack)
+    Accessible.onPressAction: {
+        // Screen reader activation = primary action
+        root.accessibleClicked()
+    }
+
     // Clear lastAnnouncedItem when this item is destroyed to prevent dangling pointer crash
     Component.onDestruction: {
         if (typeof AccessibilityManager !== "undefined" &&

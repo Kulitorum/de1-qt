@@ -56,6 +56,7 @@ Item {
 
                     StyledSwitch {
                         checked: AccessibilityManager.enabled
+                        accessibleName: TranslationManager.translate("settings.accessibility.enable", "Enable Accessibility")
                         onCheckedChanged: AccessibilityManager.enabled = checked
                     }
                 }
@@ -78,6 +79,7 @@ Item {
                     StyledSwitch {
                         checked: AccessibilityManager.ttsEnabled
                         enabled: AccessibilityManager.enabled
+                        accessibleName: TranslationManager.translate("settings.accessibility.voiceAnnouncements", "Voice Announcements")
                         onCheckedChanged: {
                             if (AccessibilityManager.enabled) {
                                 if (checked) {
@@ -123,6 +125,7 @@ Item {
                     StyledSwitch {
                         checked: AccessibilityManager.tickEnabled
                         enabled: AccessibilityManager.enabled
+                        accessibleName: TranslationManager.translate("settings.accessibility.frameTick", "Frame Tick Sound")
                         onCheckedChanged: {
                             AccessibilityManager.tickEnabled = checked
                             if (AccessibilityManager.enabled) {

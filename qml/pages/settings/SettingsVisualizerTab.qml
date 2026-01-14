@@ -245,6 +245,7 @@ KeyboardAwareContainer {
 
                     StyledSwitch {
                         checked: Settings.visualizerAutoUpload
+                        accessibleName: TranslationManager.translate("settings.visualizer.autoUpload", "Auto-upload shots")
                         onCheckedChanged: Settings.visualizerAutoUpload = checked
                     }
                 }
@@ -317,6 +318,7 @@ KeyboardAwareContainer {
 
                     StyledSwitch {
                         checked: Settings.visualizerExtendedMetadata
+                        accessibleName: TranslationManager.translate("settings.visualizer.extendedMetadata", "Extended Metadata")
                         onCheckedChanged: Settings.visualizerExtendedMetadata = checked
                     }
                 }
@@ -349,6 +351,7 @@ KeyboardAwareContainer {
 
                     StyledSwitch {
                         checked: Settings.visualizerShowAfterShot
+                        accessibleName: TranslationManager.translate("settings.visualizer.editAfterShot", "Edit After Shot")
                         onCheckedChanged: Settings.visualizerShowAfterShot = checked
                     }
                 }
@@ -381,6 +384,7 @@ KeyboardAwareContainer {
 
                     StyledSwitch {
                         checked: Settings.visualizerClearNotesOnStart
+                        accessibleName: TranslationManager.translate("settings.visualizer.clearNotesOnStart", "Clear Notes on Start")
                         onCheckedChanged: Settings.visualizerClearNotesOnStart = checked
                     }
                 }

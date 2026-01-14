@@ -102,6 +102,7 @@ Item {
 
                     StyledSwitch {
                         checked: Settings.autoCheckUpdates
+                        accessibleName: TranslationManager.translate("settings.update.autocheck", "Auto-check for updates")
                         onToggled: Settings.autoCheckUpdates = checked
                     }
                 }
