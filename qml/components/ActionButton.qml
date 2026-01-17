@@ -110,6 +110,7 @@ Button {
         accessibleItem: control
         supportLongPress: true
         supportDoubleClick: true
+        doubleClickInterval: 250
 
         // Track pressed state for visual feedback
         onIsPressedChanged: control._isPressed = isPressed
