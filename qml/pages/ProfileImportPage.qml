@@ -96,6 +96,34 @@ Page {
                         rightPadding: Theme.scaled(12)
                     }
                 }
+
+                StyledButton {
+                    text: TranslationManager.translate("profileimport.button.update_all", "Update All")
+                    visible: {
+                        // Only show if there are profiles with "different" status
+                        var profiles = MainController.profileImporter.availableProfiles
+                        for (var i = 0; i < profiles.length; i++) {
+                            if (profiles[i].status === "different") return true
+                        }
+                        return false
+                    }
+                    enabled: !MainController.profileImporter.isImporting && !MainController.profileImporter.isScanning
+                    onClicked: MainController.profileImporter.updateAllDifferent()
+
+                    background: Rectangle {
+                        radius: Theme.scaled(4)
+                        color: "#FFA500"  // Orange to match the "different" status color
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        color: "white"
+                        font: Theme.captionFont
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: Theme.scaled(12)
+                        rightPadding: Theme.scaled(12)
+                    }
+                }
             }
         }
 
@@ -147,6 +175,16 @@ Page {
                     property bool isNew: status === "new"
                     property bool isIdentical: status === "identical"
                     property bool isDifferent: status === "different"
+
+                    // Long-press to force re-import (overwrite without asking)
+                    TapHandler {
+                        longPressThreshold: 0.5
+                        onLongPressed: {
+                            if (!MainController.profileImporter.isImporting) {
+                                MainController.profileImporter.forceImportProfile(profileData.sourcePath)
+                            }
+                        }
+                    }
 
                     RowLayout {
                         anchors.fill: parent

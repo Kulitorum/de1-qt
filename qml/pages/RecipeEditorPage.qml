@@ -932,7 +932,7 @@ Page {
         Rectangle { width: 1; height: Theme.scaled(30); color: "white"; opacity: 0.3 }
 
         Text {
-            text: (MainController.currentProfilePtr && MainController.currentProfilePtr.steps ? MainController.currentProfilePtr.steps.length : 0) + " " + qsTr("frames")
+            text: MainController.frameCount() + " " + qsTr("frames")
             color: "white"
             font: Theme.bodyFont
         }

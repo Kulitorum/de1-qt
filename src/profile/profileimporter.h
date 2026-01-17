@@ -54,10 +54,12 @@ public:
     // Import a single profile
     Q_INVOKABLE void importProfile(const QString& sourcePath);
     Q_INVOKABLE void importProfileWithName(const QString& sourcePath, const QString& newName);
+    Q_INVOKABLE void forceImportProfile(const QString& sourcePath);  // Overwrite without asking
 
     // Import all new profiles (skip existing unless overwrite is true)
     Q_INVOKABLE void importAllNew();
     Q_INVOKABLE void importAll(bool overwriteExisting);
+    Q_INVOKABLE void updateAllDifferent();  // Update all profiles marked as "different"
 
     // Duplicate resolution actions (after duplicateFound signal)
     Q_INVOKABLE void saveOverwrite();

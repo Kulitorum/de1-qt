@@ -9,6 +9,227 @@
 #include <QRegularExpression>
 #include <QDebug>
 
+// Generate frames for simple pressure profile (settings_2a)
+// Based on de1app's pressure_to_advanced_list()
+static QVector<ProfileFrame> generatePressureProfileFrames(
+    double preinfusionTime, double preinfusionFlowRate, double preinfusionStopPressure,
+    double holdTime, double espressoPressure,
+    double declineTime, double pressureEnd,
+    double maximumFlow, double maximumFlowRange,
+    double temp0, double temp1, double temp2, double temp3,
+    bool tempStepsEnabled)
+{
+    QVector<ProfileFrame> frames;
+
+    // Use same temperature for all frames if stepping not enabled
+    if (!tempStepsEnabled) {
+        temp1 = temp0;
+        temp2 = temp0;
+        temp3 = temp0;
+    }
+
+    // Preinfusion frame (flow pump, exit on pressure_over)
+    if (preinfusionTime > 0) {
+        ProfileFrame preinfusion;
+        preinfusion.name = "preinfusion";
+        preinfusion.temperature = temp1;
+        preinfusion.sensor = "coffee";
+        preinfusion.pump = "flow";
+        preinfusion.transition = "fast";
+        preinfusion.pressure = 1.0;
+        preinfusion.flow = preinfusionFlowRate;
+        preinfusion.seconds = preinfusionTime;
+        preinfusion.volume = 0;
+        preinfusion.exitIf = true;
+        preinfusion.exitType = "pressure_over";
+        preinfusion.exitPressureOver = preinfusionStopPressure;
+        preinfusion.exitFlowOver = 6.0;
+        frames.append(preinfusion);
+    }
+
+    // Rise and hold frame (pressure pump)
+    if (holdTime > 0) {
+        // If hold time > 3s, add a forced rise frame without limiter first
+        if (holdTime > 3) {
+            ProfileFrame riseNoLimit;
+            riseNoLimit.name = "forced rise without limit";
+            riseNoLimit.temperature = temp2;
+            riseNoLimit.sensor = "coffee";
+            riseNoLimit.pump = "pressure";
+            riseNoLimit.transition = "fast";
+            riseNoLimit.pressure = espressoPressure;
+            riseNoLimit.seconds = 3.0;
+            riseNoLimit.volume = 0;
+            riseNoLimit.exitIf = false;
+            frames.append(riseNoLimit);
+            holdTime -= 3;
+        }
+
+        ProfileFrame hold;
+        hold.name = "rise and hold";
+        hold.temperature = temp2;
+        hold.sensor = "coffee";
+        hold.pump = "pressure";
+        hold.transition = "fast";
+        hold.pressure = espressoPressure;
+        hold.seconds = holdTime;
+        hold.volume = 0;
+        hold.exitIf = false;
+        if (maximumFlow > 0) {
+            hold.maxFlowOrPressure = maximumFlow;
+            hold.maxFlowOrPressureRange = maximumFlowRange;
+        }
+        frames.append(hold);
+    }
+
+    // Decline frame (pressure pump, smooth transition)
+    if (declineTime > 0) {
+        // If this is the first pressurized step and decline time > 3s, add forced rise first
+        if (holdTime <= 0 && declineTime > 3) {
+            ProfileFrame riseNoLimit;
+            riseNoLimit.name = "forced rise without limit";
+            riseNoLimit.temperature = temp3;
+            riseNoLimit.sensor = "coffee";
+            riseNoLimit.pump = "pressure";
+            riseNoLimit.transition = "fast";
+            riseNoLimit.pressure = espressoPressure;
+            riseNoLimit.seconds = 3.0;
+            riseNoLimit.volume = 0;
+            riseNoLimit.exitIf = false;
+            frames.append(riseNoLimit);
+            declineTime -= 3;
+        }
+
+        ProfileFrame decline;
+        decline.name = "decline";
+        decline.temperature = temp3;
+        decline.sensor = "coffee";
+        decline.pump = "pressure";
+        decline.transition = "smooth";
+        decline.pressure = pressureEnd;
+        decline.seconds = declineTime;
+        decline.volume = 0;
+        decline.exitIf = false;
+        decline.exitFlowOver = 6.0;
+        if (maximumFlow > 0) {
+            decline.maxFlowOrPressure = maximumFlow;
+            decline.maxFlowOrPressureRange = maximumFlowRange;
+        }
+        frames.append(decline);
+    }
+
+    // Add empty frame if no frames were created
+    if (frames.isEmpty()) {
+        ProfileFrame empty;
+        empty.name = "empty";
+        empty.temperature = 90.0;
+        empty.sensor = "coffee";
+        empty.pump = "flow";
+        empty.transition = "smooth";
+        empty.flow = 0;
+        empty.seconds = 0;
+        empty.volume = 0;
+        empty.exitIf = false;
+        frames.append(empty);
+    }
+
+    return frames;
+}
+
+// Generate frames for simple flow profile (settings_2b)
+// Based on de1app's flow_to_advanced_list()
+static QVector<ProfileFrame> generateFlowProfileFrames(
+    double preinfusionTime, double preinfusionFlowRate, double preinfusionStopPressure,
+    double holdTime, double flowHold,
+    double declineTime, double flowDecline,
+    double maximumPressure, double maximumPressureRange,
+    double temp0, double temp1, double temp2, double temp3,
+    bool tempStepsEnabled)
+{
+    QVector<ProfileFrame> frames;
+
+    // Use same temperature for all frames if stepping not enabled
+    if (!tempStepsEnabled) {
+        temp1 = temp0;
+        temp2 = temp0;
+        temp3 = temp0;
+    }
+
+    // Preinfusion frame (flow pump, exit on pressure_over)
+    if (preinfusionTime > 0) {
+        ProfileFrame preinfusion;
+        preinfusion.name = "preinfusion";
+        preinfusion.temperature = temp1;
+        preinfusion.sensor = "coffee";
+        preinfusion.pump = "flow";
+        preinfusion.transition = "fast";
+        preinfusion.pressure = 1.0;
+        preinfusion.flow = preinfusionFlowRate;
+        preinfusion.seconds = preinfusionTime;
+        preinfusion.volume = 0;
+        preinfusion.exitIf = true;
+        preinfusion.exitType = "pressure_over";
+        preinfusion.exitPressureOver = preinfusionStopPressure;
+        frames.append(preinfusion);
+    }
+
+    // Hold frame (flow pump)
+    if (holdTime > 0) {
+        ProfileFrame hold;
+        hold.name = "hold";
+        hold.temperature = temp2;
+        hold.sensor = "coffee";
+        hold.pump = "flow";
+        hold.transition = "fast";
+        hold.flow = flowHold;
+        hold.seconds = holdTime;
+        hold.volume = 0;
+        hold.exitIf = false;
+        hold.exitFlowOver = 6.0;
+        if (maximumPressure > 0) {
+            hold.maxFlowOrPressure = maximumPressure;
+            hold.maxFlowOrPressureRange = maximumPressureRange;
+        }
+        frames.append(hold);
+    }
+
+    // Decline frame (flow pump, smooth transition)
+    if (declineTime > 0) {
+        ProfileFrame decline;
+        decline.name = "decline";
+        decline.temperature = temp3;
+        decline.sensor = "coffee";
+        decline.pump = "flow";
+        decline.transition = "smooth";
+        decline.flow = flowDecline;
+        decline.seconds = declineTime;
+        decline.volume = 0;
+        decline.exitIf = false;
+        if (maximumPressure > 0) {
+            decline.maxFlowOrPressure = maximumPressure;
+            decline.maxFlowOrPressureRange = maximumPressureRange;
+        }
+        frames.append(decline);
+    }
+
+    // Add empty frame if no frames were created
+    if (frames.isEmpty()) {
+        ProfileFrame empty;
+        empty.name = "empty";
+        empty.temperature = 90.0;
+        empty.sensor = "coffee";
+        empty.pump = "flow";
+        empty.transition = "smooth";
+        empty.flow = 0;
+        empty.seconds = 0;
+        empty.volume = 0;
+        empty.exitIf = false;
+        frames.append(empty);
+    }
+
+    return frames;
+}
+
 QJsonDocument Profile::toJson() const {
     QJsonObject obj;
     obj["title"] = m_title;
@@ -249,6 +470,64 @@ Profile Profile::loadFromTclFile(const QString& filePath) {
         }
     }
 
+    // For simple profiles (settings_2a = pressure, settings_2b = flow), generate frames from
+    // individual parameters if advanced_shot was empty
+    if (profile.m_steps.isEmpty() && !isAdvancedProfile) {
+        // Extract simple profile parameters
+        double preinfusionTime = extractValue("preinfusion_time").toDouble();
+        double preinfusionFlowRate = extractValue("preinfusion_flow_rate").toDouble();
+        double preinfusionStopPressure = extractValue("preinfusion_stop_pressure").toDouble();
+        double holdTime = extractValue("espresso_hold_time").toDouble();
+        double declineTime = extractValue("espresso_decline_time").toDouble();
+
+        // Temperature presets
+        bool tempStepsEnabled = extractValue("espresso_temperature_steps_enabled").toInt() == 1;
+        double temp0 = profile.m_espressoTemperature;
+        double temp1 = temp0, temp2 = temp0, temp3 = temp0;
+        if (!profile.m_temperaturePresets.isEmpty()) {
+            temp0 = profile.m_temperaturePresets.value(0, temp0);
+            temp1 = profile.m_temperaturePresets.value(1, temp0);
+            temp2 = profile.m_temperaturePresets.value(2, temp0);
+            temp3 = profile.m_temperaturePresets.value(3, temp0);
+        }
+
+        if (profile.m_profileType == "settings_2a") {
+            // Simple pressure profile
+            double espressoPressure = extractValue("espresso_pressure").toDouble();
+            double pressureEnd = extractValue("pressure_end").toDouble();
+            double maximumFlow = profile.m_maximumFlow;
+            double maximumFlowRange = extractValue("maximum_flow_range_default").toDouble();
+            if (maximumFlowRange == 0) maximumFlowRange = 1.0;
+
+            profile.m_steps = generatePressureProfileFrames(
+                preinfusionTime, preinfusionFlowRate, preinfusionStopPressure,
+                holdTime, espressoPressure,
+                declineTime, pressureEnd,
+                maximumFlow, maximumFlowRange,
+                temp0, temp1, temp2, temp3,
+                tempStepsEnabled);
+
+            qDebug() << "Generated" << profile.m_steps.size() << "frames from simple pressure profile";
+        } else if (profile.m_profileType == "settings_2b") {
+            // Simple flow profile
+            double flowHold = extractValue("flow_profile_hold").toDouble();
+            double flowDecline = extractValue("flow_profile_decline").toDouble();
+            double maximumPressure = profile.m_maximumPressure;
+            double maximumPressureRange = extractValue("maximum_pressure_range_default").toDouble();
+            if (maximumPressureRange == 0) maximumPressureRange = 0.9;
+
+            profile.m_steps = generateFlowProfileFrames(
+                preinfusionTime, preinfusionFlowRate, preinfusionStopPressure,
+                holdTime, flowHold,
+                declineTime, flowDecline,
+                maximumPressure, maximumPressureRange,
+                temp0, temp1, temp2, temp3,
+                tempStepsEnabled);
+
+            qDebug() << "Generated" << profile.m_steps.size() << "frames from simple flow profile";
+        }
+    }
+
     // Set espresso temperature from first step if not set
     if (profile.m_espressoTemperature == 0 && !profile.m_steps.isEmpty()) {
         profile.m_espressoTemperature = profile.m_steps.first().temperature;
@@ -268,8 +547,8 @@ Profile Profile::loadFromTclFile(const QString& filePath) {
     qDebug() << "Loaded Tcl profile:" << profile.m_title
              << "with" << profile.m_steps.size() << "steps";
 
-    // Always keep profiles as frame-based to preserve exact frame structure
-    // This ensures D-Flow profiles like LRv3 and A-Flow are preserved exactly as imported
+    // Keep all imported profiles as frame-based to preserve exact frame structure and timing
+    // Converting to recipe mode would regenerate frames with different timing via RecipeGenerator
 
     return profile;
 }

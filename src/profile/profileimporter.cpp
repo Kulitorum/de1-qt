@@ -430,6 +430,51 @@ void ProfileImporter::importProfile(const QString& sourcePath)
     }
 }
 
+void ProfileImporter::forceImportProfile(const QString& sourcePath)
+{
+    if (m_importing) {
+        return;
+    }
+
+    m_importing = true;
+    emit isImportingChanged();
+
+    // Load the profile
+    bool isTcl = sourcePath.endsWith(".tcl", Qt::CaseInsensitive);
+    Profile profile;
+    if (isTcl) {
+        profile = Profile::loadFromTclFile(sourcePath);
+    } else {
+        profile = Profile::loadFromFile(sourcePath);
+    }
+
+    if (!profile.isValid() || profile.title().isEmpty()) {
+        setStatus("Failed to load profile");
+        m_importing = false;
+        emit isImportingChanged();
+        emit importFailed("Failed to load profile from " + QFileInfo(sourcePath).fileName());
+        return;
+    }
+
+    QString filename = generateFilename(profile.title());
+    QString fullPath = downloadedProfilesPath() + "/" + filename + ".json";
+
+    // Force overwrite - don't check for duplicates
+    if (profile.saveToFile(fullPath)) {
+        setStatus("Re-imported: " + profile.title());
+        m_importing = false;
+        emit isImportingChanged();
+        emit importSuccess(profile.title());
+        if (m_controller) {
+            m_controller->refreshProfiles();
+        }
+    } else {
+        m_importing = false;
+        emit isImportingChanged();
+        emit importFailed("Failed to save profile: " + profile.title());
+    }
+}
+
 void ProfileImporter::importProfileWithName(const QString& sourcePath, const QString& newName)
 {
     if (m_importing) {
@@ -653,6 +698,48 @@ void ProfileImporter::importAll(bool overwriteExisting)
     emit progressChanged();
 
     setStatus(QString("Importing %1 profiles...").arg(m_totalProfiles));
+
+    QTimer::singleShot(0, this, &ProfileImporter::processNextImport);
+}
+
+void ProfileImporter::updateAllDifferent()
+{
+    if (m_importing || m_availableProfiles.isEmpty()) {
+        return;
+    }
+
+    m_importing = true;
+    emit isImportingChanged();
+
+    m_importQueue.clear();
+    m_batchOverwrite = true;  // Always overwrite for updates
+    m_batchImported = 0;
+    m_batchSkipped = 0;
+    m_batchFailed = 0;
+
+    // Build queue of profiles with "different" status only
+    for (const QVariant& var : m_availableProfiles) {
+        QVariantMap entry = var.toMap();
+        QString status = entry["status"].toString();
+
+        if (status == "different") {
+            m_importQueue.append(entry["sourcePath"].toString());
+        }
+    }
+
+    if (m_importQueue.isEmpty()) {
+        setStatus("No profiles to update");
+        m_importing = false;
+        emit isImportingChanged();
+        emit batchImportComplete(0, 0, 0);
+        return;
+    }
+
+    m_totalProfiles = static_cast<int>(m_importQueue.size());
+    m_processedProfiles = 0;
+    emit progressChanged();
+
+    setStatus(QString("Updating %1 profiles...").arg(m_totalProfiles));
 
     QTimer::singleShot(0, this, &ProfileImporter::processNextImport);
 }
