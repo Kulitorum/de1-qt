@@ -141,8 +141,11 @@ Rectangle {
             implicitWidth: scaleRow.implicitWidth
             implicitHeight: scaleRow.implicitHeight
 
+            // Detect if using FlowScale (estimated weight from flow sensor)
+            property bool isFlowScale: ScaleDevice && ScaleDevice.name === "Flow Scale"
+
             Accessible.role: Accessible.Button
-            Accessible.name: scaleWeightAccessible.text + MachineState.scaleWeight.toFixed(1) + " " + gramsAccessible.text + ". " + tapToTareAccessible.text
+            Accessible.name: scaleWeightAccessible.text + MachineState.scaleWeight.toFixed(1) + " " + gramsAccessible.text + (isFlowScale ? " (estimated)" : "") + ". " + tapToTareAccessible.text
 
             // Hidden Tr elements for accessible names
             Tr { id: scaleWeightAccessible; key: "statusbar.scale_weight"; fallback: "Scale weight: "; visible: false }
@@ -159,15 +162,22 @@ Rectangle {
                     radius: Theme.scaled(4)
                     color: scaleMouseArea.pressed ? Theme.accentColor
                          : MainController.brewByRatioActive ? Theme.primaryColor
+                         : parent.isFlowScale ? Theme.textSecondaryColor
                          : Theme.weightColor
                 }
 
                 Text {
-                    text: MainController.brewByRatioActive
-                        ? MachineState.scaleWeight.toFixed(1) + "g 1:" + MainController.brewByRatio.toFixed(1)
-                        : MachineState.scaleWeight.toFixed(1) + "g"
+                    text: {
+                        var weight = MachineState.scaleWeight.toFixed(1)
+                        var suffix = parent.isFlowScale ? "g~" : "g"
+                        if (MainController.brewByRatioActive) {
+                            return weight + suffix + " 1:" + MainController.brewByRatio.toFixed(1)
+                        }
+                        return weight + suffix
+                    }
                     color: scaleMouseArea.pressed ? Theme.accentColor
                          : MainController.brewByRatioActive ? Theme.primaryColor
+                         : parent.isFlowScale ? Theme.textSecondaryColor
                          : Theme.weightColor
                     font: Theme.bodyFont
                 }

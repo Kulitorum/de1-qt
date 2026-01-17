@@ -2258,7 +2258,10 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
 }
 
 void MainController::onScaleWeightChanged(double weight) {
-    if (!m_shotDataModel || !m_machineState) return;
+    if (!m_shotDataModel || !m_machineState) {
+        qDebug() << "Weight update dropped: no model or state";
+        return;
+    }
 
     // Only record weight during espresso phases
     MachineState::Phase phase = m_machineState->phase();
@@ -2267,14 +2270,29 @@ void MainController::onScaleWeightChanged(double weight) {
                            phase == MachineState::Phase::Pouring ||
                            phase == MachineState::Phase::Ending);
 
-    if (!isEspressoPhase) return;
+    if (!isEspressoPhase) {
+        // Log periodically to avoid spam (every 20th drop)
+        static int phaseDropCount = 0;
+        if (++phaseDropCount % 20 == 0) {
+            qDebug() << "Weight update dropped: wrong phase -"
+                     << m_machineState->phaseString()
+                     << "weight=" << weight << "total_drops=" << phaseDropCount;
+        }
+        return;
+    }
 
     // Use same time base as shot samples (synced via m_weightTimeOffset)
     // This ensures weight curve aligns with pressure/flow/temp curves
     double time = m_machineState->shotTime() - m_weightTimeOffset;
 
     // Don't record if we haven't synced yet (no shot samples received)
-    if (time < 0) return;
+    if (time < 0) {
+        qDebug() << "Weight update dropped: time sync issue -"
+                 << "shotTime=" << m_machineState->shotTime()
+                 << "offset=" << m_weightTimeOffset
+                 << "weight=" << weight;
+        return;
+    }
 
     // Get flow rate from scale (g/s) for graphing
     double flowRate = m_machineState->scaleFlowRate();
