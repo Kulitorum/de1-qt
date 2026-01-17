@@ -59,6 +59,10 @@ class Settings : public QObject {
     Q_PROPERTY(double flushFlow READ flushFlow WRITE setFlushFlow NOTIFY flushFlowChanged)
     Q_PROPERTY(double flushSeconds READ flushSeconds WRITE setFlushSeconds NOTIFY flushSecondsChanged)
 
+    // Bean presets
+    Q_PROPERTY(QVariantList beanPresets READ beanPresets NOTIFY beanPresetsChanged)
+    Q_PROPERTY(int selectedBeanPreset READ selectedBeanPreset WRITE setSelectedBeanPreset NOTIFY selectedBeanPresetChanged)
+
     // UI settings
     Q_PROPERTY(QString skin READ skin WRITE setSkin NOTIFY skinChanged)
     Q_PROPERTY(QString skinPath READ skinPath NOTIFY skinChanged)
@@ -122,6 +126,10 @@ class Settings : public QObject {
 
     // Developer settings
     Q_PROPERTY(bool developerTranslationUpload READ developerTranslationUpload WRITE setDeveloperTranslationUpload NOTIFY developerTranslationUploadChanged)
+
+    // Temperature override (session-only, for next shot)
+    Q_PROPERTY(double temperatureOverride READ temperatureOverride WRITE setTemperatureOverride NOTIFY temperatureOverrideChanged)
+    Q_PROPERTY(bool hasTemperatureOverride READ hasTemperatureOverride NOTIFY temperatureOverrideChanged)
 
 public:
     explicit Settings(QObject* parent = nullptr);
@@ -237,6 +245,24 @@ public:
     Q_INVOKABLE void removeFlushPreset(int index);
     Q_INVOKABLE void moveFlushPreset(int from, int to);
     Q_INVOKABLE QVariantMap getFlushPreset(int index) const;
+
+    // Bean presets
+    QVariantList beanPresets() const;
+    int selectedBeanPreset() const;
+    void setSelectedBeanPreset(int index);
+
+    Q_INVOKABLE void addBeanPreset(const QString& name, const QString& brand, const QString& type,
+                                   const QString& roastDate, const QString& roastLevel,
+                                   const QString& grinderModel, const QString& grinderSetting);
+    Q_INVOKABLE void updateBeanPreset(int index, const QString& name, const QString& brand,
+                                      const QString& type, const QString& roastDate,
+                                      const QString& roastLevel, const QString& grinderModel,
+                                      const QString& grinderSetting);
+    Q_INVOKABLE void removeBeanPreset(int index);
+    Q_INVOKABLE void moveBeanPreset(int from, int to);
+    Q_INVOKABLE QVariantMap getBeanPreset(int index) const;
+    Q_INVOKABLE void applyBeanPreset(int index);       // Sets all DYE fields from preset
+    Q_INVOKABLE void saveBeanPresetFromCurrent(const QString& name);  // Creates preset from current DYE
 
     // UI settings
     QString skin() const;
@@ -384,6 +410,12 @@ public:
     bool developerTranslationUpload() const;
     void setDeveloperTranslationUpload(bool enabled);
 
+    // Temperature override (session-only)
+    double temperatureOverride() const;
+    void setTemperatureOverride(double temp);
+    bool hasTemperatureOverride() const;
+    Q_INVOKABLE void clearTemperatureOverride();
+
     // Generic settings access (for extensibility)
     Q_INVOKABLE QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
     Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
@@ -416,6 +448,8 @@ signals:
     void selectedFlushPresetChanged();
     void flushFlowChanged();
     void flushSecondsChanged();
+    void beanPresetsChanged();
+    void selectedBeanPresetChanged();
     void skinChanged();
     void currentProfileChanged();
     void customThemeColorsChanged();
@@ -456,9 +490,12 @@ signals:
     void autoCheckUpdatesChanged();
     void waterLevelDisplayUnitChanged();
     void developerTranslationUploadChanged();
+    void temperatureOverrideChanged();
     void valueChanged(const QString& key);
 
 private:
     QSettings m_settings;
     bool m_steamDisabled = false;  // Session-only, not persisted (for descaling)
+    double m_temperatureOverride = 0;  // Session-only, for next shot
+    bool m_hasTemperatureOverride = false;  // Session-only
 };

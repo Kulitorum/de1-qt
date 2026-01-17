@@ -104,6 +104,12 @@ Settings::Settings(QObject* parent)
 
         m_settings.setValue("flush/presets", QJsonDocument(defaultPresets).toJson());
     }
+
+    // Initialize empty bean presets if none exist (user will add their own)
+    if (!m_settings.contains("bean/presets")) {
+        QJsonArray emptyPresets;
+        m_settings.setValue("bean/presets", QJsonDocument(emptyPresets).toJson());
+    }
 }
 
 // Machine settings
@@ -848,6 +854,159 @@ QVariantMap Settings::getFlushPreset(int index) const {
         return arr[index].toObject().toVariantMap();
     }
     return QVariantMap();
+}
+
+// Bean presets
+QVariantList Settings::beanPresets() const {
+    QByteArray data = m_settings.value("bean/presets").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+
+    QVariantList result;
+    for (const QJsonValue& v : arr) {
+        result.append(v.toObject().toVariantMap());
+    }
+    return result;
+}
+
+int Settings::selectedBeanPreset() const {
+    return m_settings.value("bean/selectedPreset", -1).toInt();
+}
+
+void Settings::setSelectedBeanPreset(int index) {
+    if (selectedBeanPreset() != index) {
+        m_settings.setValue("bean/selectedPreset", index);
+        emit selectedBeanPresetChanged();
+    }
+}
+
+void Settings::addBeanPreset(const QString& name, const QString& brand, const QString& type,
+                             const QString& roastDate, const QString& roastLevel,
+                             const QString& grinderModel, const QString& grinderSetting) {
+    QByteArray data = m_settings.value("bean/presets").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+
+    QJsonObject preset;
+    preset["name"] = name;
+    preset["brand"] = brand;
+    preset["type"] = type;
+    preset["roastDate"] = roastDate;
+    preset["roastLevel"] = roastLevel;
+    preset["grinderModel"] = grinderModel;
+    preset["grinderSetting"] = grinderSetting;
+    arr.append(preset);
+
+    m_settings.setValue("bean/presets", QJsonDocument(arr).toJson());
+    emit beanPresetsChanged();
+}
+
+void Settings::updateBeanPreset(int index, const QString& name, const QString& brand,
+                                const QString& type, const QString& roastDate,
+                                const QString& roastLevel, const QString& grinderModel,
+                                const QString& grinderSetting) {
+    QByteArray data = m_settings.value("bean/presets").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+
+    if (index >= 0 && index < arr.size()) {
+        QJsonObject preset;
+        preset["name"] = name;
+        preset["brand"] = brand;
+        preset["type"] = type;
+        preset["roastDate"] = roastDate;
+        preset["roastLevel"] = roastLevel;
+        preset["grinderModel"] = grinderModel;
+        preset["grinderSetting"] = grinderSetting;
+        arr[index] = preset;
+
+        m_settings.setValue("bean/presets", QJsonDocument(arr).toJson());
+        emit beanPresetsChanged();
+    }
+}
+
+void Settings::removeBeanPreset(int index) {
+    QByteArray data = m_settings.value("bean/presets").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+
+    if (index >= 0 && index < arr.size()) {
+        arr.removeAt(index);
+        m_settings.setValue("bean/presets", QJsonDocument(arr).toJson());
+
+        // Adjust selected if needed
+        int selected = selectedBeanPreset();
+        if (selected >= arr.size() && arr.size() > 0) {
+            setSelectedBeanPreset(static_cast<int>(arr.size()) - 1);
+        } else if (arr.size() == 0) {
+            setSelectedBeanPreset(-1);
+        } else if (selected > index) {
+            setSelectedBeanPreset(selected - 1);
+        }
+
+        emit beanPresetsChanged();
+    }
+}
+
+void Settings::moveBeanPreset(int from, int to) {
+    QByteArray data = m_settings.value("bean/presets").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+
+    if (from >= 0 && from < arr.size() && to >= 0 && to < arr.size() && from != to) {
+        QJsonValue item = arr[from];
+        arr.removeAt(from);
+        arr.insert(to, item);
+        m_settings.setValue("bean/presets", QJsonDocument(arr).toJson());
+
+        // Update selected to follow the moved item if it was selected
+        int selected = selectedBeanPreset();
+        if (selected == from) {
+            setSelectedBeanPreset(to);
+        } else if (from < selected && to >= selected) {
+            setSelectedBeanPreset(selected - 1);
+        } else if (from > selected && to <= selected) {
+            setSelectedBeanPreset(selected + 1);
+        }
+
+        emit beanPresetsChanged();
+    }
+}
+
+QVariantMap Settings::getBeanPreset(int index) const {
+    QByteArray data = m_settings.value("bean/presets").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+
+    if (index >= 0 && index < arr.size()) {
+        return arr[index].toObject().toVariantMap();
+    }
+    return QVariantMap();
+}
+
+void Settings::applyBeanPreset(int index) {
+    QVariantMap preset = getBeanPreset(index);
+    if (preset.isEmpty()) {
+        return;
+    }
+
+    // Apply all preset fields to DYE settings
+    setDyeBeanBrand(preset.value("brand").toString());
+    setDyeBeanType(preset.value("type").toString());
+    setDyeRoastDate(preset.value("roastDate").toString());
+    setDyeRoastLevel(preset.value("roastLevel").toString());
+    setDyeGrinderModel(preset.value("grinderModel").toString());
+    setDyeGrinderSetting(preset.value("grinderSetting").toString());
+}
+
+void Settings::saveBeanPresetFromCurrent(const QString& name) {
+    addBeanPreset(name,
+                  dyeBeanBrand(),
+                  dyeBeanType(),
+                  dyeRoastDate(),
+                  dyeRoastLevel(),
+                  dyeGrinderModel(),
+                  dyeGrinderSetting());
 }
 
 // UI settings
@@ -1667,6 +1826,29 @@ void Settings::setDeveloperTranslationUpload(bool enabled) {
     if (developerTranslationUpload() != enabled) {
         m_settings.setValue("developer/translationUpload", enabled);
         emit developerTranslationUploadChanged();
+    }
+}
+
+// Temperature override (session-only)
+double Settings::temperatureOverride() const {
+    return m_temperatureOverride;
+}
+
+void Settings::setTemperatureOverride(double temp) {
+    m_temperatureOverride = temp;
+    m_hasTemperatureOverride = true;
+    emit temperatureOverrideChanged();
+}
+
+bool Settings::hasTemperatureOverride() const {
+    return m_hasTemperatureOverride;
+}
+
+void Settings::clearTemperatureOverride() {
+    if (m_hasTemperatureOverride) {
+        m_hasTemperatureOverride = false;
+        m_temperatureOverride = 0;
+        emit temperatureOverrideChanged();
     }
 }
 

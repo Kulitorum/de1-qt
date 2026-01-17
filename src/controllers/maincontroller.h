@@ -76,6 +76,7 @@ class MainController : public QObject {
     Q_PROPERTY(ShotReporter* shotReporter READ shotReporter CONSTANT)
     Q_PROPERTY(bool isCurrentProfileRecipe READ isCurrentProfileRecipe NOTIFY currentProfileChanged)
     Q_PROPERTY(qint64 lastSavedShotId READ lastSavedShotId NOTIFY lastSavedShotIdChanged)
+    Q_PROPERTY(double profileTargetTemperature READ profileTargetTemperature NOTIFY currentProfileChanged)
 
 public:
     explicit MainController(Settings* settings, DE1Device* device,
@@ -119,6 +120,7 @@ public:
     UpdateChecker* updateChecker() const { return m_updateChecker; }
     ShotReporter* shotReporter() const { return m_shotReporter; }
     qint64 lastSavedShotId() const { return m_lastSavedShotId; }
+    double profileTargetTemperature() const { return m_currentProfile.espressoTemperature(); }
 
     const Profile& currentProfile() const { return m_currentProfile; }
     Profile currentProfileObject() const { return m_currentProfile; }
@@ -133,6 +135,7 @@ public:
     Q_INVOKABLE bool profileExists(const QString& filename) const;
     Q_INVOKABLE bool deleteProfile(const QString& filename);  // Delete user/downloaded profile
     Q_INVOKABLE QVariantMap getProfileByFilename(const QString& filename) const;  // Load profile for preview (without setting as current)
+    Q_INVOKABLE void loadShotWithMetadata(qint64 shotId);  // Load profile + bean info from history shot
 
     // Recipe Editor methods (DEPRECATED - kept for backward compatibility)
     Q_INVOKABLE void uploadRecipeProfile(const QVariantMap& recipeParams);

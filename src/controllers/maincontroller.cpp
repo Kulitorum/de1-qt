@@ -740,6 +740,49 @@ bool MainController::loadProfileFromJson(const QString& jsonContent) {
     return true;
 }
 
+void MainController::loadShotWithMetadata(qint64 shotId) {
+    if (!m_shotHistory) {
+        qWarning() << "loadShotWithMetadata: No shot history storage";
+        return;
+    }
+
+    // Get full shot record from history
+    ShotRecord shotRecord = m_shotHistory->getShotRecord(shotId);
+    if (shotRecord.summary.id <= 0) {
+        qWarning() << "loadShotWithMetadata: Shot not found with id:" << shotId;
+        return;
+    }
+
+    // Load the profile
+    if (!shotRecord.profileJson.isEmpty()) {
+        loadProfileFromJson(shotRecord.profileJson);
+    } else {
+        // Try to find installed profile by title
+        QString filename = findProfileByTitle(shotRecord.summary.profileName);
+        if (!filename.isEmpty()) {
+            loadProfile(filename);
+        } else {
+            qWarning() << "loadShotWithMetadata: No profile data available for shot";
+        }
+    }
+
+    // Copy metadata to DYE settings
+    if (m_settings) {
+        m_settings->setDyeBeanBrand(shotRecord.summary.beanBrand);
+        m_settings->setDyeBeanType(shotRecord.summary.beanType);
+        m_settings->setDyeRoastDate(shotRecord.roastDate);
+        m_settings->setDyeRoastLevel(shotRecord.roastLevel);
+        m_settings->setDyeGrinderModel(shotRecord.grinderModel);
+        m_settings->setDyeGrinderSetting(shotRecord.grinderSetting);
+        m_settings->setDyeBarista(shotRecord.barista);
+        // Note: Don't copy weights/TDS/EY - those are shot results, not presets
+
+        qDebug() << "Loaded shot metadata - brand:" << shotRecord.summary.beanBrand
+                 << "type:" << shotRecord.summary.beanType
+                 << "grinder:" << shotRecord.grinderModel << shotRecord.grinderSetting;
+    }
+}
+
 void MainController::refreshProfiles() {
     m_availableProfiles.clear();
     m_profileTitles.clear();
@@ -913,7 +956,21 @@ void MainController::uploadCurrentProfile() {
     }
 
     if (m_device && m_device->isConnected()) {
-        m_device->uploadProfile(m_currentProfile);
+        // Apply temperature override if set
+        if (m_settings && m_settings->hasTemperatureOverride()) {
+            Profile modifiedProfile = m_currentProfile;
+            double overrideTemp = m_settings->temperatureOverride();
+            QList<ProfileFrame> steps = modifiedProfile.steps();
+            for (int i = 0; i < steps.size(); ++i) {
+                steps[i].temperature = overrideTemp;
+            }
+            modifiedProfile.setSteps(steps);
+            modifiedProfile.setEspressoTemperature(overrideTemp);
+            qDebug() << "Uploading profile with temperature override:" << overrideTemp << "°C";
+            m_device->uploadProfile(modifiedProfile);
+        } else {
+            m_device->uploadProfile(m_currentProfile);
+        }
     }
 }
 
@@ -1883,6 +1940,11 @@ void MainController::onEspressoCycleStarted() {
 void MainController::onShotEnded() {
     // Always clear brew-by-ratio mode when shot ends
     clearBrewByRatio();
+
+    // Clear temperature override after shot
+    if (m_settings) {
+        m_settings->clearTemperatureOverride();
+    }
 
     // Only process espresso shots that actually extracted
     if (!m_extractionStarted || !m_settings || !m_shotDataModel) {
