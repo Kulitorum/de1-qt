@@ -16,7 +16,7 @@
 #endif
 
 const QString UpdateChecker::GITHUB_API_URL = "https://api.github.com/repos/%1/releases/latest";
-const QString UpdateChecker::GITHUB_REPO = "Kulitorum/de1-qt";
+const QString UpdateChecker::GITHUB_REPO = "Kulitorum/Decenza";
 
 UpdateChecker::UpdateChecker(Settings* settings, QObject* parent)
     : QObject(parent)

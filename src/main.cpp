@@ -23,6 +23,8 @@
 #include "core/batterymanager.h"
 #include "core/accessibilitymanager.h"
 #include "core/autowakemanager.h"
+#include "core/crashhandler.h"
+#include "network/crashreporter.h"
 #include "core/profilestorage.h"
 #include "ble/blemanager.h"
 #include "ble/de1device.h"
@@ -50,6 +52,9 @@ using namespace Qt::StringLiterals;
 
 int main(int argc, char *argv[])
 {
+    // Install crash handler first - catches SIGSEGV, SIGABRT, etc.
+    CrashHandler::install();
+
     // Set simple message pattern for desktop (Android uses its own format)
 #ifndef Q_OS_ANDROID
     qSetMessagePattern("%{message}");
@@ -76,6 +81,17 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle("Material");
 
     qDebug() << "App started - version" << VERSION_STRING;
+
+    // Check for crash log from previous run (don't clear yet - QML will clear after user dismisses)
+    QString previousCrashLog;
+    QString previousDebugLogTail;
+    if (CrashHandler::hasCrashLog()) {
+        previousCrashLog = CrashHandler::readCrashLog();
+        previousDebugLogTail = CrashHandler::getDebugLogTail(50);
+        qWarning() << "=== PREVIOUS CRASH DETECTED ===";
+        qWarning().noquote() << previousCrashLog;
+        qWarning() << "=== END CRASH REPORT ===";
+    }
 
     // Create core objects
     Settings settings;
@@ -137,6 +153,9 @@ int main(int argc, char *argv[])
 
     AccessibilityManager accessibilityManager;
     accessibilityManager.setTranslationManager(&translationManager);
+
+    // Crash reporter for sending crash reports to api.decenza.coffee
+    CrashReporter crashReporter;
 
     // FlowScale fallback timer - notify after 30 seconds if no physical scale found
     QTimer flowScaleFallbackTimer;
@@ -313,6 +332,9 @@ int main(int argc, char *argv[])
     context->setContextProperty("BatteryManager", &batteryManager);
     context->setContextProperty("AccessibilityManager", &accessibilityManager);
     context->setContextProperty("ProfileStorage", &profileStorage);
+    context->setContextProperty("CrashReporter", &crashReporter);
+    context->setContextProperty("PreviousCrashLog", previousCrashLog);
+    context->setContextProperty("PreviousDebugLogTail", previousDebugLogTail);
     context->setContextProperty("AppVersion", VERSION_STRING);
     context->setContextProperty("AppVersionCode", VERSION_CODE);
 #ifdef QT_DEBUG

@@ -16,8 +16,8 @@ AppName={#TargetProduct}
 AppVersion={#VersionNumber}
 AppVerName={#TargetProduct} v{#VersionNumber}
 AppPublisher={#TargetCompany}
-AppPublisherURL=https://github.com/Kulitorum/de1-qt
-AppSupportURL=https://github.com/Kulitorum/de1-qt/issues
+AppPublisherURL=https://github.com/Kulitorum/Decenza
+AppSupportURL=https://github.com/Kulitorum/Decenza/issues
 
 ; Installation settings
 ArchitecturesInstallIn64BitMode=x64

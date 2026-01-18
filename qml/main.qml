@@ -292,6 +292,14 @@ ApplicationWindow {
 
         updateScale()
 
+        // Check for crash log from previous session
+        if (PreviousCrashLog && PreviousCrashLog.length > 0) {
+            // Delay showing crash dialog slightly to ensure UI is ready
+            Qt.callLater(function() {
+                crashReportDialog.open()
+            })
+        }
+
         // Check for first run and show welcome dialog or start scanning
         var firstRunComplete = Settings.value("firstRunComplete", false)
         if (!firstRunComplete) {
@@ -1193,6 +1201,22 @@ ApplicationWindow {
 
             // Reset for next operation
             root.wasEspressoOperation = false
+        }
+    }
+
+    // Crash report dialog - shown on startup if app crashed previously
+    CrashReportDialog {
+        id: crashReportDialog
+        crashLog: PreviousCrashLog || ""
+        debugLogTail: PreviousDebugLogTail || ""
+
+        onDismissed: {
+            // Clear the crash log file
+            MainController.clearCrashLog()
+        }
+        onReported: {
+            // Clear the crash log file after successful report
+            MainController.clearCrashLog()
         }
     }
 

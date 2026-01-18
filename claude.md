@@ -418,7 +418,7 @@ gh release create vX.Y.Z \
 
 ## Installation
 
-**Direct APK download:** https://github.com/Kulitorum/de1-qt/releases/download/vX.Y.Z/Decenza_DE1_X.Y.Z.apk
+**Direct APK download:** https://github.com/Kulitorum/Decenza/releases/download/vX.Y.Z/Decenza_DE1_X.Y.Z.apk
 
 Install on your Android device (allow unknown sources).
 EOF

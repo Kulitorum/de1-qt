@@ -15,6 +15,7 @@
 #include "../history/shotdebuglogger.h"
 #include "../network/shotserver.h"
 #include "../network/locationprovider.h"
+#include "../core/crashhandler.h"
 #include <QDir>
 #include <QFile>
 #include <QTextStream>
@@ -2199,6 +2200,14 @@ void MainController::generateFakeShotData() {
     m_pendingShotDoseWeight = 18.0;
 
     qDebug() << "DEV: Generated" << numSamples << "fake samples";
+}
+
+void MainController::clearCrashLog() {
+    QString path = CrashHandler::crashLogPath();
+    if (QFile::exists(path)) {
+        QFile::remove(path);
+        qDebug() << "MainController: Cleared crash log at" << path;
+    }
 }
 
 void MainController::onShotSampleReceived(const ShotSample& sample) {

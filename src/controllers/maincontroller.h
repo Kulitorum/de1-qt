@@ -202,6 +202,9 @@ public slots:
     // Developer mode: generate fake shot data for testing UI
     Q_INVOKABLE void generateFakeShotData();
 
+    // Clear crash log file (called from QML after user dismisses crash report dialog)
+    Q_INVOKABLE void clearCrashLog();
+
 signals:
     void currentProfileChanged();
     void profileModifiedChanged();
