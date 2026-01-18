@@ -68,7 +68,7 @@ jobs:
         run: |
           mkdir -p build/ios
           cd build/ios
-          $Qt6_DIR/ios/bin/qt-cmake ../.. -G Xcode \
+          $QT_ROOT_DIR/bin/qt-cmake ../.. -G Xcode \
             -DCMAKE_OSX_DEPLOYMENT_TARGET=14.0
 
       - name: Build and Archive
