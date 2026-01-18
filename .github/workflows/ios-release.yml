@@ -66,6 +66,7 @@ jobs:
           PROFILE_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(/usr/bin/security cms -D -i $PROFILE_PATH))
           cp $PROFILE_PATH ~/Library/MobileDevice/Provisioning\ Profiles/$PROFILE_UUID.mobileprovision
           echo "Installed profile with UUID: $PROFILE_UUID"
+          echo "PROFILE_UUID=$PROFILE_UUID" >> $GITHUB_ENV
 
       - name: Configure CMake
         run: |
@@ -100,8 +101,8 @@ jobs:
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
           security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
 
-          # Create export options plist
-          cat > $RUNNER_TEMP/ExportOptions.plist << EOF
+          # Create export options plist using profile UUID from env
+          cat > $RUNNER_TEMP/ExportOptions.plist << PLIST
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -121,11 +122,14 @@ jobs:
               <key>provisioningProfiles</key>
               <dict>
                   <key>com.kulitorum.decenza</key>
-                  <string>${{ secrets.PROVISIONING_PROFILE_NAME }}</string>
+                  <string>${PROFILE_UUID}</string>
               </dict>
           </dict>
           </plist>
-          EOF
+          PLIST
+
+          echo "Export options:"
+          cat $RUNNER_TEMP/ExportOptions.plist
 
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/Decenza_DE1.xcarchive \
