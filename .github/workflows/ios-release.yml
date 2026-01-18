@@ -31,8 +31,9 @@ jobs:
           version: '6.10.1'
           target: 'ios'
           arch: 'ios'
+          modules: 'qt3d qtcharts qtconnectivity qtmultimedia qtpositioning qtspeech qtwebsockets'
           cache: true
-          cache-key-prefix: 'qt-ios'
+          cache-key-prefix: 'qt-ios-v2'
 
       - name: Install Apple certificate and provisioning profile
         env:
