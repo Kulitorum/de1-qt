@@ -105,6 +105,8 @@ gh run view --repo Kulitorum/de1-qt --log-failed
 
 **Important:**
 - iOS bundle ID is `io.github.kulitorum.decenza` (Android uses `io.github.kulitorum.decenza_de1`)
+- Certificate type: **iPhone Distribution** (not Apple Distribution)
+- Profile name: **Decenza App Store**
 - Signing credentials stored in GitHub Secrets (expire yearly)
 - See `docs/IOS_CI_FOR_CLAUDE.md` for troubleshooting and credential renewal
 

@@ -114,7 +114,7 @@ These secrets are configured in the repository and should NOT be modified unless
 | `P12_CERTIFICATE_BASE64` | Distribution certificate | 1 year from creation |
 | `P12_PASSWORD` | Password for .p12 file | Never |
 | `PROVISIONING_PROFILE_BASE64` | App Store provisioning profile | 1 year |
-| `PROVISIONING_PROFILE_NAME` | Profile name: "Decenza App Store Manual" | Never |
+| `PROVISIONING_PROFILE_NAME` | Profile name: "Decenza App Store" | Never |
 | `KEYCHAIN_PASSWORD` | Temporary keychain password | Never |
 | `APPLE_TEAM_ID` | Team ID: HKHN2RK2P4 | Never |
 | `APP_STORE_CONNECT_API_KEY_ID` | API Key ID: 7G779Y38W5 | Never (unless revoked) |
@@ -140,6 +140,21 @@ These secrets are configured in the repository and should NOT be modified unless
 **Solution:**
 - Verify CMakeLists.txt has: `XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER "io.github.kulitorum.decenza"`
 - If changed, create new provisioning profile in Apple Developer Portal
+
+### 2b. "Provisioning profile doesn't include signing certificate"
+
+**Cause:** The P12 certificate in GitHub secrets doesn't match the certificate in the provisioning profile.
+
+**Important:** The workflow uses **"iPhone Distribution"** certificate type (not "Apple Distribution").
+
+**Solution:**
+1. Check which certificate is in the provisioning profile:
+   ```bash
+   security cms -D -i profile.mobileprovision | grep -A5 "DeveloperCertificates"
+   ```
+2. Export the matching certificate from Keychain Access (look for "iPhone Distribution: Your Name")
+3. Convert to base64: `base64 -i certificate.p12 | tr -d '\n'`
+4. Update `P12_CERTIFICATE_BASE64` secret
 
 ### 3. "API key not authorized"
 
@@ -170,10 +185,13 @@ These secrets are configured in the repository and should NOT be modified unless
 
 ### When certificate expires (yearly):
 
+**Important:** Use **"iOS Distribution"** certificate type (creates "iPhone Distribution" identity).
+
 On a Mac:
 1. Create new certificate at https://developer.apple.com/account/resources/certificates/add
+   - Select "iOS Distribution (App Store Connect and Ad Hoc)"
 2. Download and install in Keychain
-3. Export as .p12: `Keychain Access → My Certificates → Right-click → Export`
+3. Export as .p12: `Keychain Access → My Certificates → "iPhone Distribution: Your Name" → Right-click → Export`
 4. Convert to base64: `base64 -i certificate.p12 | tr -d '\n'`
 5. Update `P12_CERTIFICATE_BASE64` secret in GitHub
 6. Create new provisioning profile that includes the new certificate
@@ -183,9 +201,10 @@ On a Mac:
 
 1. Go to https://developer.apple.com/account/resources/profiles
 2. Create new App Store profile for `io.github.kulitorum.decenza`
-3. Download and convert: `base64 -i profile.mobileprovision | tr -d '\n'`
-4. Update `PROVISIONING_PROFILE_BASE64` secret
-5. Update `PROVISIONING_PROFILE_NAME` if name changed
+3. **Select the "iPhone Distribution" certificate** (not "Apple Distribution")
+4. Download and convert: `base64 -i profile.mobileprovision | tr -d '\n'`
+5. Update `PROVISIONING_PROFILE_BASE64` secret
+6. Update `PROVISIONING_PROFILE_NAME` if name changed
 
 ## Version Management
 
@@ -256,7 +275,9 @@ This builds and archives but skips the upload step. You can download the IPA art
 - **Team ID**: `HKHN2RK2P4`
 - **Minimum iOS**: 14.0 (set in CMakeLists.txt)
 - **Qt Version**: 6.10.1
-- **Signing**: Manual signing with explicit certificate and profile
+- **Signing**: Manual signing with "iPhone Distribution" certificate
+- **Certificate Type**: iPhone Distribution (NOT Apple Distribution)
+- **Profile Name**: Decenza App Store
 
 ## Quick Reference Commands
 
