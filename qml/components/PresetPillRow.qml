@@ -11,11 +11,21 @@ FocusScope {
     property real maxWidth: Math.min(Theme.scaled(825), parent ? parent.width - Theme.scaled(24) : Theme.scaled(825))  // Clamp to parent width with margins
     property bool supportLongPress: false  // Enable long-press on pills
 
+    // Effective max width - ensures we never exceed parent width even if maxWidth is larger
+    readonly property real effectiveMaxWidth: {
+        var parentW = parent ? parent.width : 0
+        if (parentW > 0 && maxWidth > 0) {
+            return Math.min(maxWidth, parentW)
+        }
+        return maxWidth > 0 ? maxWidth : Theme.scaled(825)
+    }
+
     signal presetSelected(int index)
     signal presetLongPressed(int index)
 
     implicitHeight: contentColumn.implicitHeight
-    implicitWidth: maxWidth
+    implicitWidth: effectiveMaxWidth
+    width: effectiveMaxWidth
 
     // Keyboard navigation
     activeFocusOnTab: true
@@ -64,13 +74,23 @@ FocusScope {
         return textMetrics.width
     }
 
-    // Recalculate when presets change
+    // Recalculate when presets or width changes
     onPresetsChanged: rowsModel = calculateRows()
-    onMaxWidthChanged: rowsModel = calculateRows()
+    onEffectiveMaxWidthChanged: rowsModel = calculateRows()
+
+    // Recalculate after layout is complete to ensure correct width
+    Component.onCompleted: Qt.callLater(function() { rowsModel = calculateRows() })
 
     // Group presets into rows, distributing evenly BY WIDTH for balanced aesthetics
     function calculateRows() {
         if (presets.length === 0) return []
+
+        // Use effective max width for calculations
+        var availableWidth = effectiveMaxWidth
+        if (availableWidth <= 0) {
+            // Width not yet determined, will recalculate when layout completes
+            return []
+        }
 
         // First pass: calculate pill widths based on actual text width
         var pillWidths = []
@@ -85,7 +105,7 @@ FocusScope {
         totalWidth += (presets.length - 1) * pillSpacing
 
         // If everything fits on one row, just return it
-        if (totalWidth <= maxWidth) {
+        if (totalWidth <= availableWidth) {
             var singleRow = []
             for (i = 0; i < presets.length; i++) {
                 singleRow.push({index: i, preset: presets[i], width: pillWidths[i]})
@@ -94,7 +114,7 @@ FocusScope {
         }
 
         // Calculate number of rows needed
-        var numRows = Math.ceil(totalWidth / maxWidth)
+        var numRows = Math.ceil(totalWidth / availableWidth)
 
         // Target width per row (distribute evenly by width, not count)
         var targetRowWidth = totalWidth / numRows
@@ -110,13 +130,13 @@ FocusScope {
             var widthIfAdded = currentRowWidth + spacingNeeded + pillWidth
 
             // Start new row if:
-            // 1. Adding this pill would exceed maxWidth AND row is not empty, OR
+            // 1. Adding this pill would exceed availableWidth AND row is not empty, OR
             // 2. Current row width is already >= target AND there are enough pills left for remaining rows
             var remainingPills = presets.length - i
             var remainingRows = numRows - rows.length
             var shouldStartNewRow = false
 
-            if (currentRow.length > 0 && widthIfAdded > maxWidth) {
+            if (currentRow.length > 0 && widthIfAdded > availableWidth) {
                 // Would overflow - must start new row
                 shouldStartNewRow = true
             } else if (currentRow.length > 0 && currentRowWidth >= targetRowWidth * 0.9 && remainingPills >= remainingRows) {
