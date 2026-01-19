@@ -120,13 +120,20 @@ ApplicationWindow {
         onTriggered: Qt.quit()
     }
 
-    // Auto-sleep inactivity timer
+    // Auto-sleep inactivity timer (base setting from Preferences)
     property int autoSleepMinutes: {
         var val = Settings.value("autoSleepMinutes", 60)
         return (val === undefined || val === null) ? 60 : parseInt(val)
     }
 
-    // Active operation phases that should prevent auto-sleep
+    // Two-counter sleep system:
+    // - sleepCountdownNormal: resets on user activity, counts down from autoSleepMinutes
+    // - sleepCountdownStayAwake: only set on auto-wake, never reset by activity
+    // Sleep when BOTH <= 0
+    property int sleepCountdownNormal: -1      // Minutes remaining (-1 = not started)
+    property int sleepCountdownStayAwake: -1   // Minutes remaining (-1 = already satisfied)
+
+    // Active operation phases that should pause the sleep countdown
     property bool operationActive: {
         var phase = MachineState.phase
         return phase === MachineStateType.Phase.EspressoPreheating ||
@@ -140,66 +147,55 @@ ApplicationWindow {
                phase === MachineStateType.Phase.Cleaning
     }
 
+    // Sleep countdown timer - ticks every minute
     Timer {
-        id: inactivityTimer
-        interval: root.autoSleepMinutes * 60 * 1000  // Convert minutes to ms
-        running: root.autoSleepMinutes > 0 && !screensaverActive && !root.operationActive
-        repeat: false
-        // CRITICAL: When running changes from false to true via the binding,
-        // QML timers resume from their previous elapsed time, not from 0.
-        // This caused a bug where exiting the screensaver would immediately
-        // trigger auto-sleep because the timer resumed near the end.
-        // FIX: Toggle interval to reset elapsed time WITHOUT breaking the running binding.
-        // Previously we called restart() here, but restart() breaks the binding,
-        // causing the timer to keep running even when screensaverActive becomes true.
-        onRunningChanged: {
-            if (running) {
-                // Toggle interval to reset elapsed time - preserves the running binding
-                var savedInterval = interval
-                interval = savedInterval + 1
-                interval = savedInterval
-            }
-        }
+        id: sleepCountdownTimer
+        interval: 60 * 1000  // 1 minute
+        running: !screensaverActive && !root.operationActive && root.autoSleepMinutes > 0
+        repeat: true
         onTriggered: {
-            console.log("Auto-sleep triggered after", root.autoSleepMinutes, "minutes of inactivity")
-            triggerAutoSleep()
+            // Decrement both counters (only if > 0)
+            if (root.sleepCountdownNormal > 0) root.sleepCountdownNormal--
+            if (root.sleepCountdownStayAwake > 0) root.sleepCountdownStayAwake--
+
+            // Debug: log countdown status on every tick
+            console.log("Sleep countdown: normal=" + root.sleepCountdownNormal +
+                       ", stayAwake=" + root.sleepCountdownStayAwake)
+
+            // Sleep when BOTH <= 0
+            if (root.sleepCountdownNormal <= 0 && root.sleepCountdownStayAwake <= 0) {
+                console.log("Auto-sleep triggered (both counters expired)")
+                triggerAutoSleep()
+            }
         }
     }
 
-    // Restart timer when settings change
+    // Reset normal countdown on user activity (phase change)
+    Connections {
+        target: MachineState
+        function onPhaseChanged() {
+            if (!screensaverActive && root.autoSleepMinutes > 0) {
+                root.sleepCountdownNormal = root.autoSleepMinutes
+            }
+        }
+    }
+
+    // Handle settings changes
     Connections {
         target: Settings
         function onValueChanged(key) {
             if (key === "autoSleepMinutes") {
                 var val = Settings.value("autoSleepMinutes", 60)
                 root.autoSleepMinutes = (val === undefined || val === null) ? 60 : parseInt(val)
-                resetInactivityTimer()
+                // Update normal countdown to new value
+                if (!screensaverActive && root.autoSleepMinutes > 0) {
+                    root.sleepCountdownNormal = root.autoSleepMinutes
+                }
             } else if (key === "ui/configurePageScale") {
                 var val = Settings.value("ui/configurePageScale", false)
                 console.log("configurePageScale changed:", val, "type:", typeof val)
-                // Handle both boolean and string values from QSettings
                 Theme.configurePageScaleEnabled = (val === true || val === "true")
                 console.log("configurePageScaleEnabled set to:", Theme.configurePageScaleEnabled)
-            }
-        }
-    }
-
-    function resetInactivityTimer() {
-        if (root.autoSleepMinutes > 0 && inactivityTimer.running) {
-            // Reset elapsed time by toggling interval - preserves the running binding
-            // (calling restart() would break the binding)
-            var savedInterval = inactivityTimer.interval
-            inactivityTimer.interval = savedInterval + 1
-            inactivityTimer.interval = savedInterval
-        }
-    }
-
-    // Reset timer on any phase change - indicates user activity
-    Connections {
-        target: MachineState
-        function onPhaseChanged() {
-            if (!screensaverActive) {
-                resetInactivityTimer()
             }
         }
     }
@@ -246,6 +242,23 @@ ApplicationWindow {
         onTriggered: {
             console.log("Resending steam settings to keep heater on")
             MainController.applySteamSettings()
+        }
+    }
+
+    // Track if we were just steaming (for auto-flush timer)
+    property bool wasSteaming: false
+
+    // Auto-flush steam wand timer - triggers Idle request after steaming ends
+    Timer {
+        id: steamAutoFlushTimer
+        interval: Settings.steamAutoFlushSeconds * 1000
+        running: false
+        repeat: false
+        onTriggered: {
+            console.log("Steam auto-flush timer triggered, requesting Idle state")
+            if (DE1Device && DE1Device.connected) {
+                DE1Device.requestState(0)  // 0 = Idle
+            }
         }
     }
 
@@ -308,6 +321,12 @@ ApplicationWindow {
             // On subsequent launches, still check if storage setup is needed
             // (e.g., after reinstall when QSettings was restored but SAF permission wasn't)
             checkStorageSetup()
+        }
+
+        // Initialize sleep countdowns (fresh app start, not auto-woken)
+        if (root.autoSleepMinutes > 0) {
+            root.sleepCountdownNormal = root.autoSleepMinutes
+            root.sleepCountdownStayAwake = 0  // Already satisfied on fresh start
         }
 
         // Mark app as initialized
@@ -1428,12 +1447,23 @@ ApplicationWindow {
                 // Apply steam settings immediately when entering steam (from GHC button)
                 MainController.applySteamSettings()
                 console.log("Applied steam settings on phase change to Steaming")
+                // Stop any pending auto-flush timer when starting new steam
+                steamAutoFlushTimer.stop()
             } else if (phase === MachineStateType.Phase.HotWater && wasIdle) {
                 MainController.applyHotWaterSettings()
                 console.log("Applied hot water settings on phase change")
             } else if (phase === MachineStateType.Phase.Flushing && wasIdle) {
                 MainController.applyFlushSettings()
                 console.log("Applied flush settings on phase change")
+            }
+
+            // Check if steaming just ended - start auto-flush timer if enabled
+            let wasSteamingBefore = (root.previousPhase === MachineStateType.Phase.Steaming)
+            if (wasSteamingBefore && (phase === MachineStateType.Phase.Idle || phase === MachineStateType.Phase.Ready)) {
+                if (Settings.steamAutoFlushSeconds > 0) {
+                    console.log("Steaming ended, starting auto-flush timer for", Settings.steamAutoFlushSeconds, "seconds")
+                    steamAutoFlushTimer.restart()
+                }
             }
 
             // Update previous phase tracking
@@ -1655,6 +1685,9 @@ ApplicationWindow {
     function goToScreensaver() {
         console.log("[Main] goToScreensaver called, type:", ScreensaverManager.screensaverType)
         screensaverActive = true
+        // Reset sleep counters (stopped state)
+        root.sleepCountdownNormal = 0
+        root.sleepCountdownStayAwake = 0
         // Navigate to screensaver page for all modes (including "disabled")
         // For "disabled" mode, ScreensaverPage shows a black screen and lets
         // Android's system timeout turn off the screen naturally
@@ -1665,9 +1698,10 @@ ApplicationWindow {
         screensaverActive = false
         // Restore screen brightness in case disabled mode dimmed it
         ScreensaverManager.restoreScreenBrightness()
-        // Reset the inactivity timer - critical! QML timers resume from pause point,
-        // they don't restart. Also handles wake via DE1 button which bypasses MouseArea.
-        resetInactivityTimer()
+        // Initialize sleep countdown (stayAwake is set separately by onAutoWakeTriggered if needed)
+        root.sleepCountdownNormal = root.autoSleepMinutes
+        root.sleepCountdownStayAwake = 0  // Already satisfied unless auto-wake sets it
+        console.log("Waking from screensaver: normal countdown=" + root.sleepCountdownNormal)
         pageStack.replace(idlePage)
     }
 
@@ -1676,13 +1710,16 @@ ApplicationWindow {
         ScreensaverPage {}
     }
 
-    // Touch capture to reset inactivity timer (transparent, doesn't block input)
+    // Touch capture to reset sleep countdown (transparent, doesn't block input)
     MouseArea {
         anchors.fill: parent
         z: 1000  // Above everything
         propagateComposedEvents: true
         onPressed: function(mouse) {
-            resetInactivityTimer()
+            // Reset normal countdown on user touch (but not stayAwake)
+            if (root.autoSleepMinutes > 0 && !screensaverActive) {
+                root.sleepCountdownNormal = root.autoSleepMinutes
+            }
             mouse.accepted = false  // Let the touch through
         }
         onReleased: function(mouse) { mouse.accepted = false }
@@ -1773,6 +1810,11 @@ ApplicationWindow {
             console.log("[Main] Auto-wake triggered, exiting screensaver")
             if (screensaverActive) {
                 goToIdleFromScreensaver()
+                // Set stay-awake countdown if enabled (after goToIdleFromScreensaver sets normal)
+                if (Settings.autoWakeStayAwakeEnabled && Settings.autoWakeStayAwakeMinutes > 0) {
+                    root.sleepCountdownStayAwake = Settings.autoWakeStayAwakeMinutes
+                    console.log("Auto-wake: stayAwake countdown=" + root.sleepCountdownStayAwake)
+                }
             }
         }
 

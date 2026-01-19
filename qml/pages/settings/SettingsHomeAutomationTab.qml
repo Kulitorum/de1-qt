@@ -66,7 +66,7 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         height: 1
-                        color: Theme.dividerColor
+                        color: Theme.borderColor
                     }
 
                     // Broker Host
@@ -322,9 +322,9 @@ Item {
                         }
 
                         background: Rectangle {
-                            color: Theme.inputBackgroundColor
+                            color: Theme.backgroundColor
                             radius: Theme.scaled(4)
-                            border.color: Theme.dividerColor
+                            border.color: Theme.borderColor
                             border.width: 1
                         }
 
@@ -367,7 +367,7 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         height: 1
-                        color: Theme.dividerColor
+                        color: Theme.borderColor
                         Layout.topMargin: Theme.scaled(5)
                         Layout.bottomMargin: Theme.scaled(5)
                     }
@@ -416,7 +416,7 @@ Item {
                     Rectangle {
                         Layout.fillWidth: true
                         height: 1
-                        color: Theme.dividerColor
+                        color: Theme.borderColor
                         Layout.topMargin: Theme.scaled(5)
                         Layout.bottomMargin: Theme.scaled(5)
                     }

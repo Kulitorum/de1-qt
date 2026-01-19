@@ -141,6 +141,35 @@ KeyboardAwareContainer {
                             }
                         }
                     }
+
+                    // Auto flush steam wand setting
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(8)
+
+                        Text {
+                            text: "Auto flush wand after"
+                            color: Theme.textColor
+                            font.pixelSize: Theme.scaled(14)
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        ValueInput {
+                            Layout.preferredWidth: Theme.scaled(80)
+                            Layout.preferredHeight: Theme.scaled(36)
+                            from: 0
+                            to: 60
+                            stepSize: 5
+                            decimals: 0
+                            value: Settings.steamAutoFlushSeconds
+                            valueColor: value > 0 ? Theme.primaryColor : Theme.textSecondaryColor
+                            displayText: value === 0 ? "Off" : value + "s"
+                            onValueModified: function(newValue) {
+                                Settings.steamAutoFlushSeconds = newValue
+                            }
+                        }
+                    }
                 }
             }
 
@@ -589,6 +618,68 @@ KeyboardAwareContainer {
                             displayText: value < 10 ? "0" + value.toFixed(0) : value.toFixed(0)
                             onValueModified: function(newValue) {
                                 Settings.setAutoWakeDayTime(autoWakeContent.selectedDay, autoWakeContent.selectedDayData.hour ?? 7, newValue)
+                            }
+                        }
+                    }
+
+                    // Separator
+                    Rectangle {
+                        Layout.fillWidth: true
+                        Layout.topMargin: Theme.scaled(4)
+                        height: 1
+                        color: Theme.borderColor
+                    }
+
+                    // Row 4: Stay awake toggle and duration
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(8)
+
+                        Text {
+                            text: "And stay awake for"
+                            color: Theme.textColor
+                            font.pixelSize: Theme.scaled(14)
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        StyledSwitch {
+                            id: stayAwakeSwitch
+                            checked: Settings.autoWakeStayAwakeEnabled
+                            accessibleName: "Stay awake after auto-wake"
+                            onToggled: Settings.autoWakeStayAwakeEnabled = checked
+                        }
+                    }
+
+                    // Row 5: Stay awake duration (ValueInput)
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(8)
+                        visible: Settings.autoWakeStayAwakeEnabled
+
+                        ValueInput {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: Theme.scaled(44)
+                            from: 15
+                            to: 480
+                            stepSize: 15
+                            decimals: 0
+                            value: Settings.autoWakeStayAwakeMinutes
+                            valueColor: Theme.primaryColor
+                            displayText: {
+                                var mins = value
+                                if (mins >= 60) {
+                                    var hours = Math.floor(mins / 60)
+                                    var remainMins = mins % 60
+                                    if (remainMins === 0) {
+                                        return hours + "h"
+                                    }
+                                    return hours + "h " + remainMins + "m"
+                                }
+                                return mins + " min"
+                            }
+                            onValueModified: function(newValue) {
+                                Settings.autoWakeStayAwakeMinutes = newValue
                             }
                         }
                     }

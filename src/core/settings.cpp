@@ -259,6 +259,17 @@ void Settings::setKeepSteamHeaterOn(bool keep) {
     }
 }
 
+int Settings::steamAutoFlushSeconds() const {
+    return m_settings.value("steam/autoFlushSeconds", 0).toInt();
+}
+
+void Settings::setSteamAutoFlushSeconds(int seconds) {
+    if (steamAutoFlushSeconds() != seconds) {
+        m_settings.setValue("steam/autoFlushSeconds", seconds);
+        emit steamAutoFlushSecondsChanged();
+    }
+}
+
 // Headless machine settings
 bool Settings::headlessSkipPurgeConfirm() const {
     return m_settings.value("headless/skipPurgeConfirm", false).toBool();
@@ -1918,6 +1929,28 @@ void Settings::setAutoWakeDayTime(int dayIndex, int hour, int minute) {
     day["minute"] = minute;
     schedule[dayIndex] = day;
     setAutoWakeSchedule(schedule);
+}
+
+bool Settings::autoWakeStayAwakeEnabled() const {
+    return m_settings.value("autoWake/stayAwakeEnabled", false).toBool();
+}
+
+void Settings::setAutoWakeStayAwakeEnabled(bool enabled) {
+    if (autoWakeStayAwakeEnabled() != enabled) {
+        m_settings.setValue("autoWake/stayAwakeEnabled", enabled);
+        emit autoWakeStayAwakeEnabledChanged();
+    }
+}
+
+int Settings::autoWakeStayAwakeMinutes() const {
+    return m_settings.value("autoWake/stayAwakeMinutes", 120).toInt();
+}
+
+void Settings::setAutoWakeStayAwakeMinutes(int minutes) {
+    if (autoWakeStayAwakeMinutes() != minutes) {
+        m_settings.setValue("autoWake/stayAwakeMinutes", minutes);
+        emit autoWakeStayAwakeMinutesChanged();
+    }
 }
 
 // MQTT settings (Home Automation)

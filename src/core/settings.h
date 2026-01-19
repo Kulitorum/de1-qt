@@ -30,6 +30,7 @@ class Settings : public QObject {
     Q_PROPERTY(int steamFlow READ steamFlow WRITE setSteamFlow NOTIFY steamFlowChanged)
     Q_PROPERTY(bool steamDisabled READ steamDisabled WRITE setSteamDisabled NOTIFY steamDisabledChanged)
     Q_PROPERTY(bool keepSteamHeaterOn READ keepSteamHeaterOn WRITE setKeepSteamHeaterOn NOTIFY keepSteamHeaterOnChanged)
+    Q_PROPERTY(int steamAutoFlushSeconds READ steamAutoFlushSeconds WRITE setSteamAutoFlushSeconds NOTIFY steamAutoFlushSecondsChanged)
 
     // Steam pitcher presets
     Q_PROPERTY(QVariantList steamPitcherPresets READ steamPitcherPresets NOTIFY steamPitcherPresetsChanged)
@@ -134,6 +135,8 @@ class Settings : public QObject {
     // Auto-wake schedule
     Q_PROPERTY(bool autoWakeEnabled READ autoWakeEnabled WRITE setAutoWakeEnabled NOTIFY autoWakeEnabledChanged)
     Q_PROPERTY(QVariantList autoWakeSchedule READ autoWakeSchedule WRITE setAutoWakeSchedule NOTIFY autoWakeScheduleChanged)
+    Q_PROPERTY(bool autoWakeStayAwakeEnabled READ autoWakeStayAwakeEnabled WRITE setAutoWakeStayAwakeEnabled NOTIFY autoWakeStayAwakeEnabledChanged)
+    Q_PROPERTY(int autoWakeStayAwakeMinutes READ autoWakeStayAwakeMinutes WRITE setAutoWakeStayAwakeMinutes NOTIFY autoWakeStayAwakeMinutesChanged)
 
     // MQTT settings (Home Automation)
     Q_PROPERTY(bool mqttEnabled READ mqttEnabled WRITE setMqttEnabled NOTIFY mqttEnabledChanged)
@@ -191,6 +194,8 @@ public:
     void setSteamDisabled(bool disabled);
     bool keepSteamHeaterOn() const;
     void setKeepSteamHeaterOn(bool keep);
+    int steamAutoFlushSeconds() const;
+    void setSteamAutoFlushSeconds(int seconds);
 
     // Steam pitcher presets
     QVariantList steamPitcherPresets() const;
@@ -439,6 +444,10 @@ public:
     void setAutoWakeSchedule(const QVariantList& schedule);
     Q_INVOKABLE void setAutoWakeDayEnabled(int dayIndex, bool enabled);
     Q_INVOKABLE void setAutoWakeDayTime(int dayIndex, int hour, int minute);
+    bool autoWakeStayAwakeEnabled() const;
+    void setAutoWakeStayAwakeEnabled(bool enabled);
+    int autoWakeStayAwakeMinutes() const;
+    void setAutoWakeStayAwakeMinutes(int minutes);
 
     // MQTT settings (Home Automation)
     bool mqttEnabled() const;
@@ -480,6 +489,7 @@ signals:
     void steamFlowChanged();
     void steamDisabledChanged();
     void keepSteamHeaterOnChanged();
+    void steamAutoFlushSecondsChanged();
     void steamPitcherPresetsChanged();
     void selectedSteamPitcherChanged();
     void headlessSkipPurgeConfirmChanged();
@@ -539,6 +549,8 @@ signals:
     void temperatureOverrideChanged();
     void autoWakeEnabledChanged();
     void autoWakeScheduleChanged();
+    void autoWakeStayAwakeEnabledChanged();
+    void autoWakeStayAwakeMinutesChanged();
     void mqttEnabledChanged();
     void mqttBrokerHostChanged();
     void mqttBrokerPortChanged();
