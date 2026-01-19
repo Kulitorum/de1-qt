@@ -541,6 +541,15 @@ int main(int argc, char *argv[])
         }
     });
 
+    // Remote sleep via MQTT/REST API - put scale to sleep
+    QObject::connect(&mainController, &MainController::remoteSleepRequested,
+                     [&physicalScale]() {
+        qDebug() << "Remote sleep requested - sleeping scale";
+        if (physicalScale && physicalScale->isConnected()) {
+            physicalScale->sleep();
+        }
+    });
+
     // Cleanup on exit
     QObject::connect(&app, &QCoreApplication::aboutToQuit, [&accessibilityManager, &batteryManager, &de1Device, &physicalScale]() {
         qDebug() << "Application exiting - shutting down devices";

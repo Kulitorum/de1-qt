@@ -1920,6 +1920,117 @@ void Settings::setAutoWakeDayTime(int dayIndex, int hour, int minute) {
     setAutoWakeSchedule(schedule);
 }
 
+// MQTT settings (Home Automation)
+bool Settings::mqttEnabled() const {
+    return m_settings.value("mqtt/enabled", false).toBool();
+}
+
+void Settings::setMqttEnabled(bool enabled) {
+    if (mqttEnabled() != enabled) {
+        m_settings.setValue("mqtt/enabled", enabled);
+        emit mqttEnabledChanged();
+    }
+}
+
+QString Settings::mqttBrokerHost() const {
+    return m_settings.value("mqtt/brokerHost", "").toString();
+}
+
+void Settings::setMqttBrokerHost(const QString& host) {
+    if (mqttBrokerHost() != host) {
+        m_settings.setValue("mqtt/brokerHost", host);
+        emit mqttBrokerHostChanged();
+    }
+}
+
+int Settings::mqttBrokerPort() const {
+    return m_settings.value("mqtt/brokerPort", 1883).toInt();
+}
+
+void Settings::setMqttBrokerPort(int port) {
+    if (mqttBrokerPort() != port) {
+        m_settings.setValue("mqtt/brokerPort", port);
+        emit mqttBrokerPortChanged();
+    }
+}
+
+QString Settings::mqttUsername() const {
+    return m_settings.value("mqtt/username", "").toString();
+}
+
+void Settings::setMqttUsername(const QString& username) {
+    if (mqttUsername() != username) {
+        m_settings.setValue("mqtt/username", username);
+        emit mqttUsernameChanged();
+    }
+}
+
+QString Settings::mqttPassword() const {
+    return m_settings.value("mqtt/password", "").toString();
+}
+
+void Settings::setMqttPassword(const QString& password) {
+    if (mqttPassword() != password) {
+        m_settings.setValue("mqtt/password", password);
+        emit mqttPasswordChanged();
+    }
+}
+
+QString Settings::mqttBaseTopic() const {
+    return m_settings.value("mqtt/baseTopic", "decenza").toString();
+}
+
+void Settings::setMqttBaseTopic(const QString& topic) {
+    if (mqttBaseTopic() != topic) {
+        m_settings.setValue("mqtt/baseTopic", topic);
+        emit mqttBaseTopicChanged();
+    }
+}
+
+int Settings::mqttPublishInterval() const {
+    return m_settings.value("mqtt/publishInterval", 1000).toInt();
+}
+
+void Settings::setMqttPublishInterval(int interval) {
+    if (mqttPublishInterval() != interval) {
+        m_settings.setValue("mqtt/publishInterval", interval);
+        emit mqttPublishIntervalChanged();
+    }
+}
+
+bool Settings::mqttRetainMessages() const {
+    return m_settings.value("mqtt/retainMessages", true).toBool();
+}
+
+void Settings::setMqttRetainMessages(bool retain) {
+    if (mqttRetainMessages() != retain) {
+        m_settings.setValue("mqtt/retainMessages", retain);
+        emit mqttRetainMessagesChanged();
+    }
+}
+
+bool Settings::mqttHomeAssistantDiscovery() const {
+    return m_settings.value("mqtt/homeAssistantDiscovery", true).toBool();
+}
+
+void Settings::setMqttHomeAssistantDiscovery(bool enabled) {
+    if (mqttHomeAssistantDiscovery() != enabled) {
+        m_settings.setValue("mqtt/homeAssistantDiscovery", enabled);
+        emit mqttHomeAssistantDiscoveryChanged();
+    }
+}
+
+QString Settings::mqttClientId() const {
+    return m_settings.value("mqtt/clientId", "").toString();
+}
+
+void Settings::setMqttClientId(const QString& clientId) {
+    if (mqttClientId() != clientId) {
+        m_settings.setValue("mqtt/clientId", clientId);
+        emit mqttClientIdChanged();
+    }
+}
+
 // Generic settings access
 QVariant Settings::value(const QString& key, const QVariant& defaultValue) const {
     return m_settings.value(key, defaultValue);

@@ -3,6 +3,7 @@
 #include "webtemplates.h"
 #include "../history/shothistorystorage.h"
 #include "../ble/de1device.h"
+#include "../machine/machinestate.h"
 #include "../screensaver/screensavervideomanager.h"
 #include "../core/settings.h"
 #include "../core/profilestorage.h"
@@ -596,7 +597,79 @@ void ShotServer::handleRequest(QTcpSocket* socket, const QByteArray& request)
             m_device->goToSleep();
             qDebug() << "ShotServer: Sleep command sent via web";
         }
+        emit sleepRequested();
         sendJson(socket, R"({"success":true,"action":"sleep"})");
+    }
+    // Home Automation API endpoints
+    else if (path == "/api/state") {
+        QJsonObject result;
+        if (m_device) {
+            result["connected"] = m_device->isConnected();
+            result["state"] = m_device->stateString();
+            result["substate"] = m_device->subStateString();
+        }
+        if (m_machineState) {
+            result["phase"] = m_machineState->phaseString();
+            result["isFlowing"] = m_machineState->isFlowing();
+            result["isHeating"] = m_machineState->isHeating();
+            result["isReady"] = m_machineState->isReady();
+        }
+        sendJson(socket, QJsonDocument(result).toJson(QJsonDocument::Compact));
+    }
+    else if (path == "/api/telemetry") {
+        QJsonObject result;
+        if (m_device) {
+            result["connected"] = m_device->isConnected();
+            result["pressure"] = m_device->pressure();
+            result["flow"] = m_device->flow();
+            result["temperature"] = m_device->temperature();
+            result["mixTemperature"] = m_device->mixTemperature();
+            result["steamTemperature"] = m_device->steamTemperature();
+            result["waterLevel"] = m_device->waterLevel();
+            result["waterLevelMm"] = m_device->waterLevelMm();
+            result["waterLevelMl"] = m_device->waterLevelMl();
+            result["firmwareVersion"] = m_device->firmwareVersion();
+            result["state"] = m_device->stateString();
+            result["substate"] = m_device->subStateString();
+        }
+        if (m_machineState) {
+            result["phase"] = m_machineState->phaseString();
+            result["shotTime"] = m_machineState->shotTime();
+            result["scaleWeight"] = m_machineState->scaleWeight();
+            result["scaleFlowRate"] = m_machineState->scaleFlowRate();
+            result["targetWeight"] = m_machineState->targetWeight();
+        }
+        result["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
+        sendJson(socket, QJsonDocument(result).toJson(QJsonDocument::Compact));
+    }
+    else if (path == "/api/command" && method == "POST") {
+        // Parse JSON body from request
+        qsizetype bodyStart = request.indexOf("\r\n\r\n");
+        if (bodyStart >= 0) {
+            QByteArray body = request.mid(bodyStart + 4);
+            QJsonDocument doc = QJsonDocument::fromJson(body);
+            QString command = doc.object()["command"].toString().toLower();
+
+            if (command == "wake") {
+                if (m_device) {
+                    m_device->wakeUp();
+                    qDebug() << "ShotServer: Wake command sent via /api/command";
+                }
+                sendJson(socket, R"({"success":true,"command":"wake"})");
+            } else if (command == "sleep") {
+                if (m_device) {
+                    m_device->goToSleep();
+                    qDebug() << "ShotServer: Sleep command sent via /api/command";
+                }
+                emit sleepRequested();
+                sendJson(socket, R"({"success":true,"command":"sleep"})");
+            } else {
+                sendResponse(socket, 400, "application/json",
+                    R"({"error":"Invalid command. Valid commands: wake, sleep"})");
+            }
+        } else {
+            sendResponse(socket, 400, "application/json", R"({"error":"Missing request body"})");
+        }
     }
     else if (path == "/upload") {
         if (method == "GET") {

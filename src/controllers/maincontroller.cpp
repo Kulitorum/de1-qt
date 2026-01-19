@@ -157,6 +157,35 @@ MainController::MainController(Settings* settings, DE1Device* device,
         });
     }
 
+    // Set MachineState on ShotServer for home automation API
+    m_shotServer->setMachineState(m_machineState);
+
+    // Emit remoteSleepRequested when sleep command received via REST API
+    connect(m_shotServer, &ShotServer::sleepRequested, this, &MainController::remoteSleepRequested);
+
+    // Create mDNS discovery for finding MQTT brokers
+    m_mdnsDiscovery = new MdnsDiscovery(this);
+
+    // Create MQTT client for home automation
+    m_mqttClient = new MqttClient(m_device, m_machineState, m_settings, this);
+
+    // Emit remoteSleepRequested when sleep command received via MQTT
+    connect(m_mqttClient, &MqttClient::commandReceived, this, [this](const QString& command) {
+        if (command == "sleep") {
+            emit remoteSleepRequested();
+        }
+    });
+
+    // Auto-connect MQTT if enabled
+    if (m_settings && m_settings->mqttEnabled() && !m_settings->mqttBrokerHost().isEmpty()) {
+        // Delay connection to allow BLE to initialize
+        QTimer::singleShot(3000, this, [this]() {
+            if (m_settings->mqttEnabled()) {
+                m_mqttClient->connectToBroker();
+            }
+        });
+    }
+
     // Initialize location provider and shot reporter for decenza.coffee shot map
     m_locationProvider = new LocationProvider(this);
     m_shotReporter = new ShotReporter(m_settings, m_locationProvider, this);

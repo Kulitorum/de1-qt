@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(Decenza_DE1 VERSION 1.1.39 LANGUAGES CXX)
+project(Decenza_DE1 VERSION 1.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -46,6 +46,20 @@ find_package(Qt6 REQUIRED COMPONENTS
 # Silence Qt policy warnings
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
+
+# Fetch Eclipse Paho MQTT C library (industry-standard, works with FetchContent)
+include(FetchContent)
+FetchContent_Declare(
+    paho_mqtt_c
+    GIT_REPOSITORY https://github.com/eclipse/paho.mqtt.c.git
+    GIT_TAG        v1.3.13
+)
+set(PAHO_BUILD_STATIC ON CACHE BOOL "" FORCE)
+set(PAHO_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(PAHO_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+set(PAHO_WITH_SSL OFF CACHE BOOL "" FORCE)
+set(PAHO_HIGH_PERFORMANCE OFF CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(paho_mqtt_c)
 
 # Enable QML debugging in debug builds
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -142,6 +156,8 @@ set(SOURCES
     src/history/shotimporter.cpp
     src/models/shotcomparisonmodel.cpp
     src/network/shotserver.cpp
+    src/network/mqttclient.cpp
+    src/network/mdnsdiscovery.cpp
     src/network/webdebuglogger.cpp
     src/network/locationprovider.cpp
     src/network/shotreporter.cpp
@@ -221,6 +237,8 @@ set(HEADERS
     src/history/shotimporter.h
     src/models/shotcomparisonmodel.h
     src/network/shotserver.h
+    src/network/mqttclient.h
+    src/network/mdnsdiscovery.h
     src/network/webdebuglogger.h
     src/network/locationprovider.h
     src/network/shotreporter.h
@@ -272,6 +290,7 @@ target_link_libraries(Decenza_DE1 PRIVATE
     Qt6::Network
     Qt6::Sql
     Qt6::Positioning
+    paho-mqtt3a-static
 )
 
 # iOS/macOS: Use Darwin multimedia plugin (AVFoundation-based)
@@ -326,6 +345,7 @@ set(QML_FILES
     qml/pages/settings/SettingsLanguageTab.qml
     qml/pages/settings/SettingsShotHistoryTab.qml
     qml/pages/settings/SettingsDataTab.qml
+    qml/pages/settings/SettingsHomeAutomationTab.qml
     qml/pages/settings/SettingsUpdateTab.qml
     qml/pages/settings/SettingsAboutTab.qml
     qml/pages/settings/SettingsDebugTab.qml

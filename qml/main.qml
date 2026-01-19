@@ -1775,6 +1775,13 @@ ApplicationWindow {
                 goToIdleFromScreensaver()
             }
         }
+
+        function onRemoteSleepRequested() {
+            console.log("[Main] Remote sleep requested via MQTT/REST API")
+            if (!screensaverActive) {
+                goToScreensaver()
+            }
+        }
     }
 
     // ============ ACCESSIBILITY: Machine State Announcements ============

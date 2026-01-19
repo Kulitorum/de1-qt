@@ -135,6 +135,18 @@ class Settings : public QObject {
     Q_PROPERTY(bool autoWakeEnabled READ autoWakeEnabled WRITE setAutoWakeEnabled NOTIFY autoWakeEnabledChanged)
     Q_PROPERTY(QVariantList autoWakeSchedule READ autoWakeSchedule WRITE setAutoWakeSchedule NOTIFY autoWakeScheduleChanged)
 
+    // MQTT settings (Home Automation)
+    Q_PROPERTY(bool mqttEnabled READ mqttEnabled WRITE setMqttEnabled NOTIFY mqttEnabledChanged)
+    Q_PROPERTY(QString mqttBrokerHost READ mqttBrokerHost WRITE setMqttBrokerHost NOTIFY mqttBrokerHostChanged)
+    Q_PROPERTY(int mqttBrokerPort READ mqttBrokerPort WRITE setMqttBrokerPort NOTIFY mqttBrokerPortChanged)
+    Q_PROPERTY(QString mqttUsername READ mqttUsername WRITE setMqttUsername NOTIFY mqttUsernameChanged)
+    Q_PROPERTY(QString mqttPassword READ mqttPassword WRITE setMqttPassword NOTIFY mqttPasswordChanged)
+    Q_PROPERTY(QString mqttBaseTopic READ mqttBaseTopic WRITE setMqttBaseTopic NOTIFY mqttBaseTopicChanged)
+    Q_PROPERTY(int mqttPublishInterval READ mqttPublishInterval WRITE setMqttPublishInterval NOTIFY mqttPublishIntervalChanged)
+    Q_PROPERTY(bool mqttRetainMessages READ mqttRetainMessages WRITE setMqttRetainMessages NOTIFY mqttRetainMessagesChanged)
+    Q_PROPERTY(bool mqttHomeAssistantDiscovery READ mqttHomeAssistantDiscovery WRITE setMqttHomeAssistantDiscovery NOTIFY mqttHomeAssistantDiscoveryChanged)
+    Q_PROPERTY(QString mqttClientId READ mqttClientId WRITE setMqttClientId NOTIFY mqttClientIdChanged)
+
 public:
     explicit Settings(QObject* parent = nullptr);
 
@@ -428,6 +440,28 @@ public:
     Q_INVOKABLE void setAutoWakeDayEnabled(int dayIndex, bool enabled);
     Q_INVOKABLE void setAutoWakeDayTime(int dayIndex, int hour, int minute);
 
+    // MQTT settings (Home Automation)
+    bool mqttEnabled() const;
+    void setMqttEnabled(bool enabled);
+    QString mqttBrokerHost() const;
+    void setMqttBrokerHost(const QString& host);
+    int mqttBrokerPort() const;
+    void setMqttBrokerPort(int port);
+    QString mqttUsername() const;
+    void setMqttUsername(const QString& username);
+    QString mqttPassword() const;
+    void setMqttPassword(const QString& password);
+    QString mqttBaseTopic() const;
+    void setMqttBaseTopic(const QString& topic);
+    int mqttPublishInterval() const;
+    void setMqttPublishInterval(int interval);
+    bool mqttRetainMessages() const;
+    void setMqttRetainMessages(bool retain);
+    bool mqttHomeAssistantDiscovery() const;
+    void setMqttHomeAssistantDiscovery(bool enabled);
+    QString mqttClientId() const;
+    void setMqttClientId(const QString& clientId);
+
     // Generic settings access (for extensibility)
     Q_INVOKABLE QVariant value(const QString& key, const QVariant& defaultValue = QVariant()) const;
     Q_INVOKABLE void setValue(const QString& key, const QVariant& value);
@@ -505,6 +539,16 @@ signals:
     void temperatureOverrideChanged();
     void autoWakeEnabledChanged();
     void autoWakeScheduleChanged();
+    void mqttEnabledChanged();
+    void mqttBrokerHostChanged();
+    void mqttBrokerPortChanged();
+    void mqttUsernameChanged();
+    void mqttPasswordChanged();
+    void mqttBaseTopicChanged();
+    void mqttPublishIntervalChanged();
+    void mqttRetainMessagesChanged();
+    void mqttHomeAssistantDiscoveryChanged();
+    void mqttClientIdChanged();
     void valueChanged(const QString& key);
 
 private:

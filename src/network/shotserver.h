@@ -11,6 +11,7 @@
 
 class ShotHistoryStorage;
 class DE1Device;
+class MachineState;
 class ScreensaverVideoManager;
 class Settings;
 class ProfileStorage;
@@ -52,11 +53,15 @@ public:
     void setSettings(Settings* settings) { m_settings = settings; }
     void setProfileStorage(ProfileStorage* profileStorage) { m_profileStorage = profileStorage; }
 
+    // Machine state for home automation API
+    void setMachineState(MachineState* machineState) { m_machineState = machineState; }
+
 signals:
     void runningChanged();
     void urlChanged();
     void portChanged();
     void clientConnected(const QString& address);
+    void sleepRequested();  // Emitted when sleep command received via REST API
 
 private slots:
     void onNewConnection();
@@ -108,6 +113,7 @@ private:
     ScreensaverVideoManager* m_screensaverManager = nullptr;
     Settings* m_settings = nullptr;
     ProfileStorage* m_profileStorage = nullptr;
+    MachineState* m_machineState = nullptr;
     QTimer* m_cleanupTimer = nullptr;
     int m_port = 8888;
     int m_activeMediaUploads = 0;

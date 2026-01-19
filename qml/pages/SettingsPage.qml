@@ -52,7 +52,7 @@ Page {
         onCurrentIndexChanged: {
             if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
                 // Build tab names based on which tabs are visible
-                var tabNames = ["Bluetooth", "Preferences", "Options", "Screensaver", "Visualizer", "AI", "Accessibility", "Themes", "Language", "History", "Data"]
+                var tabNames = ["Bluetooth", "Preferences", "Options", "Screensaver", "Visualizer", "AI", "Accessibility", "Themes", "Language", "History", "Data", "Home"]
                 if (MainController.updateChecker.canCheckForUpdates) tabNames.push("Update")
                 tabNames.push("About")
                 if (Settings.isDebugBuild) tabNames.push("Debug")
@@ -161,6 +161,12 @@ Page {
             id: dataTabButton
             text: TranslationManager.translate("settings.tab.data", "Data")
             tabLabel: TranslationManager.translate("settings.tab.data", "Data")
+        }
+
+        StyledTabButton {
+            id: homeAutomationTabButton
+            text: TranslationManager.translate("settings.tab.home", "Home")
+            tabLabel: TranslationManager.translate("settings.tab.homeautomation", "Home Automation")
         }
 
         StyledTabButton {
@@ -298,7 +304,15 @@ Page {
             source: "settings/SettingsDataTab.qml"
         }
 
-        // Tab 11: Update - preloads async in background (not on iOS - App Store handles updates)
+        // Tab 11: Home Automation - preloads async in background
+        Loader {
+            id: homeAutomationLoader
+            active: true
+            asynchronous: true
+            source: "settings/SettingsHomeAutomationTab.qml"
+        }
+
+        // Tab 12: Update - preloads async in background (not on iOS - App Store handles updates)
         Loader {
             id: updateLoader
             active: MainController.updateChecker.canCheckForUpdates
