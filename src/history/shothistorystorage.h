@@ -148,6 +148,10 @@ public:
     // Get count of shots matching filter
     Q_INVOKABLE int getFilteredShotCount(const QVariantMap& filter);
 
+    // Get auto-favorites: unique combinations of bean/profile/grinder from history
+    // groupBy: "bean", "profile", "bean_profile", "bean_profile_grinder"
+    Q_INVOKABLE QVariantList getAutoFavorites(const QString& groupBy, int maxItems);
+
     // Export debug log for bug report
     Q_INVOKABLE QString exportShotData(qint64 shotId);
 

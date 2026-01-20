@@ -1733,14 +1733,19 @@ void Settings::setDyeEspressoEnjoyment(int value) {
     }
 }
 
-QString Settings::dyeEspressoNotes() const {
-    return m_settings.value("dye/espressoNotes", "").toString();
+QString Settings::dyeShotNotes() const {
+    // Try new key first, fall back to old key for backward compatibility
+    QString notes = m_settings.value("dye/shotNotes", "").toString();
+    if (notes.isEmpty()) {
+        notes = m_settings.value("dye/espressoNotes", "").toString();
+    }
+    return notes;
 }
 
-void Settings::setDyeEspressoNotes(const QString& value) {
-    if (dyeEspressoNotes() != value) {
-        m_settings.setValue("dye/espressoNotes", value);
-        emit dyeEspressoNotesChanged();
+void Settings::setDyeShotNotes(const QString& value) {
+    if (dyeShotNotes() != value) {
+        m_settings.setValue("dye/shotNotes", value);
+        emit dyeShotNotesChanged();
     }
 }
 
@@ -1808,6 +1813,40 @@ void Settings::setShowHistoryButton(bool show) {
     if (showHistoryButton() != show) {
         m_settings.setValue("shotHistory/showButton", show);
         emit showHistoryButtonChanged();
+    }
+}
+
+// Auto-favorites settings
+bool Settings::autoFavoritesEnabled() const {
+    return m_settings.value("autoFavorites/enabled", false).toBool();
+}
+
+void Settings::setAutoFavoritesEnabled(bool enabled) {
+    if (autoFavoritesEnabled() != enabled) {
+        m_settings.setValue("autoFavorites/enabled", enabled);
+        emit autoFavoritesEnabledChanged();
+    }
+}
+
+QString Settings::autoFavoritesGroupBy() const {
+    return m_settings.value("autoFavorites/groupBy", "bean_profile").toString();
+}
+
+void Settings::setAutoFavoritesGroupBy(const QString& groupBy) {
+    if (autoFavoritesGroupBy() != groupBy) {
+        m_settings.setValue("autoFavorites/groupBy", groupBy);
+        emit autoFavoritesGroupByChanged();
+    }
+}
+
+int Settings::autoFavoritesMaxItems() const {
+    return m_settings.value("autoFavorites/maxItems", 10).toInt();
+}
+
+void Settings::setAutoFavoritesMaxItems(int maxItems) {
+    if (autoFavoritesMaxItems() != maxItems) {
+        m_settings.setValue("autoFavorites/maxItems", maxItems);
+        emit autoFavoritesMaxItemsChanged();
     }
 }
 

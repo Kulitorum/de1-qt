@@ -141,7 +141,7 @@ Page {
             color: "transparent"
 
             // Calculate button size to fit available width while maintaining aspect ratio
-            readonly property int buttonCount: 4 + (beanInfoButton.visible ? 1 : 0) + (historyButton.visible ? 1 : 0)  // 4 main + shotInfo + history
+            readonly property int buttonCount: 4 + (beanInfoButton.visible ? 1 : 0) + (historyButton.visible ? 1 : 0) + (autoFavoritesButton.visible ? 1 : 0)  // 4 main + shotInfo + history + autoFavorites
             readonly property real availableWidth: width - Theme.scaled(20) - (buttonCount - 1) * Theme.scaled(10)
             readonly property real buttonWidth: Math.min(Theme.scaled(150), availableWidth / buttonCount)
             readonly property real buttonHeight: buttonWidth * 0.8  // Maintain 150:120 aspect ratio
@@ -273,9 +273,29 @@ Page {
                     onClicked: pageStack.push(Qt.resolvedUrl("ShotHistoryPage.qml"))
 
                     KeyNavigation.left: beanInfoButton.visible ? beanInfoButton : flushButton
+                    KeyNavigation.right: autoFavoritesButton.visible ? autoFavoritesButton : null
                     KeyNavigation.down: settingsButton
 
                     Accessible.description: TranslationManager.translate("idle.accessible.history.description", "View and compare past shots")
+                }
+
+                ActionButton {
+                    id: autoFavoritesButton
+                    visible: Settings.autoFavoritesEnabled
+                    implicitWidth: mainButtonsCard.buttonWidth
+                    implicitHeight: mainButtonsCard.buttonHeight
+                    translationKey: "idle.button.autofavorites"
+                    translationFallback: "Favorites"
+                    iconSource: "qrc:/icons/star.svg"
+                    iconSize: Theme.scaled(43)
+                    backgroundColor: Theme.warningColor
+                    onClicked: pageStack.push(Qt.resolvedUrl("AutoFavoritesPage.qml"))
+
+                    KeyNavigation.left: historyButton.visible ? historyButton :
+                                        (beanInfoButton.visible ? beanInfoButton : flushButton)
+                    KeyNavigation.down: settingsButton
+
+                    Accessible.description: TranslationManager.translate("idle.accessible.autofavorites.description", "Open auto-favorites list of recent bean and profile combinations")
                 }
             }
         }

@@ -985,6 +985,100 @@ int ShotHistoryStorage::getFilteredShotCount(const QVariantMap& filterMap)
     return 0;
 }
 
+QVariantList ShotHistoryStorage::getAutoFavorites(const QString& groupBy, int maxItems)
+{
+    QVariantList results;
+    if (!m_ready) return results;
+
+    // Build GROUP BY and SELECT columns based on groupBy setting
+    // selectColumns needs AS aliases for the subquery
+    // groupColumns is for GROUP BY clause
+    // joinConditions matches outer table to subquery
+    QString selectColumns;
+    QString groupColumns;
+    QString joinConditions;
+
+    if (groupBy == "bean") {
+        selectColumns = "COALESCE(bean_brand, '') AS gb_bean_brand, "
+                        "COALESCE(bean_type, '') AS gb_bean_type";
+        groupColumns = "COALESCE(bean_brand, ''), COALESCE(bean_type, '')";
+        joinConditions = "COALESCE(s.bean_brand, '') = g.gb_bean_brand "
+                         "AND COALESCE(s.bean_type, '') = g.gb_bean_type";
+    } else if (groupBy == "profile") {
+        selectColumns = "COALESCE(profile_name, '') AS gb_profile_name";
+        groupColumns = "COALESCE(profile_name, '')";
+        joinConditions = "COALESCE(s.profile_name, '') = g.gb_profile_name";
+    } else if (groupBy == "bean_profile_grinder") {
+        selectColumns = "COALESCE(bean_brand, '') AS gb_bean_brand, "
+                        "COALESCE(bean_type, '') AS gb_bean_type, "
+                        "COALESCE(profile_name, '') AS gb_profile_name, "
+                        "COALESCE(grinder_model, '') AS gb_grinder_model, "
+                        "COALESCE(grinder_setting, '') AS gb_grinder_setting";
+        groupColumns = "COALESCE(bean_brand, ''), COALESCE(bean_type, ''), "
+                       "COALESCE(profile_name, ''), COALESCE(grinder_model, ''), "
+                       "COALESCE(grinder_setting, '')";
+        joinConditions = "COALESCE(s.bean_brand, '') = g.gb_bean_brand "
+                         "AND COALESCE(s.bean_type, '') = g.gb_bean_type "
+                         "AND COALESCE(s.profile_name, '') = g.gb_profile_name "
+                         "AND COALESCE(s.grinder_model, '') = g.gb_grinder_model "
+                         "AND COALESCE(s.grinder_setting, '') = g.gb_grinder_setting";
+    } else {
+        // Default: bean_profile
+        selectColumns = "COALESCE(bean_brand, '') AS gb_bean_brand, "
+                        "COALESCE(bean_type, '') AS gb_bean_type, "
+                        "COALESCE(profile_name, '') AS gb_profile_name";
+        groupColumns = "COALESCE(bean_brand, ''), COALESCE(bean_type, ''), COALESCE(profile_name, '')";
+        joinConditions = "COALESCE(s.bean_brand, '') = g.gb_bean_brand "
+                         "AND COALESCE(s.bean_type, '') = g.gb_bean_type "
+                         "AND COALESCE(s.profile_name, '') = g.gb_profile_name";
+    }
+
+    // Query: Get most recent shot for each unique combination
+    // We need to match the shot table back to the grouped results to get the full shot data
+    QString sql = QString(
+        "SELECT s.id, s.profile_name, s.bean_brand, s.bean_type, "
+        "s.grinder_model, s.grinder_setting, s.dose_weight, s.final_weight, "
+        "s.timestamp, g.shot_count, g.avg_enjoyment "
+        "FROM shots s "
+        "INNER JOIN ("
+        "  SELECT %1, MAX(timestamp) as max_ts, "
+        "  COUNT(*) as shot_count, "
+        "  AVG(CASE WHEN enjoyment > 0 THEN enjoyment ELSE NULL END) as avg_enjoyment "
+        "  FROM shots "
+        "  WHERE (bean_brand IS NOT NULL AND bean_brand != '') "
+        "     OR (profile_name IS NOT NULL AND profile_name != '') "
+        "  GROUP BY %2"
+        ") g ON s.timestamp = g.max_ts AND %3 "
+        "ORDER BY s.timestamp DESC "
+        "LIMIT %4"
+    ).arg(selectColumns, groupColumns, joinConditions).arg(maxItems);
+
+    QSqlQuery query(m_db);
+    if (!query.exec(sql)) {
+        qWarning() << "getAutoFavorites query failed:" << query.lastError().text();
+        qWarning() << "SQL:" << sql;
+        return results;
+    }
+
+    while (query.next()) {
+        QVariantMap entry;
+        entry["shotId"] = query.value("id").toLongLong();
+        entry["profileName"] = query.value("profile_name").toString();
+        entry["beanBrand"] = query.value("bean_brand").toString();
+        entry["beanType"] = query.value("bean_type").toString();
+        entry["grinderModel"] = query.value("grinder_model").toString();
+        entry["grinderSetting"] = query.value("grinder_setting").toString();
+        entry["doseWeight"] = query.value("dose_weight").toDouble();
+        entry["finalWeight"] = query.value("final_weight").toDouble();
+        entry["lastUsedTimestamp"] = query.value("timestamp").toLongLong();
+        entry["shotCount"] = query.value("shot_count").toInt();
+        entry["avgEnjoyment"] = query.value("avg_enjoyment").toInt();
+        results.append(entry);
+    }
+
+    return results;
+}
+
 QString ShotHistoryStorage::exportShotData(qint64 shotId)
 {
     ShotRecord record = getShotRecord(shotId);

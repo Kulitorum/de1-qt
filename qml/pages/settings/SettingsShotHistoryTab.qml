@@ -93,6 +93,38 @@ Item {
                     }
                 }
 
+                // Auto-Favorites toggle
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Theme.scaled(10)
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: Theme.scaled(2)
+
+                        Text {
+                            text: TranslationManager.translate("settings.history.autofavorites", "Auto-Favorites")
+                            color: Theme.textColor
+                            font.pixelSize: Theme.scaled(12)
+                        }
+
+                        Text {
+                            text: TranslationManager.translate("settings.history.autofavoritesdesc",
+                                  "Show button for recent bean+profile combinations")
+                            color: Theme.textSecondaryColor
+                            font.pixelSize: Theme.scaled(10)
+                            Layout.fillWidth: true
+                            wrapMode: Text.WordWrap
+                        }
+                    }
+
+                    StyledSwitch {
+                        checked: Settings.autoFavoritesEnabled
+                        accessibleName: "Auto-Favorites"
+                        onToggled: Settings.autoFavoritesEnabled = checked
+                    }
+                }
+
                 // Divider
                 Rectangle {
                     Layout.fillWidth: true

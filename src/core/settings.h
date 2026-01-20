@@ -107,7 +107,7 @@ class Settings : public QObject {
     Q_PROPERTY(double dyeDrinkTds READ dyeDrinkTds WRITE setDyeDrinkTds NOTIFY dyeDrinkTdsChanged)
     Q_PROPERTY(double dyeDrinkEy READ dyeDrinkEy WRITE setDyeDrinkEy NOTIFY dyeDrinkEyChanged)
     Q_PROPERTY(int dyeEspressoEnjoyment READ dyeEspressoEnjoyment WRITE setDyeEspressoEnjoyment NOTIFY dyeEspressoEnjoymentChanged)
-    Q_PROPERTY(QString dyeEspressoNotes READ dyeEspressoNotes WRITE setDyeEspressoNotes NOTIFY dyeEspressoNotesChanged)
+    Q_PROPERTY(QString dyeShotNotes READ dyeShotNotes WRITE setDyeShotNotes NOTIFY dyeShotNotesChanged)
     Q_PROPERTY(QString dyeBarista READ dyeBarista WRITE setDyeBarista NOTIFY dyeBaristaChanged)
     Q_PROPERTY(QString dyeShotDateTime READ dyeShotDateTime WRITE setDyeShotDateTime NOTIFY dyeShotDateTimeChanged)
 
@@ -118,6 +118,11 @@ class Settings : public QObject {
 
     // Shot history settings
     Q_PROPERTY(bool showHistoryButton READ showHistoryButton WRITE setShowHistoryButton NOTIFY showHistoryButtonChanged)
+
+    // Auto-favorites settings
+    Q_PROPERTY(bool autoFavoritesEnabled READ autoFavoritesEnabled WRITE setAutoFavoritesEnabled NOTIFY autoFavoritesEnabledChanged)
+    Q_PROPERTY(QString autoFavoritesGroupBy READ autoFavoritesGroupBy WRITE setAutoFavoritesGroupBy NOTIFY autoFavoritesGroupByChanged)
+    Q_PROPERTY(int autoFavoritesMaxItems READ autoFavoritesMaxItems WRITE setAutoFavoritesMaxItems NOTIFY autoFavoritesMaxItemsChanged)
 
     // Auto-update settings
     Q_PROPERTY(bool autoCheckUpdates READ autoCheckUpdates WRITE setAutoCheckUpdates NOTIFY autoCheckUpdatesChanged)
@@ -395,8 +400,8 @@ public:
     int dyeEspressoEnjoyment() const;
     void setDyeEspressoEnjoyment(int value);
 
-    QString dyeEspressoNotes() const;
-    void setDyeEspressoNotes(const QString& value);
+    QString dyeShotNotes() const;
+    void setDyeShotNotes(const QString& value);
 
     QString dyeBarista() const;
     void setDyeBarista(const QString& value);
@@ -418,6 +423,14 @@ public:
     // Shot history settings
     bool showHistoryButton() const;
     void setShowHistoryButton(bool show);
+
+    // Auto-favorites settings
+    bool autoFavoritesEnabled() const;
+    void setAutoFavoritesEnabled(bool enabled);
+    QString autoFavoritesGroupBy() const;
+    void setAutoFavoritesGroupBy(const QString& groupBy);
+    int autoFavoritesMaxItems() const;
+    void setAutoFavoritesMaxItems(int maxItems);
 
     // Auto-update settings
     bool autoCheckUpdates() const;
@@ -536,13 +549,16 @@ signals:
     void dyeDrinkTdsChanged();
     void dyeDrinkEyChanged();
     void dyeEspressoEnjoymentChanged();
-    void dyeEspressoNotesChanged();
+    void dyeShotNotesChanged();
     void dyeBaristaChanged();
     void dyeShotDateTimeChanged();
     void shotServerEnabledChanged();
     void shotServerHostnameChanged();
     void shotServerPortChanged();
     void showHistoryButtonChanged();
+    void autoFavoritesEnabledChanged();
+    void autoFavoritesGroupByChanged();
+    void autoFavoritesMaxItemsChanged();
     void autoCheckUpdatesChanged();
     void waterLevelDisplayUnitChanged();
     void developerTranslationUploadChanged();

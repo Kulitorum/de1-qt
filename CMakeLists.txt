@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(Decenza_DE1 VERSION 1.2.2 LANGUAGES CXX)
+project(Decenza_DE1 VERSION 1.2.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
@@ -330,6 +330,7 @@ set(QML_FILES
     qml/pages/AISettingsPage.qml
     qml/pages/DialingAssistantPage.qml
     qml/pages/ShotHistoryPage.qml
+    qml/pages/AutoFavoritesPage.qml
     qml/pages/ShotDetailPage.qml
     qml/pages/ShotComparisonPage.qml
     qml/pages/settings/SettingsBluetoothTab.qml
