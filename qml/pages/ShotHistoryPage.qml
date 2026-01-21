@@ -453,17 +453,12 @@ Page {
                             }
                         }
 
-                        RowLayout {
+                        Text {
+                            text: (model.beanBrand || "") + (model.beanType ? " " + model.beanType : "")
+                            font: Theme.labelFont
+                            color: Theme.textSecondaryColor
                             Layout.fillWidth: true
-                            spacing: Theme.spacingMedium
-
-                            Text {
-                                text: (model.beanBrand || "") + (model.beanType ? " " + model.beanType : "")
-                                font: Theme.labelFont
-                                color: Theme.textSecondaryColor
-                                Layout.fillWidth: true
-                                elide: Text.ElideRight
-                            }
+                            elide: Text.ElideRight
                         }
 
                         RowLayout {
@@ -479,6 +474,13 @@ Page {
                                 text: (model.duration || 0).toFixed(1) + "s"
                                 font: Theme.labelFont
                                 color: Theme.textSecondaryColor
+                            }
+
+                            Text {
+                                text: model.grinderSetting || ""
+                                font: Theme.labelFont
+                                color: Theme.textSecondaryColor
+                                visible: (model.grinderSetting || "") !== ""
                             }
 
                             Text {
