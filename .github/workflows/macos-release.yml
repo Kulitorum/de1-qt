@@ -18,6 +18,8 @@ on:
 jobs:
   build-macos:
     runs-on: macos-15
+    permissions:
+      contents: write  # Required for uploading to releases
 
     steps:
       - name: Checkout code

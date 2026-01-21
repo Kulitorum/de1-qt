@@ -18,6 +18,8 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    permissions:
+      contents: write  # Required for uploading to releases
 
     steps:
       - name: Checkout code
