@@ -257,7 +257,7 @@ Page {
 
                     KeyNavigation.left: flushButton
                     KeyNavigation.right: historyButton.visible ? historyButton : null
-                    KeyNavigation.down: activePresetFunction === "beans" ? beanPresetRow : settingsButton
+                    KeyNavigation.down: activePresetFunction === "beans" ? beanPresetLoader.item : settingsButton
 
                     Accessible.description: TranslationManager.translate("idle.accessible.beaninfo.description", "Set up bean and grinder info for your shots. Long-press for settings.")
                 }

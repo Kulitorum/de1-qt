@@ -392,13 +392,13 @@ Page {
                                                 s.applyBeanPreset(beanDelegate.beanIndex)
                                             }
                                             beanPill.Drag.drop()
-                                            beanPresetsRow.draggedIndex = -1
+                                            if (beanPresetsRow) beanPresetsRow.draggedIndex = -1
                                         }
 
                                         onPositionChanged: {
                                             if (drag.active) {
                                                 moved = true
-                                                beanPresetsRow.draggedIndex = beanDelegate.beanIndex
+                                                if (beanPresetsRow) beanPresetsRow.draggedIndex = beanDelegate.beanIndex
                                             }
                                         }
 
