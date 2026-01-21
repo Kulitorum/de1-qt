@@ -105,6 +105,8 @@ jobs:
           rm -f $QT_ROOT_DIR/plugins/sqldrivers/libqsqloci.so
           rm -f $QT_ROOT_DIR/plugins/sqldrivers/libqsqlodbc.so
           rm -f $QT_ROOT_DIR/plugins/sqldrivers/libqsqlmimer.so
+          # Position plugin needs SerialPort which isn't installed
+          rm -f $QT_ROOT_DIR/plugins/position/libqtposition_nmea.so
 
       - name: Create AppImage
         env:
