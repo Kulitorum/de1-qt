@@ -257,8 +257,8 @@ private:
     QMap<QString, QString> m_profileTitles;  // filename -> display title
     QList<ProfileInfo> m_allProfiles;  // Complete list with metadata
     double m_shotStartTime = 0;
-    double m_lastSampleTime = 0;  // For delta time calculation
-    double m_weightTimeOffset = 0;  // Offset to sync weight time with shot sample time
+    double m_lastSampleTime = 0;  // For delta time calculation (DE1's raw timer)
+    double m_lastShotTime = 0;    // Last shot sample time relative to shot start (for weight sync)
     bool m_extractionStarted = false;
     int m_lastFrameNumber = -1;
     int m_frameWeightSkipSent = -1;  // Frame number for which we've sent a weight-based skip command

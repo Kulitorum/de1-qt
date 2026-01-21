@@ -228,34 +228,45 @@ void MachineState::updatePhase() {
                           oldPhase == Phase::Cleaning);
 
         if (isFlowing() && !wasFlowing) {
-            startShotTimer();
-            m_stopAtWeightTriggered = false;
-            m_stopAtVolumeTriggered = false;
-            m_stopAtTimeTriggered = false;
-            m_cumulativeVolume = 0.0;  // Reset volume tracking
-
-            // CRITICAL: Clear any pending BLE commands to prevent stale profile uploads
-            // from executing during active operations. This fixes a bug where queued
-            // profile commands could corrupt a running shot.
-            if (m_device) {
-                m_device->clearCommandQueue();
-            }
-
-            // Only reset tareCompleted for non-espresso operations
-            // (espresso tares at cycle start, before flowing begins)
+            // Don't restart timer mid-espresso cycle (BLE phase glitch protection)
+            // For espresso, the timer starts at preinfusion and should not reset
+            // if there's a brief glitch to a non-flowing state and back
             if (!wasInEspresso) {
-                m_tareCompleted = false;
-            }
+                startShotTimer();
+                m_stopAtWeightTriggered = false;
+                m_stopAtVolumeTriggered = false;
+                m_stopAtTimeTriggered = false;
+                m_cumulativeVolume = 0.0;  // Reset volume tracking
 
-            // Auto-tare for Hot Water (espresso tares at cycle start via MainController)
-            if (m_phase == Phase::HotWater) {
-                QTimer::singleShot(100, this, [this]() {
-                    tareScale();
-                    qDebug() << "=== TARE: Hot Water started ===";
-                });
+                // CRITICAL: Clear any pending BLE commands to prevent stale profile uploads
+                // from executing during active operations. This fixes a bug where queued
+                // profile commands could corrupt a running shot.
+                if (m_device) {
+                    m_device->clearCommandQueue();
+                }
+
+                m_tareCompleted = false;
+
+                // Auto-tare for Hot Water (espresso tares at cycle start via MainController)
+                if (m_phase == Phase::HotWater) {
+                    QTimer::singleShot(100, this, [this]() {
+                        tareScale();
+                        qDebug() << "=== TARE: Hot Water started ===";
+                    });
+                }
+            } else {
+                // Mid-espresso glitch recovery: restart timer without resetting state
+                // This preserves stop-at-weight triggers and cumulative tracking
+                if (!m_shotTimer->isActive()) {
+                    qDebug() << "=== TIMER RESTART: recovering from mid-espresso phase glitch ===";
+                    m_shotTimer->start();
+                }
             }
         } else if (!isFlowing() && wasFlowing) {
-            stopShotTimer();
+            // Don't stop timer during espresso Ending phase - let it run until cycle ends
+            if (!isInEspresso) {
+                stopShotTimer();
+            }
         }
 
         // Defer signal emissions to allow pending BLE notifications to process first

@@ -2049,7 +2049,7 @@ void MainController::onEspressoCycleStarted() {
     // Clear the graph when entering espresso preheating (new cycle from idle)
     // This preserves preheating data since we only clear at cycle start
     m_shotStartTime = 0;
-    m_weightTimeOffset = 0;
+    m_lastShotTime = 0;
     m_extractionStarted = false;
     m_lastFrameNumber = -1;
     m_frameWeightSkipSent = -1;  // Reset per-frame weight skip tracking
@@ -2408,6 +2408,10 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
 
     double time = sample.timer - m_shotStartTime;
 
+    // Store for weight sample sync - weight samples use this timestamp since they
+    // don't receive DE1's timer directly. This is more reliable than wall-clock sync.
+    m_lastShotTime = time;
+
     // Mark when extraction actually starts (transition from preheating to preinfusion/pouring)
     bool isExtracting = (phase == MachineState::Phase::Preinfusion ||
                         phase == MachineState::Phase::Pouring ||
@@ -2415,9 +2419,6 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
 
     if (isExtracting && !m_extractionStarted) {
         m_extractionStarted = true;
-        // Sync weight time offset NOW - MachineState timer is running at this point
-        // weight_time = machineState.shotTime() - m_weightTimeOffset should equal shot_time
-        m_weightTimeOffset = m_machineState->shotTime() - time;
         m_shotDataModel->markExtractionStart(time);
     }
 
@@ -2511,16 +2512,13 @@ void MainController::onScaleWeightChanged(double weight) {
         return;
     }
 
-    // Use same time base as shot samples (synced via m_weightTimeOffset)
-    // This ensures weight curve aligns with pressure/flow/temp curves
-    double time = m_machineState->shotTime() - m_weightTimeOffset;
+    // Use DE1's timer (via m_lastShotTime) instead of wall-clock timer
+    // This prevents desync if MachineState timer is reset due to BLE glitches
+    double time = m_lastShotTime;
 
-    // Don't record if we haven't synced yet (no shot samples received)
-    if (time < 0) {
-        qDebug() << "Weight update dropped: time sync issue -"
-                 << "shotTime=" << m_machineState->shotTime()
-                 << "offset=" << m_weightTimeOffset
-                 << "weight=" << weight;
+    // Don't record if we haven't received any shot samples yet
+    if (time <= 0 && !m_extractionStarted) {
+        // This is normal during early preheating - don't spam the log
         return;
     }
 
