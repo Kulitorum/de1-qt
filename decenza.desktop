@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Decenza DE1
+Comment=Controller for Decent DE1 espresso machine
+Exec=Decenza_DE1
+Icon=decenza
+Categories=Utility;
+Terminal=false
