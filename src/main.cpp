@@ -7,6 +7,7 @@
 #include <QTimer>
 #include <QEventLoop>
 #include <QGuiApplication>
+#include <QAccessible>
 #include <QDebug>
 #include <memory>
 #include "version.h"
@@ -586,6 +587,11 @@ int main(int argc, char *argv[])
         // IMPORTANT: Ensure charger is ON before exiting
         // This matches de1app's app_exit behavior - always leave charger ON for safety
         batteryManager.ensureChargerOn();
+
+        // Disable Qt's accessibility bridge before window destruction
+        // This prevents iOS crash (SIGBUS) where the accessibility system tries to
+        // sync with already-destroyed QML items during app exit
+        QAccessible::setActive(false);
 
         // Shutdown accessibility to stop TTS before any other cleanup
         // This prevents race conditions with Android's hwuiTask thread
