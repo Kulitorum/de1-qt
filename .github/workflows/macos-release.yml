@@ -53,22 +53,22 @@ jobs:
       - name: Build Release
         run: |
           cd build/macos
-          xcodebuild build \
-            -project Decenza_DE1.xcodeproj \
-            -scheme Decenza_DE1 \
-            -configuration Release \
-            -destination "generic/platform=macOS" \
-            CONFIGURATION_BUILD_DIR="$PWD/Output" \
-            CODE_SIGN_IDENTITY="-"
+          cmake --build . --config Release --parallel
 
       - name: Create DMG
         run: |
           VERSION=${{ steps.version.outputs.version }}
-          APP_PATH="build/macos/Output/Decenza DE1.app"
           DMG_NAME="Decenza_DE1_v${VERSION}_macos.dmg"
 
-          echo "Looking for app at: $APP_PATH"
-          ls -la build/macos/Output/ || echo "Output dir not found"
+          # Find the built app
+          APP_PATH=$(find build/macos -name "Decenza DE1.app" -type d | head -1)
+          echo "Found app at: $APP_PATH"
+
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: Could not find Decenza DE1.app"
+            find build/macos -name "*.app" -type d
+            exit 1
+          fi
 
           # Create a temporary directory for DMG contents
           mkdir -p dmg_contents
