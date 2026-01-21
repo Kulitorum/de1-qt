@@ -130,7 +130,5 @@ void ShotDebugLogger::appendLog(const QString& category, const QString& message)
 
 QString ShotDebugLogger::formatTime() const
 {
-    if (!m_timer.isValid()) return "0.000";
-    double seconds = m_timer.elapsed() / 1000.0;
-    return QString::number(seconds, 'f', 3);
+    return QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
 }

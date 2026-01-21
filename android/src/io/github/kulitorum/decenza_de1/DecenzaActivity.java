@@ -26,6 +26,7 @@ public class DecenzaActivity extends QtActivity {
 
         super.onCreate(savedInstanceState);
         StorageHelper.init(this);
+        Log.d(TAG, "=== LIFECYCLE: onCreate ===");
 
         // Start the shutdown service so onTaskRemoved() will be called
         // when the app is swiped away from recent tasks
@@ -37,6 +38,30 @@ public class DecenzaActivity extends QtActivity {
             // This can happen during certain wake scenarios - safe to ignore
             android.util.Log.w("DecenzaActivity", "Could not start shutdown service: " + e.getMessage());
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "=== LIFECYCLE: onResume (app now in foreground) ===");
+    }
+
+    @Override
+    protected void onPause() {
+        Log.d(TAG, "=== LIFECYCLE: onPause (app losing focus) ===");
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "=== LIFECYCLE: onStop (app no longer visible) ===");
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        Log.d(TAG, "=== LIFECYCLE: onDestroy (app being destroyed) ===");
+        super.onDestroy();
     }
 
     private void installJavaCrashHandler() {
