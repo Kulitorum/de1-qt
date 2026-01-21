@@ -841,9 +841,15 @@ void MainController::loadShotWithMetadata(qint64 shotId) {
         m_settings->setDyeBarista(shotRecord.barista);
         // Note: Don't copy weights/TDS/EY - those are shot results, not presets
 
+        // Find matching bean preset or set to -1 for guest bean
+        int beanPresetIndex = m_settings->findBeanPresetByContent(
+            shotRecord.summary.beanBrand, shotRecord.summary.beanType);
+        m_settings->setSelectedBeanPreset(beanPresetIndex);
+
         qDebug() << "Loaded shot metadata - brand:" << shotRecord.summary.beanBrand
                  << "type:" << shotRecord.summary.beanType
-                 << "grinder:" << shotRecord.grinderModel << shotRecord.grinderSetting;
+                 << "grinder:" << shotRecord.grinderModel << shotRecord.grinderSetting
+                 << "beanPresetIndex:" << beanPresetIndex;
     }
 }
 

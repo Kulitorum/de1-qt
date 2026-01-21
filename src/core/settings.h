@@ -289,6 +289,7 @@ public:
     Q_INVOKABLE QVariantMap getBeanPreset(int index) const;
     Q_INVOKABLE void applyBeanPreset(int index);       // Sets all DYE fields from preset
     Q_INVOKABLE void saveBeanPresetFromCurrent(const QString& name);  // Creates preset from current DYE
+    Q_INVOKABLE int findBeanPresetByContent(const QString& brand, const QString& type) const;  // Returns index or -1
 
     // UI settings
     QString skin() const;

@@ -160,8 +160,8 @@ Page {
                     translationFallback: "Espresso"
                     iconSource: "qrc:/icons/espresso.svg"
                     enabled: DE1Device.guiEnabled
-                    // Green when a non-favorite profile is loaded (selectedFavoriteProfile === -1)
-                    backgroundColor: Settings.selectedFavoriteProfile === -1 ? Theme.successColor : Theme.primaryColor
+                    // Gold highlight when a non-favorite profile is loaded (selectedFavoriteProfile === -1)
+                    backgroundColor: Settings.selectedFavoriteProfile === -1 ? Theme.highlightColor : Theme.primaryColor
                     onClicked: {
                         activePresetFunction = (activePresetFunction === "espresso") ? "" : "espresso"
                     }
@@ -245,7 +245,8 @@ Page {
                     translationFallback: "Beans"
                     iconSource: "qrc:/icons/edit.svg"
                     iconSize: Theme.scaled(43)
-                    backgroundColor: Theme.primaryColor
+                    // Gold highlight when using a guest bean (not saved as preset)
+                    backgroundColor: Settings.selectedBeanPreset === -1 ? Theme.highlightColor : Theme.primaryColor
                     visible: Settings.visualizerExtendedMetadata
                     enabled: DE1Device.guiEnabled
                     onClicked: {
@@ -289,7 +290,7 @@ Page {
                     translationFallback: "Favorites"
                     iconSource: "qrc:/icons/star.svg"
                     iconSize: Theme.scaled(43)
-                    backgroundColor: Theme.warningColor
+                    backgroundColor: Theme.primaryColor
                     onClicked: pageStack.push(Qt.resolvedUrl("AutoFavoritesPage.qml"))
 
                     KeyNavigation.left: historyButton.visible ? historyButton :

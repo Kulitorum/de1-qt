@@ -1024,6 +1024,17 @@ void Settings::saveBeanPresetFromCurrent(const QString& name) {
                   dyeGrinderSetting());
 }
 
+int Settings::findBeanPresetByContent(const QString& brand, const QString& type) const {
+    QJsonArray arr = m_settings.value("bean/presets").toJsonArray();
+    for (int i = 0; i < arr.size(); ++i) {
+        QJsonObject obj = arr[i].toObject();
+        if (obj["brand"].toString() == brand && obj["type"].toString() == type) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // UI settings
 QString Settings::skin() const {
     return m_settings.value("ui/skin", "default").toString();

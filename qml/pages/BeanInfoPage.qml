@@ -29,7 +29,15 @@ Page {
         root.currentPageTitle = TranslationManager.translate("beaninfo.title", "Beans")
         if (editShotId > 0) {
             loadShotForEditing()
+        } else if (Settings.selectedBeanPreset === -1 && hasGuestBeanData()) {
+            // Show prompt to save guest bean as preset
+            guestBeanDialog.open()
         }
+    }
+
+    // Check if there's actual bean data loaded (not just empty)
+    function hasGuestBeanData() {
+        return Settings.dyeBeanBrand.length > 0 || Settings.dyeBeanType.length > 0
     }
 
     // Persisted graph height (like ShotComparisonPage)
@@ -813,9 +821,13 @@ Page {
         modal: true
         focus: true
 
+        property string suggestedName: ""  // Set before opening to pre-fill
+
         onOpened: {
             popupKeyboardOffset = shotMetadataPage.height * 0.25
-            newBeanNameInput.text = ""
+            // Use suggested name if provided, otherwise clear
+            newBeanNameInput.text = suggestedName
+            suggestedName = ""  // Reset for next time
             newBeanNameInput.forceActiveFocus()
         }
 
@@ -1016,6 +1028,151 @@ Page {
                                 preset.grinderSetting || "")
                         }
                         editPresetDialog.close()
+                    }
+                }
+            }
+        }
+    }
+
+    // Guest Bean Dialog - shown when opening with unsaved bean data
+    Dialog {
+        id: guestBeanDialog
+        anchors.centerIn: parent
+        width: Theme.scaled(400)
+        modal: true
+        padding: 0
+
+        background: Rectangle {
+            color: Theme.surfaceColor
+            radius: Theme.cardRadius
+            border.width: 1
+            border.color: "white"
+        }
+
+        contentItem: ColumnLayout {
+            spacing: 0
+
+            // Header
+            Item {
+                Layout.fillWidth: true
+                Layout.preferredHeight: Theme.scaled(50)
+                Layout.topMargin: Theme.scaled(10)
+
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.scaled(20)
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: TranslationManager.translate("beaninfo.guestbean.title", "Guest Bean")
+                    font: Theme.titleFont
+                    color: Theme.textColor
+                }
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 1
+                    color: Theme.borderColor
+                }
+            }
+
+            // Message
+            Text {
+                text: TranslationManager.translate("beaninfo.guestbean.message",
+                    "You have bean info loaded that isn't saved as a preset.\nWould you like to save it?")
+                font: Theme.bodyFont
+                color: Theme.textColor
+                wrapMode: Text.Wrap
+                Layout.fillWidth: true
+                Layout.margins: Theme.scaled(20)
+            }
+
+            // Current bean info preview
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.leftMargin: Theme.scaled(20)
+                Layout.rightMargin: Theme.scaled(20)
+                Layout.preferredHeight: guestBeanPreview.implicitHeight + Theme.scaled(16)
+                color: Theme.backgroundColor
+                radius: Theme.scaled(4)
+
+                Column {
+                    id: guestBeanPreview
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.margins: Theme.scaled(8)
+                    spacing: Theme.scaled(4)
+
+                    Text {
+                        text: Settings.dyeBeanBrand + (Settings.dyeBeanType ? " - " + Settings.dyeBeanType : "")
+                        font: Theme.bodyFont
+                        color: Theme.textColor
+                        elide: Text.ElideRight
+                        width: parent.width
+                        visible: Settings.dyeBeanBrand || Settings.dyeBeanType
+                    }
+
+                    Text {
+                        text: Settings.dyeGrinderModel + (Settings.dyeGrinderSetting ? " @ " + Settings.dyeGrinderSetting : "")
+                        font: Theme.captionFont
+                        color: Theme.textSecondaryColor
+                        elide: Text.ElideRight
+                        width: parent.width
+                        visible: Settings.dyeGrinderModel || Settings.dyeGrinderSetting
+                    }
+                }
+            }
+
+            // Buttons
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.margins: Theme.scaled(20)
+                spacing: Theme.scaled(10)
+
+                AccessibleButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.scaled(50)
+                    text: TranslationManager.translate("beaninfo.guestbean.notNow", "Not Now")
+                    accessibleName: TranslationManager.translate("beaninfo.guestbean.notNow", "Not Now")
+                    onClicked: guestBeanDialog.close()
+                    background: Rectangle {
+                        radius: Theme.buttonRadius
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Theme.primaryColor
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        font: Theme.bodyFont
+                        color: Theme.primaryColor
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                    }
+                }
+
+                AccessibleButton {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Theme.scaled(50)
+                    text: TranslationManager.translate("beaninfo.guestbean.save", "Save as Preset")
+                    accessibleName: TranslationManager.translate("beaninfo.guestbean.save", "Save as Preset")
+                    onClicked: {
+                        guestBeanDialog.close()
+                        // Open the save preset dialog with a suggested name
+                        savePresetDialog.suggestedName = Settings.dyeBeanBrand +
+                            (Settings.dyeBeanType ? " " + Settings.dyeBeanType : "")
+                        savePresetDialog.open()
+                    }
+                    background: Rectangle {
+                        radius: Theme.buttonRadius
+                        color: parent.down ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
+                    }
+                    contentItem: Text {
+                        text: parent.text
+                        font: Theme.bodyFont
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                     }
                 }
             }

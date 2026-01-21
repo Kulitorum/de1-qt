@@ -37,6 +37,7 @@ QtObject {
     property color accentColor: Settings.customThemeColors.accentColor || "#e94560"
     property color successColor: Settings.customThemeColors.successColor || "#00cc6d"
     property color warningColor: Settings.customThemeColors.warningColor || "#ffaa00"
+    property color highlightColor: Settings.customThemeColors.highlightColor || "#ffaa00"  // Gold highlight for special states
     property color errorColor: Settings.customThemeColors.errorColor || "#ff4444"
     property color borderColor: Settings.customThemeColors.borderColor || "#3a3a4e"
 
