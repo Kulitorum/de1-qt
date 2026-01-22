@@ -183,7 +183,7 @@ Dialog {
                     Layout.fillWidth: true
                     value: root.ratio
                     from: 0.5
-                    to: 4.0
+                    to: 20.0
                     stepSize: 0.1
                     decimals: 1
                     valueColor: Theme.primaryColor
