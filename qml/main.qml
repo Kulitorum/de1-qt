@@ -305,6 +305,13 @@ ApplicationWindow {
 
         updateScale()
 
+        // Keep screen on while app is running (Android only)
+        // This prevents Android's system timeout from turning off the screen
+        // while the user is prepping beans, etc. The screensaver handles sleep.
+        if (Qt.platform.os === "android") {
+            ScreensaverManager.setKeepScreenOn(true)
+        }
+
         // Check for crash log from previous session
         if (PreviousCrashLog && PreviousCrashLog.length > 0) {
             // Delay showing crash dialog slightly to ensure UI is ready

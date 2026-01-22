@@ -34,10 +34,10 @@ Page {
         console.log("[ScreensaverPage] Loaded, type:", screensaverType,
                     "videos:", isVideosMode, "pipes:", isPipesMode, "flipclock:", isFlipClockMode,
                     "disabled:", isDisabledMode)
-        // Keep screen on for active screensavers (videos, pipes, etc.)
-        // For "disabled" mode, don't keep screen on - let Android turn it off naturally
-        if (!isDisabledMode) {
-            ScreensaverManager.setKeepScreenOn(true)
+        // For "disabled" mode, turn OFF keep-screen-on to let Android's
+        // system timeout turn off the screen naturally
+        if (isDisabledMode) {
+            ScreensaverManager.setKeepScreenOn(false)
         }
         if (isVideosMode) {
             playNextMedia()
@@ -462,8 +462,9 @@ Page {
     StackView.onRemoved: {
         mediaPlayer.stop()
         imageDisplayTimer.stop()
-        // Allow screen to turn off again
-        ScreensaverManager.setKeepScreenOn(false)
+        // Re-enable keep-screen-on when leaving screensaver
+        // (especially needed if we were in "disabled" mode which turned it off)
+        ScreensaverManager.setKeepScreenOn(true)
     }
 
     // Auto-wake when DE1 wakes up externally (button press on machine)
