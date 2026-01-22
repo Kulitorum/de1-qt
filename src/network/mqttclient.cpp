@@ -88,7 +88,7 @@ bool MqttClient::isConnected() const
     return m_connected;
 }
 
-QString MqttClient::generateClientId() const
+QString MqttClient::generateClientId()
 {
     QString clientId = m_settings ? m_settings->mqttClientId() : "";
     if (clientId.isEmpty()) {
@@ -99,6 +99,11 @@ QString MqttClient::generateClientId() const
         clientId = QString("decenza_%1_%2")
             .arg(hostname)
             .arg(QUuid::createUuid().toString(QUuid::Id128).left(8));
+        // Persist the generated client ID so it survives app restarts/updates
+        if (m_settings) {
+            m_settings->setMqttClientId(clientId);
+            qDebug() << "MqttClient: Generated and saved new client ID:" << clientId;
+        }
     }
     return clientId;
 }

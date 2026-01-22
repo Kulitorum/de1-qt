@@ -75,7 +75,7 @@ private:
                                 const QJsonObject& config);
     void publish(const QString& topic, const QString& payload, bool retain = true);
     void publishAvailability(bool online);
-    QString generateClientId() const;
+    QString generateClientId();
 
     // Paho callbacks (static, call instance methods via context)
     static void onConnectSuccess(void* context, MQTTAsync_successData* response);
