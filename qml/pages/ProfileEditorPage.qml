@@ -488,10 +488,10 @@ Page {
                     accessibleName: qsTr("Global temperature")
                     onValueModified: function(newValue) {
                         if (profile && profile.steps.length > 0) {
+                            var delta = newValue - profile.steps[0].temperature
                             for (var i = 0; i < profile.steps.length; i++) {
-                                profile.steps[i].temperature = newValue
+                                profile.steps[i].temperature += delta
                             }
-                            // Also update the profile-level espresso_temperature
                             profile.espresso_temperature = newValue
                             uploadProfile()
                         }

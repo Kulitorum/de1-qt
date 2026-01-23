@@ -374,7 +374,7 @@ set(QML_FILES
     qml/pages/settings/AddLanguagePage.qml
     qml/pages/settings/StringBrowserPage.qml
     qml/components/ActionButton.qml
-	qml/components/BrewRatioDialog.qml
+	qml/components/BrewDialog.qml
     qml/components/CircularGauge.qml
     qml/components/ConnectionIndicator.qml
     qml/components/PresetPillRow.qml
@@ -382,6 +382,7 @@ set(QML_FILES
     qml/components/ValueInput.qml
     qml/components/ShotGraph.qml
     qml/components/StatusBar.qml
+    qml/components/ShotPlanText.qml
     qml/components/ProfileGraph.qml
     qml/components/ProfilePreviewPopup.qml
     qml/components/ProfileInfoButton.qml
