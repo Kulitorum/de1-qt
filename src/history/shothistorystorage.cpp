@@ -387,13 +387,13 @@ qint64 ShotHistoryStorage::saveShot(ShotDataModel* shotData,
     if (hasTemperatureOverride) {
         query.bindValue(":temperature_override", temperatureOverride);
     } else {
-        query.bindValue(":temperature_override", QVariant(QVariant::Double));
+        query.bindValue(":temperature_override", QVariant(QMetaType::fromType<double>()));
     }
 
     if (hasYieldOverride) {
         query.bindValue(":yield_override", yieldOverride);
     } else {
-        query.bindValue(":yield_override", QVariant(QVariant::Double));
+        query.bindValue(":yield_override", QVariant(QMetaType::fromType<double>()));
     }
 
     if (!query.exec()) {
@@ -1584,13 +1584,13 @@ qint64 ShotHistoryStorage::importShotRecord(const ShotRecord& record, bool overw
     if (record.hasTemperatureOverride) {
         query.bindValue(":temperature_override", record.temperatureOverride);
     } else {
-        query.bindValue(":temperature_override", QVariant(QVariant::Double));
+        query.bindValue(":temperature_override", QVariant(QMetaType::fromType<double>()));
     }
 
     if (record.hasYieldOverride) {
         query.bindValue(":yield_override", record.yieldOverride);
     } else {
-        query.bindValue(":yield_override", QVariant(QVariant::Double));
+        query.bindValue(":yield_override", QVariant(QMetaType::fromType<double>()));
     }
 
     if (!query.exec()) {
