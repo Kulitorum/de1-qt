@@ -273,9 +273,14 @@ void MainController::setTargetWeight(double weight) {
 
 void MainController::activateBrewWithOverrides(double dose, double yield, double temperature, const QString& grind) {
     if (m_settings) {
-        m_settings->setBrewDoseOverride(dose);
+        // Store dose and grind in DYE fields (source of truth)
+        m_settings->setDyeBeanWeight(dose);
+        m_settings->setDyeGrinderSetting(grind);
+
+        // Store yield as override (for next shot)
         m_settings->setBrewYieldOverride(yield);
-        m_settings->setBrewGrindOverride(grind);
+
+        // Store temperature override if different from profile
         if (qAbs(temperature - m_currentProfile.espressoTemperature()) > 0.1) {
             m_settings->setTemperatureOverride(temperature);
         }
@@ -864,7 +869,12 @@ void MainController::loadShotWithMetadata(qint64 shotId) {
         m_settings->setDyeGrinderModel(shotRecord.grinderModel);
         m_settings->setDyeGrinderSetting(shotRecord.grinderSetting);
         m_settings->setDyeBarista(shotRecord.barista);
-        // Note: Don't copy weights/TDS/EY - those are shot results, not presets
+
+        // Restore dose (input parameter, not a result)
+        if (shotRecord.summary.doseWeight > 0) {
+            m_settings->setDyeBeanWeight(shotRecord.summary.doseWeight);
+        }
+        // Note: Don't copy finalWeight/TDS/EY - those are shot results, not inputs
 
         // Find matching bean preset or set to -1 for guest bean
         int beanPresetIndex = m_settings->findBeanPresetByContent(
@@ -2228,9 +2238,7 @@ void MainController::onShotEnded() {
 
     double duration = m_shotDataModel->rawTime();  // Use rawTime, not maxTime (which is for graph axis)
 
-    double doseWeight = m_settings->hasBrewDoseOverride()
-        ? m_settings->brewDoseOverride()
-        : m_settings->dyeBeanWeight();
+    double doseWeight = m_settings->dyeBeanWeight();
 
     // Get final weight from shot data (cumulative weight, not flow rate)
     // In volume mode, estimate weight from ml: ml - 5 - dose*0.5

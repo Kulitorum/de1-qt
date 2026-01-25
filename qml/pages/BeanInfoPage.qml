@@ -898,8 +898,13 @@ Page {
                     accessibleName: qsTr("Add new bean preset with current settings")
                     onClicked: {
                         if (newBeanNameInput.text.trim().length > 0) {
-                            Settings.saveBeanPresetFromCurrent(newBeanNameInput.text.trim())
-                            Settings.selectedBeanPreset = Settings.beanPresets.length - 1
+                            var presetName = newBeanNameInput.text.trim()
+                            Settings.saveBeanPresetFromCurrent(presetName)
+                            // Find the index of the saved/updated preset
+                            var savedIndex = Settings.findBeanPresetByName(presetName)
+                            if (savedIndex >= 0) {
+                                Settings.selectedBeanPreset = savedIndex
+                            }
                             newBeanNameInput.text = ""
                             savePresetDialog.close()
                         }
