@@ -111,6 +111,15 @@ Page {
                         }
                         font: Theme.labelFont
                         color: Theme.textSecondaryColor
+
+                        Accessible.role: Accessible.StaticText
+                        Accessible.name: {
+                            var total = TranslationManager.uniqueStringCount()
+                            var untranslated = TranslationManager.uniqueUntranslatedCount()
+                            var translated = total - untranslated
+                            var percent = Math.round((translated / Math.max(1, total)) * 100)
+                            return "Translation progress: " + percent + " percent. " + translated + " of " + total + " strings translated."
+                        }
                     }
 
                     // AI Translate button (hidden for English)
@@ -122,6 +131,11 @@ Page {
                         color: aiButtonArea.pressed ? Qt.darker(Theme.primaryColor, 1.2) : Theme.primaryColor
                         radius: Theme.buttonRadius
                         opacity: !TranslationManager.autoTranslating ? 1.0 : 0.5
+
+                        Accessible.role: Accessible.Button
+                        Accessible.name: TranslationManager.autoTranslating ? "AI translation in progress" : "AI Translate all missing strings"
+                        Accessible.description: "Use artificial intelligence to automatically translate all untranslated strings"
+                        Accessible.focusable: true
 
                         Text {
                             anchors.centerIn: parent
@@ -183,6 +197,10 @@ Page {
                             color: Theme.textColor
                             clip: true
 
+                            Accessible.role: Accessible.EditableText
+                            Accessible.name: "Search strings"
+                            Accessible.description: "Type to filter the list of translatable strings"
+
                             Text {
                                 anchors.fill: parent
                                 text: "Search strings..."
@@ -196,11 +214,16 @@ Page {
                         }
 
                         Text {
+                            id: clearSearchButton
                             anchors.verticalCenter: parent.verticalCenter
                             text: "\u{2715}"
                             font.pixelSize: Theme.scaled(14)
                             color: Theme.textSecondaryColor
                             visible: searchField.text !== ""
+
+                            Accessible.role: Accessible.Button
+                            Accessible.name: "Clear search"
+                            Accessible.focusable: true
 
                             MouseArea {
                                 anchors.fill: parent
@@ -219,12 +242,12 @@ Page {
 
                     Repeater {
                         model: isEnglish ? [
-                            { text: "All", mode: 0 },
-                            { text: "Custom", mode: 3 }
+                            { text: "All", mode: 0, description: "Show all strings" },
+                            { text: "Custom", mode: 3, description: "Show only customized strings" }
                         ] : [
-                            { text: "All", mode: 0 },
-                            { text: "Missing", mode: 1 },
-                            { text: "AI", mode: 2 }
+                            { text: "All", mode: 0, description: "Show all strings" },
+                            { text: "Missing", mode: 1, description: "Show only untranslated strings" },
+                            { text: "AI", mode: 2, description: "Show only AI-generated translations" }
                         ]
 
                         Rectangle {
@@ -234,6 +257,12 @@ Page {
                             radius: Theme.buttonRadius
                             border.width: stringModel.filterMode === modelData.mode ? 0 : 1
                             border.color: Theme.borderColor
+
+                            Accessible.role: Accessible.RadioButton
+                            Accessible.name: modelData.text + " filter"
+                            Accessible.description: modelData.description
+                            Accessible.checked: stringModel.filterMode === modelData.mode
+                            Accessible.focusable: true
 
                             Text {
                                 anchors.centerIn: parent
@@ -256,6 +285,9 @@ Page {
                 text: stringModel.count + " unique strings"
                 font: Theme.labelFont
                 color: Theme.textSecondaryColor
+
+                Accessible.role: Accessible.StaticText
+                Accessible.name: stringModel.count + " unique strings shown"
             }
         }
 
@@ -333,6 +365,10 @@ Page {
             model: stringModel
             spacing: Theme.scaled(2)
 
+            Accessible.role: Accessible.List
+            Accessible.name: isEnglish ? "String customization list" : "Translation list"
+            Accessible.description: stringModel.count + " strings. Swipe to navigate, double tap to edit."
+
             // Track last edited index for scroll restoration
             property int lastEditedIndex: -1
             property real lastContentY: 0
@@ -397,6 +433,33 @@ Page {
                 height: Math.max(Theme.scaled(48), rowHeight + Theme.scaled(16))
                 color: index % 2 === 0 ? Theme.surfaceColor : Qt.darker(Theme.surfaceColor, 1.05)
                 radius: Theme.scaled(4)
+
+                // Accessibility: announce the English text and translation status
+                Accessible.role: Accessible.ListItem
+                Accessible.name: {
+                    var name = "English: " + model.fallback + ". "
+                    if (isEnglish) {
+                        if (model.translation) {
+                            name += "Custom text: " + model.translation
+                        } else {
+                            name += "No customization. Double tap to customize."
+                        }
+                    } else {
+                        if (model.translation) {
+                            name += "Translation: " + model.translation
+                            if (model.isAiGenerated) {
+                                name += ". AI generated."
+                            }
+                        } else if (model.aiTranslation) {
+                            name += "AI suggestion: " + model.aiTranslation + ". Double tap to edit or accept."
+                        } else {
+                            name += "Not translated. Double tap to translate."
+                        }
+                    }
+                    return name
+                }
+                Accessible.focusable: true
+                Accessible.onPressAction: finalInput.forceActiveFocus()
 
                 // Calculate the row width for column sizing
                 readonly property real rowWidth: width - Theme.scaled(16)  // margins
@@ -468,6 +531,10 @@ Page {
                         color: aiCopyArea.pressed ? Qt.rgba(Theme.primaryColor.r, Theme.primaryColor.g, Theme.primaryColor.b, 0.2) : "transparent"
                         radius: Theme.scaled(4)
 
+                        Accessible.role: Accessible.Button
+                        Accessible.name: model.aiTranslation ? "AI suggestion: " + model.aiTranslation + ". Tap to use this translation." : "No AI translation available"
+                        Accessible.focusable: model.aiTranslation ? true : false
+
                         Text {
                             anchors.fill: parent
                             anchors.margins: Theme.scaled(4)
@@ -536,6 +603,22 @@ Page {
                             wrapMode: TextEdit.Wrap
                             verticalAlignment: Text.AlignVCenter
                             readOnly: !activeFocus
+
+                            Accessible.role: Accessible.EditableText
+                            Accessible.name: isEnglish
+                                ? "Custom text for: " + model.fallback
+                                : "Translation for: " + model.fallback
+                            Accessible.description: {
+                                if (isEnglish) {
+                                    return model.translation
+                                        ? "Current custom text: " + model.translation + ". Edit to change."
+                                        : "No custom text set. Type to customize this string."
+                                } else {
+                                    return model.translation
+                                        ? "Current translation: " + model.translation + ". Edit to change."
+                                        : "Not translated. Type your translation here."
+                                }
+                            }
 
                             Text {
                                 anchors.fill: parent
