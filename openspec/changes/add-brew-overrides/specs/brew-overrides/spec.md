@@ -1,13 +1,14 @@
 ## ADDED Requirements
 
-### Requirement: Session-Only Brew Overrides
-The system SHALL provide session-only (non-persisted) overrides for brew parameters: temperature, dose weight, yield weight, and grind setting. These overrides SHALL NOT modify the saved profile and SHALL be cleared after each shot ends or when the user switches profiles.
+### Requirement: Persistent Brew Overrides
+The system SHALL provide persistent overrides for brew parameters: temperature, dose weight, yield weight, and grind setting. These overrides are stored in QSettings and survive app restarts. The overrides SHALL NOT modify the saved profile and SHALL be cleared when the user switches profiles or explicitly clears them via the BrewDialog.
 
 #### Scenario: User sets temperature override
 - **WHEN** the user sets a brew temperature different from the profile default in the BrewDialog
-- **THEN** the system stores a session-only temperature override
+- **THEN** the system stores a persistent temperature override in QSettings
 - **AND** the IdlePage displays the override as an arrow (e.g., "88 → 90°C")
 - **AND** the DE1 machine uses the overridden temperature for the next shot
+- **AND** the override persists between app sessions until explicitly cleared
 
 #### Scenario: User sets dose and yield overrides
 - **WHEN** the user configures dose and yield in the BrewDialog and confirms
@@ -103,30 +104,32 @@ The system SHALL display a summary line showing the configured shot parameters: 
 - **AND** tapping it opens the BrewDialog from any page
 
 ### Requirement: Brew Overrides History Recording
-The system SHALL record the active brew overrides (temperature, dose, yield, grind) as a JSON string in the shot history when a shot is saved. This enables traceability of per-shot adjustments.
+The system SHALL record the active brew overrides (temperature, yield) as dedicated database columns in the shot history when a shot is saved. This enables traceability of per-shot adjustments.
 
 #### Scenario: Overrides saved to shot history
 - **WHEN** a shot ends with active brew overrides
-- **THEN** the overrides are serialized to JSON and stored in the `brew_overrides_json` column
-- **AND** the overrides JSON is available when viewing the shot in history
+- **THEN** the temperature override is stored in the `temperature_override` column (NULL if not set)
+- **AND** the yield override is stored in the `yield_override` column (NULL if not set)
+- **AND** the overrides are available when viewing the shot in history
 
 #### Scenario: No overrides recorded when none active
 - **WHEN** a shot ends without any active brew overrides
-- **THEN** the `brew_overrides_json` field is empty/null
+- **THEN** the `temperature_override` and `yield_override` columns are NULL
 
 ### Requirement: Shot History Parameter Retrieval
 The system SHALL populate brew parameters (dose, yield, grind) from shot history when a shot is loaded via `loadShotWithMetadata()`. This allows the user to repeat a previous shot's settings. If the shot has recorded brew overrides, those take precedence; otherwise the profile's target weight is used for yield.
 
 #### Scenario: Loading shot with brew overrides from history
-- **WHEN** the user loads a shot from history that has `brew_overrides_json` populated
-- **THEN** the dose override is set from the recorded override value
-- **AND** the yield override is set from the recorded override value
-- **AND** the grinder setting is populated from the recorded override value
+- **WHEN** the user loads a shot from history that has override columns populated
+- **THEN** the dose override is set from the DYE metadata (shot-specific, not override)
+- **AND** the yield override is set from the `yield_override` column if not NULL
+- **AND** the temperature override is set from the `temperature_override` column if not NULL
+- **AND** the grinder setting is populated from the DYE metadata
 - **AND** the BrewDialog shows these as active overrides
 
 #### Scenario: Loading shot without brew overrides from history
-- **WHEN** the user loads a shot from history that has no `brew_overrides_json`
-- **THEN** no dose or yield overrides are set
+- **WHEN** the user loads a shot from history that has NULL override columns
+- **THEN** no temperature or yield overrides are set
 - **AND** the yield defaults to the loaded profile's target weight
 - **AND** the dose defaults to the DYE bean weight (default 18g)
 
@@ -134,3 +137,35 @@ The system SHALL populate brew parameters (dose, yield, grind) from shot history
 - **WHEN** the BrewDialog opens after loading a shot from history
 - **THEN** dose, yield, and grind fields reflect the active overrides (if set) or profile defaults
 - **AND** the ratio is calculated from the effective dose and yield
+
+### Requirement: Persistent Override Storage
+The system SHALL store temperature and yield overrides in QSettings for persistence across app sessions. Overrides SHALL be cleared when switching profiles or when the user taps "Clear" in the BrewDialog.
+
+#### Scenario: Overrides persist between app sessions
+- **WHEN** the user sets temperature or yield overrides in the BrewDialog
+- **THEN** the values are immediately saved to QSettings
+- **AND** when the app is restarted, the overrides are restored from QSettings
+- **AND** the overrides remain active until explicitly cleared
+
+#### Scenario: Overrides cleared on profile switch
+- **WHEN** the user switches to a different profile
+- **THEN** all overrides are cleared from QSettings
+- **AND** the IdlePage shot plan returns to profile defaults
+
+#### Scenario: Overrides cleared via BrewDialog
+- **WHEN** the user taps "Clear" in the BrewDialog
+- **THEN** all overrides are removed from QSettings
+- **AND** the Settings properties are reset to default values
+
+### Implementation Notes: Database Schema
+
+**Shot History Storage:**
+- `temperature_override REAL` - Temperature override value (NULL if not set)
+- `yield_override REAL` - Yield override value (NULL if not set)
+- Database schema version 3 (migration from previous `brew_overrides_json` column)
+
+**QSettings Keys:**
+- `brew/temperatureOverride` (double)
+- `brew/hasTemperatureOverride` (bool)
+- `brew/brewYieldOverride` (double)
+- `brew/hasBrewYieldOverride` (bool)

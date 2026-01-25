@@ -1,8 +1,10 @@
 ## MODIFIED Requirements
 
-### Requirement: Session-Only Brew Overrides
+### Requirement: Persistent Brew Overrides
 
 Temperature overrides SHALL be applied as a delta offset relative to the profile's reference temperature (first frame / `espressoTemperature`). The delta is computed as `override - espressoTemperature` and added to each frame's individual temperature, preserving relative temperature differences between frames.
+
+**Storage:** Temperature overrides are persistent (stored in QSettings) and survive app restarts. They are stored in shot history as dedicated `temperature_override` database columns.
 
 #### Scenario: User sets temperature override with multi-temp profile
 - **WHEN** the profile has frames with temperatures [93, 93, 88, 88] (espressoTemperature = 93)

@@ -273,7 +273,6 @@ private:
     int m_lastFrameNumber = -1;
     int m_frameWeightSkipSent = -1;  // Frame number for which we've sent a weight-based skip command
     bool m_tareDone = false;  // Track if we've tared for this shot
-    QString m_shotBrewOverridesJson;  // Captured at shot end, before overrides are cleared
 
     QString m_baseProfileName;
     bool m_profileModified = false;

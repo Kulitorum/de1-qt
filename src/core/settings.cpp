@@ -111,6 +111,17 @@ Settings::Settings(QObject* parent)
         QJsonArray emptyPresets;
         m_settings.setValue("bean/presets", QJsonDocument(emptyPresets).toJson());
     }
+
+    // Load brew parameter overrides (persistent)
+    m_hasTemperatureOverride = m_settings.value("brew/hasTemperatureOverride", false).toBool();
+    if (m_hasTemperatureOverride) {
+        m_temperatureOverride = m_settings.value("brew/temperatureOverride", 0.0).toDouble();
+    }
+
+    m_hasBrewYieldOverride = m_settings.value("brew/hasBrewYieldOverride", false).toBool();
+    if (m_hasBrewYieldOverride) {
+        m_brewYieldOverride = m_settings.value("brew/brewYieldOverride", 0.0).toDouble();
+    }
 }
 
 // Machine settings
@@ -1014,36 +1025,37 @@ void Settings::applyBeanPreset(int index) {
     setDyeGrinderModel(preset.value("grinderModel").toString());
     setDyeGrinderSetting(preset.value("grinderSetting").toString());
 
-    // Clear all brew overrides - bean preset values take precedence
-    bool changed = false;
-    if (m_hasBrewGrindOverride) {
-        m_hasBrewGrindOverride = false;
-        m_brewGrindOverride.clear();
-        changed = true;
-    }
-    if (m_hasBrewDoseOverride) {
-        m_hasBrewDoseOverride = false;
-        m_brewDoseOverride = 0;
-        changed = true;
-    }
+    // Clear yield override - bean preset values take precedence for dose/grind
     if (m_hasBrewYieldOverride) {
         m_hasBrewYieldOverride = false;
         m_brewYieldOverride = 0;
-        changed = true;
-    }
-    if (changed) {
         emit brewOverridesChanged();
     }
 }
 
 void Settings::saveBeanPresetFromCurrent(const QString& name) {
-    addBeanPreset(name,
-                  dyeBeanBrand(),
-                  dyeBeanType(),
-                  dyeRoastDate(),
-                  dyeRoastLevel(),
-                  dyeGrinderModel(),
-                  dyeGrinderSetting());
+    // Check if a preset with this name already exists
+    int existingIndex = findBeanPresetByName(name);
+    if (existingIndex >= 0) {
+        // Update existing preset
+        updateBeanPreset(existingIndex,
+                        name,
+                        dyeBeanBrand(),
+                        dyeBeanType(),
+                        dyeRoastDate(),
+                        dyeRoastLevel(),
+                        dyeGrinderModel(),
+                        dyeGrinderSetting());
+    } else {
+        // Add new preset
+        addBeanPreset(name,
+                     dyeBeanBrand(),
+                     dyeBeanType(),
+                     dyeRoastDate(),
+                     dyeRoastLevel(),
+                     dyeGrinderModel(),
+                     dyeGrinderSetting());
+    }
 }
 
 int Settings::findBeanPresetByContent(const QString& brand, const QString& type) const {
@@ -1051,6 +1063,19 @@ int Settings::findBeanPresetByContent(const QString& brand, const QString& type)
     for (int i = 0; i < arr.size(); ++i) {
         QJsonObject obj = arr[i].toObject();
         if (obj["brand"].toString() == brand && obj["type"].toString() == type) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+int Settings::findBeanPresetByName(const QString& name) const {
+    QByteArray data = m_settings.value("bean/presets").toByteArray();
+    QJsonDocument doc = QJsonDocument::fromJson(data);
+    QJsonArray arr = doc.array();
+    for (int i = 0; i < arr.size(); ++i) {
+        QJsonObject obj = arr[i].toObject();
+        if (obj["name"].toString() == name) {
             return i;
         }
     }
@@ -1940,15 +1965,19 @@ void Settings::setDeveloperTranslationUpload(bool enabled) {
     }
 }
 
-// Temperature override (session-only)
+// Temperature override (persistent)
 double Settings::temperatureOverride() const {
     return m_temperatureOverride;
 }
 
 void Settings::setTemperatureOverride(double temp) {
-    m_temperatureOverride = temp;
-    m_hasTemperatureOverride = true;
-    emit temperatureOverrideChanged();
+    if (!qFuzzyCompare(m_temperatureOverride, temp) || !m_hasTemperatureOverride) {
+        m_temperatureOverride = temp;
+        m_hasTemperatureOverride = true;
+        m_settings.setValue("brew/temperatureOverride", temp);
+        m_settings.setValue("brew/hasTemperatureOverride", true);
+        emit temperatureOverrideChanged();
+    }
 }
 
 bool Settings::hasTemperatureOverride() const {
@@ -1956,112 +1985,71 @@ bool Settings::hasTemperatureOverride() const {
 }
 
 void Settings::clearTemperatureOverride() {
-    if (m_hasTemperatureOverride) {
+    if (m_hasTemperatureOverride || !qFuzzyIsNull(m_temperatureOverride)) {
         m_hasTemperatureOverride = false;
-        m_temperatureOverride = 0;
+        m_temperatureOverride = 0.0;
+        m_settings.remove("brew/temperatureOverride");
+        m_settings.remove("brew/hasTemperatureOverride");
         emit temperatureOverrideChanged();
     }
 }
 
-// Brew parameter overrides (session-only)
-double Settings::brewDoseOverride() const {
-    return m_brewDoseOverride;
-}
-
-void Settings::setBrewDoseOverride(double dose) {
-    m_brewDoseOverride = dose;
-    m_hasBrewDoseOverride = true;
-    emit brewOverridesChanged();
-}
-
-bool Settings::hasBrewDoseOverride() const {
-    return m_hasBrewDoseOverride;
-}
-
+// Brew parameter overrides (persistent)
 double Settings::brewYieldOverride() const {
     return m_brewYieldOverride;
 }
 
 void Settings::setBrewYieldOverride(double yield) {
+    bool changed = false;
     if (yield <= 0) {
-        m_brewYieldOverride = 0;
-        m_hasBrewYieldOverride = false;
+        if (m_hasBrewYieldOverride || !qFuzzyIsNull(m_brewYieldOverride)) {
+            m_brewYieldOverride = 0;
+            m_hasBrewYieldOverride = false;
+            m_settings.remove("brew/brewYieldOverride");
+            m_settings.remove("brew/hasBrewYieldOverride");
+            changed = true;
+        }
     } else {
-        m_brewYieldOverride = yield;
-        m_hasBrewYieldOverride = true;
+        if (!qFuzzyCompare(m_brewYieldOverride, yield) || !m_hasBrewYieldOverride) {
+            m_brewYieldOverride = yield;
+            m_hasBrewYieldOverride = true;
+            m_settings.setValue("brew/brewYieldOverride", yield);
+            m_settings.setValue("brew/hasBrewYieldOverride", true);
+            changed = true;
+        }
     }
-    emit brewOverridesChanged();
+    if (changed) {
+        emit brewOverridesChanged();
+    }
 }
 
 bool Settings::hasBrewYieldOverride() const {
     return m_hasBrewYieldOverride;
 }
 
-QString Settings::brewGrindOverride() const {
-    return m_brewGrindOverride;
-}
-
-void Settings::setBrewGrindOverride(const QString& grind) {
-    m_brewGrindOverride = grind;
-    m_hasBrewGrindOverride = !grind.isEmpty();
-    emit brewOverridesChanged();
-}
-
-bool Settings::hasBrewGrindOverride() const {
-    return m_hasBrewGrindOverride;
-}
-
 void Settings::clearAllBrewOverrides() {
-    bool changed = m_hasBrewDoseOverride || m_hasBrewYieldOverride || m_hasBrewGrindOverride;
-    m_hasBrewDoseOverride = false;
-    m_brewDoseOverride = 0;
-    m_hasBrewYieldOverride = false;
-    m_brewYieldOverride = 0;
-    m_hasBrewGrindOverride = false;
-    m_brewGrindOverride.clear();
+    bool changed = false;
+
+    // Clear yield override
+    if (m_hasBrewYieldOverride || !qFuzzyIsNull(m_brewYieldOverride)) {
+        m_brewYieldOverride = 0.0;
+        m_hasBrewYieldOverride = false;
+        m_settings.remove("brew/brewYieldOverride");
+        m_settings.remove("brew/hasBrewYieldOverride");
+        changed = true;
+    }
+
+    // Clear temperature override
+    if (m_hasTemperatureOverride || !qFuzzyIsNull(m_temperatureOverride)) {
+        m_temperatureOverride = 0.0;
+        m_hasTemperatureOverride = false;
+        m_settings.remove("brew/temperatureOverride");
+        m_settings.remove("brew/hasTemperatureOverride");
+        changed = true;
+    }
+
     if (changed) {
         emit brewOverridesChanged();
-    }
-}
-
-QString Settings::brewOverridesToJson() const {
-    QJsonObject obj;
-    if (m_hasTemperatureOverride) {
-        obj["temperature"] = m_temperatureOverride;
-    }
-    if (m_hasBrewDoseOverride) {
-        obj["dose"] = m_brewDoseOverride;
-    }
-    if (m_hasBrewYieldOverride) {
-        obj["yield"] = m_brewYieldOverride;
-    }
-    if (m_hasBrewGrindOverride) {
-        obj["grind"] = m_brewGrindOverride;
-    }
-    if (obj.isEmpty()) {
-        return QString();
-    }
-    return QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
-}
-
-void Settings::applyBrewOverridesFromJson(const QString& json) {
-    if (json.isEmpty()) return;
-
-    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
-    if (!doc.isObject()) return;
-
-    QJsonObject obj = doc.object();
-    if (obj.contains("dose")) {
-        setBrewDoseOverride(obj["dose"].toDouble());
-    }
-    if (obj.contains("yield")) {
-        setBrewYieldOverride(obj["yield"].toDouble());
-    }
-    if (obj.contains("grind")) {
-        setBrewGrindOverride(obj["grind"].toString());
-    }
-    if (obj.contains("temperature")) {
-        setTemperatureOverride(obj["temperature"].toDouble());
     }
 }
 

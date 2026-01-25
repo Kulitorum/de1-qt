@@ -138,17 +138,13 @@ class Settings : public QObject {
     // Developer settings
     Q_PROPERTY(bool developerTranslationUpload READ developerTranslationUpload WRITE setDeveloperTranslationUpload NOTIFY developerTranslationUploadChanged)
 
-    // Temperature override (session-only, for next shot)
+    // Temperature override (persistent)
     Q_PROPERTY(double temperatureOverride READ temperatureOverride WRITE setTemperatureOverride NOTIFY temperatureOverrideChanged)
     Q_PROPERTY(bool hasTemperatureOverride READ hasTemperatureOverride NOTIFY temperatureOverrideChanged)
 
     // Brew parameter overrides (session-only, for next shot)
-    Q_PROPERTY(double brewDoseOverride READ brewDoseOverride WRITE setBrewDoseOverride NOTIFY brewOverridesChanged)
-    Q_PROPERTY(bool hasBrewDoseOverride READ hasBrewDoseOverride NOTIFY brewOverridesChanged)
     Q_PROPERTY(double brewYieldOverride READ brewYieldOverride WRITE setBrewYieldOverride NOTIFY brewOverridesChanged)
     Q_PROPERTY(bool hasBrewYieldOverride READ hasBrewYieldOverride NOTIFY brewOverridesChanged)
-    Q_PROPERTY(QString brewGrindOverride READ brewGrindOverride WRITE setBrewGrindOverride NOTIFY brewOverridesChanged)
-    Q_PROPERTY(bool hasBrewGrindOverride READ hasBrewGrindOverride NOTIFY brewOverridesChanged)
 
     // Shot plan display settings
     Q_PROPERTY(bool showShotPlan READ showShotPlan WRITE setShowShotPlan NOTIFY showShotPlanChanged)
@@ -314,8 +310,9 @@ public:
     Q_INVOKABLE void moveBeanPreset(int from, int to);
     Q_INVOKABLE QVariantMap getBeanPreset(int index) const;
     Q_INVOKABLE void applyBeanPreset(int index);       // Sets all DYE fields from preset
-    Q_INVOKABLE void saveBeanPresetFromCurrent(const QString& name);  // Creates preset from current DYE
-    Q_INVOKABLE int findBeanPresetByContent(const QString& brand, const QString& type) const;  // Returns index or -1
+    Q_INVOKABLE void saveBeanPresetFromCurrent(const QString& name);  // Creates or updates preset from current DYE
+    Q_INVOKABLE int findBeanPresetByContent(const QString& brand, const QString& type) const;  // Returns index or -1 (simple match)
+    Q_INVOKABLE int findBeanPresetByName(const QString& name) const;  // Returns index or -1
 
     // UI settings
     QString skin() const;
@@ -477,25 +474,17 @@ public:
     bool developerTranslationUpload() const;
     void setDeveloperTranslationUpload(bool enabled);
 
-    // Temperature override (session-only)
+    // Temperature override (persistent)
     double temperatureOverride() const;
     void setTemperatureOverride(double temp);
     bool hasTemperatureOverride() const;
     Q_INVOKABLE void clearTemperatureOverride();
 
-    // Brew parameter overrides (session-only)
-    double brewDoseOverride() const;
-    void setBrewDoseOverride(double dose);
-    bool hasBrewDoseOverride() const;
+    // Brew parameter overrides (persistent)
     double brewYieldOverride() const;
     void setBrewYieldOverride(double yield);
     bool hasBrewYieldOverride() const;
-    QString brewGrindOverride() const;
-    void setBrewGrindOverride(const QString& grind);
-    bool hasBrewGrindOverride() const;
-    void applyBrewOverridesFromJson(const QString& json);
     Q_INVOKABLE void clearAllBrewOverrides();
-    Q_INVOKABLE QString brewOverridesToJson() const;
 
     // Shot plan display
     bool showShotPlan() const;
@@ -644,10 +633,6 @@ private:
     bool m_hasTemperatureOverride = false;  // Session-only
 
     // Brew parameter overrides (session-only)
-    double m_brewDoseOverride = 0;
-    bool m_hasBrewDoseOverride = false;
     double m_brewYieldOverride = 0;
     bool m_hasBrewYieldOverride = false;
-    QString m_brewGrindOverride;
-    bool m_hasBrewGrindOverride = false;
 };

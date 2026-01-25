@@ -53,3 +53,14 @@
 - [x] 8.4 Add shot plan text to StatusBar (between page title and indicators) visible when both settings are enabled
 - [x] 8.5 The StatusBar shot plan reuses the same text logic and opens BrewDialog on tap
 - [x] 8.6 Hide IdlePage's inline shot plan when "Show on all screens" is active (avoid duplication)
+
+## 9. Refactor to Persistent Settings
+- [x] 9.1 Remove JSON encoding methods from Settings class (`brewOverridesToJson()`, `applyBrewOverridesFromJson()`)
+- [x] 9.2 Add QSettings persistence to override setters and clear methods
+- [x] 9.3 Add override loading in Settings constructor
+- [x] 9.4 Convert shot history to dedicated database columns (`temperature_override`, `yield_override`)
+- [x] 9.5 Database migration to version 3 (add new columns, drop `brew_overrides_json`)
+- [x] 9.6 Update ShotRecord struct with dedicated fields
+- [x] 9.7 Update saveShot() signature to accept individual override parameters
+- [x] 9.8 Update MainController to pass overrides directly (no JSON)
+- [x] 9.9 Update spec documentation to reflect persistent behavior
