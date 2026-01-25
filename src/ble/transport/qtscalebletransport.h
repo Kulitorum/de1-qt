@@ -57,5 +57,6 @@ private:
     QBluetoothUuid m_pendingNotificationCharacteristic;  // Track last characteristic we're enabling notifications for
     QString m_deviceAddress;
     QString m_deviceName;
+    QString m_deviceId;  // UUID on iOS, address on other platforms - for duplicate detection
     bool m_connected = false;
 };

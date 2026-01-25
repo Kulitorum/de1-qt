@@ -112,13 +112,21 @@ void BookooScale::onCharacteristicsDiscoveryFinished(const QBluetoothUuid& servi
     m_characteristicsReady = true;
     setConnected(true);
 
-    // de1app waits 200ms after connection before enabling notifications:
-    //   after 200 bookoo_enable_weight_notifications
-    BOOKOO_LOG("Scheduling notification enable in 200ms (de1app timing)");
-    QTimer::singleShot(200, this, [this]() {
-        if (!m_transport || !m_characteristicsReady) return;
+    // Enable notifications with retry pattern (like DecentScale)
+    // iOS CoreBluetooth needs more time for CCCD operations
+    BOOKOO_LOG("Scheduling notification enable at 300ms and 500ms (iOS reliability)");
 
-        BOOKOO_LOG("Enabling notifications (200ms)");
+    // First attempt at 300ms
+    QTimer::singleShot(300, this, [this]() {
+        if (!m_transport || !m_characteristicsReady) return;
+        BOOKOO_LOG("Enabling notifications (300ms - first attempt)");
+        m_transport->enableNotifications(Scale::Bookoo::SERVICE, Scale::Bookoo::STATUS);
+    });
+
+    // Retry at 500ms for reliability (matches DecentScale pattern)
+    QTimer::singleShot(500, this, [this]() {
+        if (!m_transport || !m_characteristicsReady) return;
+        BOOKOO_LOG("Enabling notifications (500ms - retry)");
         m_transport->enableNotifications(Scale::Bookoo::SERVICE, Scale::Bookoo::STATUS);
     });
 }

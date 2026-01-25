@@ -198,6 +198,13 @@ if(ANDROID)
     )
 endif()
 
+# iOS-specific native CoreBluetooth transport
+if(IOS)
+    list(APPEND SOURCES
+        src/ble/transport/corebluetooth/corebluetoothscalebletransport.mm
+    )
+endif()
+
 set(HEADERS
     src/core/settings.h
     src/core/batterymanager.h
@@ -276,6 +283,13 @@ endif()
 if(ANDROID)
     list(APPEND HEADERS
         src/ble/transport/androidscalebletransport.h
+    )
+endif()
+
+# iOS-specific native CoreBluetooth transport header
+if(IOS)
+    list(APPEND HEADERS
+        src/ble/transport/corebluetooth/corebluetoothscalebletransport.h
     )
 endif()
 
@@ -508,6 +522,10 @@ if(IOS)
         "-framework CoreVideo"
         "-framework CoreAudio"
         "-framework AudioToolbox"
+    )
+    # Link CoreBluetooth for native scale BLE transport
+    target_link_libraries(Decenza_DE1 PRIVATE
+        "-framework CoreBluetooth"
     )
 endif()
 
