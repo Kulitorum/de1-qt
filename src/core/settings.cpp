@@ -111,6 +111,17 @@ Settings::Settings(QObject* parent)
         QJsonArray emptyPresets;
         m_settings.setValue("bean/presets", QJsonDocument(emptyPresets).toJson());
     }
+
+    // Load brew parameter overrides (persistent)
+    m_hasTemperatureOverride = m_settings.value("brew/hasTemperatureOverride", false).toBool();
+    if (m_hasTemperatureOverride) {
+        m_temperatureOverride = m_settings.value("brew/temperatureOverride", 0.0).toDouble();
+    }
+
+    m_hasBrewYieldOverride = m_settings.value("brew/hasBrewYieldOverride", false).toBool();
+    if (m_hasBrewYieldOverride) {
+        m_brewYieldOverride = m_settings.value("brew/brewYieldOverride", 0.0).toDouble();
+    }
 }
 
 // Machine settings
@@ -1954,15 +1965,19 @@ void Settings::setDeveloperTranslationUpload(bool enabled) {
     }
 }
 
-// Temperature override (session-only)
+// Temperature override (persistent)
 double Settings::temperatureOverride() const {
     return m_temperatureOverride;
 }
 
 void Settings::setTemperatureOverride(double temp) {
-    m_temperatureOverride = temp;
-    m_hasTemperatureOverride = true;
-    emit temperatureOverrideChanged();
+    if (!qFuzzyCompare(m_temperatureOverride, temp) || !m_hasTemperatureOverride) {
+        m_temperatureOverride = temp;
+        m_hasTemperatureOverride = true;
+        m_settings.setValue("brew/temperatureOverride", temp);
+        m_settings.setValue("brew/hasTemperatureOverride", true);
+        emit temperatureOverrideChanged();
+    }
 }
 
 bool Settings::hasTemperatureOverride() const {
@@ -1970,27 +1985,42 @@ bool Settings::hasTemperatureOverride() const {
 }
 
 void Settings::clearTemperatureOverride() {
-    if (m_hasTemperatureOverride) {
+    if (m_hasTemperatureOverride || !qFuzzyIsNull(m_temperatureOverride)) {
         m_hasTemperatureOverride = false;
-        m_temperatureOverride = 0;
+        m_temperatureOverride = 0.0;
+        m_settings.remove("brew/temperatureOverride");
+        m_settings.remove("brew/hasTemperatureOverride");
         emit temperatureOverrideChanged();
     }
 }
 
-// Brew parameter overrides (session-only)
+// Brew parameter overrides (persistent)
 double Settings::brewYieldOverride() const {
     return m_brewYieldOverride;
 }
 
 void Settings::setBrewYieldOverride(double yield) {
+    bool changed = false;
     if (yield <= 0) {
-        m_brewYieldOverride = 0;
-        m_hasBrewYieldOverride = false;
+        if (m_hasBrewYieldOverride || !qFuzzyIsNull(m_brewYieldOverride)) {
+            m_brewYieldOverride = 0;
+            m_hasBrewYieldOverride = false;
+            m_settings.remove("brew/brewYieldOverride");
+            m_settings.remove("brew/hasBrewYieldOverride");
+            changed = true;
+        }
     } else {
-        m_brewYieldOverride = yield;
-        m_hasBrewYieldOverride = true;
+        if (!qFuzzyCompare(m_brewYieldOverride, yield) || !m_hasBrewYieldOverride) {
+            m_brewYieldOverride = yield;
+            m_hasBrewYieldOverride = true;
+            m_settings.setValue("brew/brewYieldOverride", yield);
+            m_settings.setValue("brew/hasBrewYieldOverride", true);
+            changed = true;
+        }
     }
-    emit brewOverridesChanged();
+    if (changed) {
+        emit brewOverridesChanged();
+    }
 }
 
 bool Settings::hasBrewYieldOverride() const {
@@ -1998,40 +2028,28 @@ bool Settings::hasBrewYieldOverride() const {
 }
 
 void Settings::clearAllBrewOverrides() {
-    bool changed = m_hasBrewYieldOverride;
-    m_hasBrewYieldOverride = false;
-    m_brewYieldOverride = 0;
+    bool changed = false;
+
+    // Clear yield override
+    if (m_hasBrewYieldOverride || !qFuzzyIsNull(m_brewYieldOverride)) {
+        m_brewYieldOverride = 0.0;
+        m_hasBrewYieldOverride = false;
+        m_settings.remove("brew/brewYieldOverride");
+        m_settings.remove("brew/hasBrewYieldOverride");
+        changed = true;
+    }
+
+    // Clear temperature override
+    if (m_hasTemperatureOverride || !qFuzzyIsNull(m_temperatureOverride)) {
+        m_temperatureOverride = 0.0;
+        m_hasTemperatureOverride = false;
+        m_settings.remove("brew/temperatureOverride");
+        m_settings.remove("brew/hasTemperatureOverride");
+        changed = true;
+    }
+
     if (changed) {
         emit brewOverridesChanged();
-    }
-}
-
-QString Settings::brewOverridesToJson() const {
-    QJsonObject obj;
-    if (m_hasTemperatureOverride) {
-        obj["temperature"] = m_temperatureOverride;
-    }
-    if (m_hasBrewYieldOverride) {
-        obj["yield"] = m_brewYieldOverride;
-    }
-    if (obj.isEmpty()) {
-        return QString();
-    }
-    return QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
-}
-
-void Settings::applyBrewOverridesFromJson(const QString& json) {
-    if (json.isEmpty()) return;
-
-    QJsonDocument doc = QJsonDocument::fromJson(json.toUtf8());
-    if (!doc.isObject()) return;
-
-    QJsonObject obj = doc.object();
-    if (obj.contains("yield")) {
-        setBrewYieldOverride(obj["yield"].toDouble());
-    }
-    if (obj.contains("temperature")) {
-        setTemperatureOverride(obj["temperature"].toDouble());
     }
 }
 

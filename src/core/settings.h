@@ -138,7 +138,7 @@ class Settings : public QObject {
     // Developer settings
     Q_PROPERTY(bool developerTranslationUpload READ developerTranslationUpload WRITE setDeveloperTranslationUpload NOTIFY developerTranslationUploadChanged)
 
-    // Temperature override (session-only, for next shot)
+    // Temperature override (persistent)
     Q_PROPERTY(double temperatureOverride READ temperatureOverride WRITE setTemperatureOverride NOTIFY temperatureOverrideChanged)
     Q_PROPERTY(bool hasTemperatureOverride READ hasTemperatureOverride NOTIFY temperatureOverrideChanged)
 
@@ -474,19 +474,17 @@ public:
     bool developerTranslationUpload() const;
     void setDeveloperTranslationUpload(bool enabled);
 
-    // Temperature override (session-only)
+    // Temperature override (persistent)
     double temperatureOverride() const;
     void setTemperatureOverride(double temp);
     bool hasTemperatureOverride() const;
     Q_INVOKABLE void clearTemperatureOverride();
 
-    // Brew parameter overrides (session-only)
+    // Brew parameter overrides (persistent)
     double brewYieldOverride() const;
     void setBrewYieldOverride(double yield);
     bool hasBrewYieldOverride() const;
-    void applyBrewOverridesFromJson(const QString& json);
     Q_INVOKABLE void clearAllBrewOverrides();
-    Q_INVOKABLE QString brewOverridesToJson() const;
 
     // Shot plan display
     bool showShotPlan() const;

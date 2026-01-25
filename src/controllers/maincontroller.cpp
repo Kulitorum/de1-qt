@@ -882,15 +882,24 @@ void MainController::loadShotWithMetadata(qint64 shotId) {
         m_settings->setSelectedBeanPreset(beanPresetIndex);
 
         // Apply brew overrides from history (after loadProfile cleared them)
-        if (!shotRecord.brewOverridesJson.isEmpty()) {
-            m_settings->applyBrewOverridesFromJson(shotRecord.brewOverridesJson);
+        if (shotRecord.hasTemperatureOverride) {
+            m_settings->setTemperatureOverride(shotRecord.temperatureOverride);
+        } else {
+            m_settings->clearTemperatureOverride();
+        }
+
+        if (shotRecord.hasYieldOverride) {
+            m_settings->setBrewYieldOverride(shotRecord.yieldOverride);
+        } else if (m_settings->hasBrewYieldOverride()) {
+            m_settings->clearAllBrewOverrides();
         }
 
         qDebug() << "Loaded shot metadata - brand:" << shotRecord.summary.beanBrand
                  << "type:" << shotRecord.summary.beanType
                  << "grinder:" << shotRecord.grinderModel << shotRecord.grinderSetting
                  << "beanPresetIndex:" << beanPresetIndex
-                 << "brewOverrides:" << shotRecord.brewOverridesJson;
+                 << "brewOverrides - temp:" << (shotRecord.hasTemperatureOverride ? QString::number(shotRecord.temperatureOverride) : "none")
+                 << "yield:" << (shotRecord.hasYieldOverride ? QString::number(shotRecord.yieldOverride) : "none");
     }
 }
 
@@ -2219,11 +2228,19 @@ void MainController::onShotEnded() {
     // Always clear brew-by-ratio mode when shot ends
     clearBrewByRatio();
 
-    // Capture brew overrides JSON before clearing (used later when saving shot)
-    m_shotBrewOverridesJson = m_settings ? m_settings->brewOverridesToJson() : QString();
+    // Capture brew overrides before clearing (used later when saving shot)
+    double shotTemperatureOverride = 0.0;
+    bool shotHasTemperatureOverride = false;
+    double shotYieldOverride = 0.0;
+    bool shotHasYieldOverride = false;
 
-    // Clear temperature override after shot
     if (m_settings) {
+        shotTemperatureOverride = m_settings->temperatureOverride();
+        shotHasTemperatureOverride = m_settings->hasTemperatureOverride();
+        shotYieldOverride = m_settings->brewYieldOverride();
+        shotHasYieldOverride = m_settings->hasBrewYieldOverride();
+
+        // Clear temperature override after shot
         m_settings->clearTemperatureOverride();
     }
 
@@ -2287,7 +2304,9 @@ void MainController::onShotEnded() {
         qint64 shotId = m_shotHistory->saveShot(
             m_shotDataModel, &m_currentProfile,
             duration, finalWeight, doseWeight,
-            metadata, debugLog, m_shotBrewOverridesJson);
+            metadata, debugLog,
+            shotTemperatureOverride, shotHasTemperatureOverride,
+            shotYieldOverride, shotHasYieldOverride);
         qDebug() << "[metadata] Shot saved to history with ID:" << shotId;
 
         // Store shot ID for post-shot review page (so it can edit the saved shot)
