@@ -2658,9 +2658,11 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
     if (m_timingController) {
         m_timingController->onShotSample(sample, pressureGoal, flowGoal, sample.setTempGoal,
                                           sample.frameNumber, isFlowMode);
+        // Use timing controller's time for graph data (ensures weight and other curves align)
+        time = m_timingController->shotTime();
     }
 
-    // Add sample data directly (timing controller also emits sampleReady but we keep this for backward compatibility)
+    // Add sample data to graph
     m_shotDataModel->addSample(time, sample.groupPressure,
                                sample.groupFlow, sample.headTemp,
                                pressureGoal, flowGoal, sample.setTempGoal,

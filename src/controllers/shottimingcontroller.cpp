@@ -18,6 +18,10 @@ ShotTimingController::ShotTimingController(DE1Device* device, QObject* parent)
 
 double ShotTimingController::shotTime() const
 {
+    // Show 0 during preheating, start counting when extraction begins (frame 0)
+    if (!m_extractionStarted) {
+        return 0.0;
+    }
     if (m_shotActive && m_displayTimeBase > 0) {
         // Calculate time from wall clock for smooth UI updates between BLE samples
         qint64 elapsed = QDateTime::currentMSecsSinceEpoch() - m_displayTimeBase;
@@ -80,7 +84,6 @@ void ShotTimingController::startShot()
     qDebug() << "[REFACTOR] m_targetWeight =" << m_targetWeight;
 
     // Reset all timing state
-    m_bleTimeBase = 0;
     m_currentTime = 0;
     m_shotActive = true;
 
@@ -129,12 +132,6 @@ void ShotTimingController::onShotSample(const ShotSample& sample, double pressur
         return;
     }
 
-    // First sample of this shot - set the base time
-    if (m_bleTimeBase == 0) {
-        m_bleTimeBase = sample.timer;
-        qDebug() << "[REFACTOR] FIRST BLE SAMPLE - base time =" << m_bleTimeBase;
-    }
-
     // Track frame number change and detect extraction start
     if (frameNumber != m_currentFrameNumber) {
         if (m_currentProfile && frameNumber >= 0 && frameNumber < m_currentProfile->steps().size()) {
@@ -150,21 +147,17 @@ void ShotTimingController::onShotSample(const ShotSample& sample, double pressur
         m_currentFrameNumber = frameNumber;
 
         // Extraction starts when frame 0 is reached (preheating shows higher frame numbers like 2-3)
-        // Reset timer base so shot timer starts from 0 at extraction, not at preheating
+        // Reset timer to 0 at extraction start
         if (frameNumber == 0 && !m_extractionStarted) {
             m_extractionStarted = true;
-            m_bleTimeBase = sample.timer;  // Reset timer to 0 at extraction start
+            m_displayTimeBase = QDateTime::currentMSecsSinceEpoch();  // Reset wall clock base
             qDebug() << "[REFACTOR] EXTRACTION STARTED - frame 0 reached, timer reset to 0, weight tracking enabled";
         }
     }
 
-    // Calculate relative time from DE1's BLE timer (single source of truth)
-    // This is done after frame 0 detection so timer shows 0 at extraction start
-    double time = sample.timer - m_bleTimeBase;
+    // Calculate time from wall clock (simple and reliable)
+    double time = (QDateTime::currentMSecsSinceEpoch() - m_displayTimeBase) / 1000.0;
     m_currentTime = time;
-
-    // Sync display timer base to match BLE time
-    m_displayTimeBase = QDateTime::currentMSecsSinceEpoch() - static_cast<qint64>(time * 1000);
 
     // Log sample data periodically
     static int sampleCount = 0;
@@ -182,6 +175,12 @@ void ShotTimingController::onShotSample(const ShotSample& sample, double pressur
     // Emit unified sample with consistent timestamp
     emit sampleReady(time, sample.groupPressure, sample.groupFlow, sample.headTemp,
                      pressureGoal, flowGoal, tempGoal, frameNumber, isFlowMode);
+
+    // Emit weight sample with same timestamp as other curves (perfect sync)
+    // Weight value is cached from onWeightSample, emitted here for graph alignment
+    if (m_extractionStarted && m_weight >= 0.1) {
+        emit weightSampleReady(time, m_weight);
+    }
 }
 
 void ShotTimingController::onWeightSample(double weight, double flowRate)
@@ -215,27 +214,12 @@ void ShotTimingController::onWeightSample(double weight, double flowRate)
         return;
     }
 
-    double oldWeight = m_weight;
     m_weight = weight;
     m_flowRate = flowRate;
 
     emit weightChanged();
 
-    // Use the last BLE sample time for weight timestamp
-    // This ensures weight curve aligns with pressure/flow curves
-    double time = m_currentTime;
-
-    // Log weight being sent to graph
-    static int graphCount = 0;
-    if (++graphCount % 10 == 1 || qAbs(weight - oldWeight) > 0.5) {
-        qDebug() << "[REFACTOR] WEIGHT->GRAPH: time=" << QString::number(time, 'f', 2)
-                 << "weight=" << QString::number(weight, 'f', 2)
-                 << "frame=" << m_currentFrameNumber;
-    }
-
-    // Emit weight sample for graph
-    emit weightSampleReady(time, weight);
-
+    // Weight is cached here, emitted to graph in onShotSample for perfect timestamp sync
     // Check stop conditions
     checkStopAtWeight();
 

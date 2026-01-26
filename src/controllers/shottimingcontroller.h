@@ -94,9 +94,8 @@ private:
     MachineState* m_machineState = nullptr;
     const Profile* m_currentProfile = nullptr;
 
-    // Timing state (single source of truth: DE1's BLE timer)
-    double m_bleTimeBase = 0;      // First BLE timestamp (shot start)
-    double m_currentTime = 0;      // Current shot time (relative to base)
+    // Timing state (wall clock based - simple and reliable)
+    double m_currentTime = 0;      // Current shot time in seconds
     bool m_shotActive = false;
 
     // Weight state
