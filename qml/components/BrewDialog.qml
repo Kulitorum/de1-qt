@@ -10,6 +10,11 @@ Dialog {
     width: Theme.scaled(420)
     modal: true
     padding: 0
+    title: qsTr("Brew Settings")
+
+    // Accessibility: announce dialog when opened
+    Accessible.role: Accessible.Dialog
+    Accessible.name: title
 
     // Temperature override
     property double temperatureValue: MainController.profileTargetTemperature
@@ -45,6 +50,17 @@ Dialog {
     }
 
     onAboutToShow: {
+        // Announce dialog for accessibility
+        if (typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+            var announcement = qsTr("Brew Settings dialog. Profile: ") + MainController.currentProfileName
+            if (Settings.dyeBeanBrand.length > 0 || Settings.dyeBeanType.length > 0) {
+                announcement += ". " + qsTr("Beans: ")
+                if (Settings.dyeBeanBrand.length > 0) announcement += Settings.dyeBeanBrand
+                if (Settings.dyeBeanType.length > 0) announcement += " " + Settings.dyeBeanType
+            }
+            AccessibilityManager.announce(announcement)
+        }
+
         // Update profile temperature, use override if active
         profileTemperature = MainController.profileTargetTemperature
         profileTargetWeight = MainController.targetWeight
@@ -94,6 +110,7 @@ Dialog {
                 text: qsTr("Brew Settings")
                 font: Theme.titleFont
                 color: Theme.textColor
+                Accessible.ignored: true  // Dialog title announced on open
             }
 
             Rectangle {
@@ -115,6 +132,19 @@ Dialog {
             radius: Theme.scaled(8)
             implicitHeight: recipeColumn.implicitHeight + Theme.scaled(16)
 
+            // Accessibility: group the recipe info as one element
+            Accessible.role: Accessible.StaticText
+            Accessible.name: {
+                var name = qsTr("Base Recipe: ") + MainController.currentProfileName
+                if (Settings.dyeBeanBrand.length > 0 || Settings.dyeBeanType.length > 0) {
+                    name += ". " + qsTr("Beans: ")
+                    if (Settings.dyeBeanBrand.length > 0) name += Settings.dyeBeanBrand
+                    if (Settings.dyeBeanType.length > 0) name += " " + Settings.dyeBeanType
+                }
+                return name
+            }
+            Accessible.focusable: true
+
             ColumnLayout {
                 id: recipeColumn
                 anchors.fill: parent
@@ -127,6 +157,7 @@ Dialog {
                     font.pixelSize: Theme.scaled(11)
                     font.bold: true
                     color: Theme.textSecondaryColor
+                    Accessible.ignored: true  // Parent handles accessibility
                 }
 
                 Text {
@@ -135,6 +166,7 @@ Dialog {
                     color: Theme.textColor
                     elide: Text.ElideRight
                     Layout.fillWidth: true
+                    Accessible.ignored: true  // Parent handles accessibility
                 }
 
                 Text {
@@ -150,6 +182,7 @@ Dialog {
                     color: Theme.textSecondaryColor
                     elide: Text.ElideRight
                     Layout.fillWidth: true
+                    Accessible.ignored: true  // Parent handles accessibility
                 }
             }
         }
@@ -171,6 +204,18 @@ Dialog {
                 radius: Theme.scaled(8)
                 implicitHeight: warningText.implicitHeight + Theme.scaled(24)
 
+                // Accessibility: announce warning and make it focusable
+                Accessible.role: Accessible.AlertMessage
+                Accessible.name: warningText.text
+                Accessible.focusable: true
+
+                // Announce warning when it becomes visible
+                onVisibleChanged: {
+                    if (visible && typeof AccessibilityManager !== "undefined" && AccessibilityManager.enabled) {
+                        AccessibilityManager.announce(qsTr("Warning: ") + warningText.text)
+                    }
+                }
+
                 Text {
                     id: warningText
                     anchors.left: parent.left
@@ -182,6 +227,7 @@ Dialog {
                     color: Theme.warningColor
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
+                    Accessible.ignored: true  // Parent handles accessibility
                 }
             }
 
@@ -200,6 +246,7 @@ Dialog {
                         color: Theme.textSecondaryColor
                         Layout.alignment: Qt.AlignVCenter
                         Layout.preferredWidth: Theme.scaled(55)
+                        Accessible.ignored: true  // Label for sighted users; input has accessibleName
                     }
 
                     ValueInput {
@@ -254,6 +301,8 @@ Dialog {
                     color: Theme.textSecondaryColor
                     Layout.alignment: Qt.AlignHCenter
                     Layout.leftMargin: Theme.scaled(55) + Theme.scaled(8)
+                    Accessible.role: Accessible.StaticText
+                    Accessible.name: qsTr("Profile default temperature: %1 degrees").arg(root.profileTemperature.toFixed(1))
                 }
             }
 
@@ -268,6 +317,7 @@ Dialog {
                     color: Theme.textSecondaryColor
                     Layout.alignment: Qt.AlignVCenter
                     Layout.preferredWidth: Theme.scaled(55)
+                    Accessible.ignored: true  // Label for sighted users; input has accessibleName
                 }
 
                 ValueInput {
@@ -320,6 +370,7 @@ Dialog {
                     font: Theme.bodyFont
                     color: Theme.textSecondaryColor
                     Layout.preferredWidth: Theme.scaled(55)
+                    Accessible.ignored: true  // Label for sighted users; input has accessibleName
                 }
 
                 ValueInput {
@@ -355,6 +406,7 @@ Dialog {
                         color: Theme.textSecondaryColor
                         Layout.alignment: Qt.AlignVCenter
                         Layout.preferredWidth: Theme.scaled(55)
+                        Accessible.ignored: true  // Label for sighted users; input has accessibleName
                     }
 
                     ValueInput {
@@ -415,6 +467,7 @@ Dialog {
                     color: Theme.textSecondaryColor
                     Layout.alignment: Qt.AlignVCenter
                     Layout.preferredWidth: Theme.scaled(55)
+                    Accessible.ignored: true  // Label for sighted users; input has accessibleName
                 }
 
                 StyledTextField {
