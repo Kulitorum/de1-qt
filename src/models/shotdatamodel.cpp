@@ -18,7 +18,7 @@ ShotDataModel::ShotDataModel(QObject* parent)
     m_flowGoalSegments.append(QVector<QPointF>());
     m_flowGoalSegments[0].reserve(INITIAL_CAPACITY);
 
-    // Timer for batched chart updates at 30fps
+    // Backup timer for edge cases (main updates happen immediately on sample arrival)
     m_flushTimer = new QTimer(this);
     m_flushTimer->setInterval(FLUSH_INTERVAL_MS);
     m_flushTimer->setTimerType(Qt::PreciseTimer);
@@ -35,6 +35,7 @@ void ShotDataModel::registerSeries(QLineSeries* pressure, QLineSeries* flow, QLi
                                     const QVariantList& pressureGoalSegments, const QVariantList& flowGoalSegments,
                                     QLineSeries* temperatureGoal,
                                     QLineSeries* weight, QLineSeries* extractionMarker,
+                                    QLineSeries* stopMarker,
                                     const QVariantList& frameMarkers) {
     m_pressureSeries = pressure;
     m_flowSeries = flow;
@@ -42,6 +43,7 @@ void ShotDataModel::registerSeries(QLineSeries* pressure, QLineSeries* flow, QLi
     m_temperatureGoalSeries = temperatureGoal;
     m_weightSeries = weight;
     m_extractionMarkerSeries = extractionMarker;
+    m_stopMarkerSeries = stopMarker;
 
     // Register pressure goal segment series
     m_pressureGoalSeriesList.clear();
@@ -127,6 +129,8 @@ void ShotDataModel::clear() {
     if (m_temperatureGoalSeries) m_temperatureGoalSeries->clear();
     if (m_weightSeries) m_weightSeries->clear();
     if (m_extractionMarkerSeries) m_extractionMarkerSeries->clear();
+    if (m_stopMarkerSeries) m_stopMarkerSeries->clear();
+    m_pendingStopTime = -1;
 
     // Clear all goal segment series
     for (const auto& series : m_pressureGoalSeriesList) {
@@ -214,6 +218,7 @@ void ShotDataModel::addSample(double time, double pressure, double flow, double 
     }
 
     m_dirty = true;
+    flushToChart();  // Immediate update for snappy feel
 }
 
 void ShotDataModel::addWeightSample(double time, double weight, double flowRate) {
@@ -238,6 +243,7 @@ void ShotDataModel::addWeightSample(double time, double weight) {
     // Plot cumulative weight (g) - shows weight progression during shot (0g -> 36g typical)
     m_weightPoints.append(QPointF(time, weight));
     m_dirty = true;
+    flushToChart();  // Immediate update for snappy feel
 }
 
 void ShotDataModel::markExtractionStart(double time) {
@@ -247,6 +253,19 @@ void ShotDataModel::markExtractionStart(double time) {
     marker.time = time;
     marker.label = "Start";
     marker.frameNumber = 0;
+    m_phaseMarkers.append(marker);
+
+    m_dirty = true;
+    emit phaseMarkersChanged();
+}
+
+void ShotDataModel::markStopAt(double time) {
+    m_pendingStopTime = time;
+
+    PhaseMarker marker;
+    marker.time = time;
+    marker.label = "End";
+    marker.frameNumber = -1;
     m_phaseMarkers.append(marker);
 
     m_dirty = true;
@@ -321,6 +340,14 @@ void ShotDataModel::flushToChart() {
         }
     }
     m_pendingMarkers.clear();
+
+    // Draw stop marker if pending
+    if (m_pendingStopTime >= 0 && m_stopMarkerSeries) {
+        m_stopMarkerSeries->clear();  // Clear any existing line
+        m_stopMarkerSeries->append(m_pendingStopTime, 0);
+        m_stopMarkerSeries->append(m_pendingStopTime, 12);
+        m_pendingStopTime = -1;  // Mark as drawn
+    }
 
     m_dirty = false;
 }

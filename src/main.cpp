@@ -137,6 +137,12 @@ int main(int argc, char *argv[])
     QObject::connect(&timingController, &ShotTimingController::stopAtWeightReached,
                      &machineState, &MachineState::targetWeightReached);
 
+    // Mark stop time on graph when SAW triggers
+    QObject::connect(&timingController, &ShotTimingController::stopAtWeightReached,
+                     [&timingController, &shotDataModel]() {
+                         shotDataModel.markStopAt(timingController.shotTime());
+                     });
+
     // Connect per-frame weight exit to DE1
     QObject::connect(&timingController, &ShotTimingController::perFrameWeightReached,
                      [&de1Device](int frameNumber) {

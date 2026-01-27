@@ -123,12 +123,14 @@ void ShotTimingController::onShotSample(const ShotSample& sample, double pressur
                                          double flowGoal, double tempGoal,
                                          int frameNumber, bool isFlowMode)
 {
-    if (!m_shotActive) {
+    // Keep capturing samples during settling (shows pressure/flow declining after stop)
+    bool isSettling = m_settlingTimer.isActive();
+    if (!m_shotActive && !isSettling) {
         return;
     }
 
-    // Track frame number change and detect extraction start
-    if (frameNumber != m_currentFrameNumber) {
+    // Track frame number change and detect extraction start (skip during settling)
+    if (!isSettling && frameNumber != m_currentFrameNumber) {
         if (m_currentProfile && frameNumber >= 0 && frameNumber < m_currentProfile->steps().size()) {
             const auto& frame = m_currentProfile->steps()[frameNumber];
             qDebug() << "FRAME CHANGE:" << m_currentFrameNumber << "->" << frameNumber

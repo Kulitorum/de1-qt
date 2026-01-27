@@ -2556,12 +2556,13 @@ void MainController::onShotSampleReceived(const ShotSample& sample) {
     }
     m_lastSampleTime = sample.timer;
 
-    // Record shot data only during active espresso phases (not Ending - shot already saved)
+    // Record shot data only during active espresso phases OR during settling (for drip visualization)
     bool isEspressoPhase = (phase == MachineState::Phase::EspressoPreheating ||
                            phase == MachineState::Phase::Preinfusion ||
                            phase == MachineState::Phase::Pouring);
+    bool isSettling = m_timingController && m_timingController->isSawSettling();
 
-    if (!isEspressoPhase) {
+    if (!isEspressoPhase && !isSettling) {
         return;
     }
 

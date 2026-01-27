@@ -35,6 +35,7 @@ public:
                                      const QVariantList& pressureGoalSegments, const QVariantList& flowGoalSegments,
                                      QLineSeries* temperatureGoal,
                                      QLineSeries* weight, QLineSeries* extractionMarker,
+                                     QLineSeries* stopMarker,
                                      const QVariantList& frameMarkers);
 
     // Data export for visualizer upload
@@ -58,6 +59,7 @@ public slots:
     void addWeightSample(double time, double weight, double flowRate);
     void addWeightSample(double time, double weight);  // Overload without flowRate (from ShotTimingController)
     void markExtractionStart(double time);
+    void markStopAt(double time);  // Mark when SAW or user stopped the shot
     void addPhaseMarker(double time, const QString& label, int frameNumber = -1, bool isFlowMode = false);
 
 signals:
@@ -89,6 +91,7 @@ private:
     QPointer<QLineSeries> m_temperatureGoalSeries;
     QPointer<QLineSeries> m_weightSeries;
     QPointer<QLineSeries> m_extractionMarkerSeries;
+    QPointer<QLineSeries> m_stopMarkerSeries;
     QList<QPointer<QLineSeries>> m_frameMarkerSeries;
 
     // Batched update timer (30fps)
@@ -106,7 +109,8 @@ private:
     // Phase markers for QML labels
     QList<PhaseMarker> m_phaseMarkers;
     QList<QPair<double, QString>> m_pendingMarkers;  // Pending vertical lines
+    double m_pendingStopTime = -1;  // Stop marker time (-1 = none)
 
-    static constexpr int FLUSH_INTERVAL_MS = 33;  // ~30fps
+    static constexpr int FLUSH_INTERVAL_MS = 33;  // Backup timer; main updates are immediate on sample arrival
     static constexpr int INITIAL_CAPACITY = 600;  // Pre-allocate for 2min at 5Hz
 };

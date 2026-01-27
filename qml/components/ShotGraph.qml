@@ -21,7 +21,7 @@ ChartView {
             [pressureGoal1, pressureGoal2, pressureGoal3, pressureGoal4, pressureGoal5],
             [flowGoal1, flowGoal2, flowGoal3, flowGoal4, flowGoal5],
             temperatureGoalSeries,
-            weightSeries, extractionStartMarker,
+            weightSeries, extractionStartMarker, stopMarker,
             [frameMarker1, frameMarker2, frameMarker3, frameMarker4, frameMarker5,
              frameMarker6, frameMarker7, frameMarker8, frameMarker9, frameMarker10]
         )
@@ -98,6 +98,16 @@ ChartView {
         id: extractionStartMarker
         name: ""
         color: Theme.accentColor
+        width: Theme.scaled(2)
+        style: Qt.DashDotLine
+        axisX: timeAxis
+        axisY: pressureAxis
+    }
+
+    LineSeries {
+        id: stopMarker
+        name: ""
+        color: "#FF6B6B"  // Red-ish color for stop
         width: Theme.scaled(2)
         style: Qt.DashDotLine
         axisX: timeAxis
@@ -190,6 +200,7 @@ ChartView {
             property double markerTime: modelData.time
             property string markerLabel: modelData.label
             property bool isStart: modelData.label === "Start"
+            property bool isEnd: modelData.label === "End"
 
             // Calculate position using timeAxis.max for consistent scaling with smooth scroll
             x: chart.plotArea.x + (markerTime / timeAxis.max) * chart.plotArea.width
@@ -200,8 +211,8 @@ ChartView {
             Text {
                 text: markerLabel
                 font.pixelSize: Theme.scaled(18)
-                font.bold: isStart
-                color: isStart ? Theme.accentColor : Qt.rgba(255, 255, 255, 0.8)
+                font.bold: isStart || isEnd
+                color: isStart ? Theme.accentColor : (isEnd ? "#FF6B6B" : Qt.rgba(255, 255, 255, 0.8))
                 rotation: -90
                 transformOrigin: Item.TopLeft
                 x: Theme.scaled(4)
